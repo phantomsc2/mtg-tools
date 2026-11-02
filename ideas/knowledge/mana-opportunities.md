@@ -31,3 +31,26 @@ turn; old penalties on normalized conditional coverage are not transferable.
 The module uses only the standard library. Tests compare against physical draws
 and exhaustive mana assignments. Full repository tests require the neighboring
 leitwerk checkout on PYTHONPATH if it is not installed in the test environment.
+
+## Shared search components
+
+`mana_search.py` averages exact per-turn expectations from the evaluator into a
+component vector per base. It stores no draw-dependent importance or penalty;
+ranking is a rational dot product minus composition penalties. Duplicate cost
+entries use a copy-weighted default importance, so ranking reproduces evaluate.
+Overrides replace that cost's importance rather than multiplying it.
+
+ManaSpace uses caller-supplied lower/upper bounds and a fixed total land count.
+Its counting DP sizes an exhaustive pool without enumeration. Exhaustive tables
+cover the complete bounded pool; one-swap tables cover the starting base plus
+legal one-land replacements, without recentering or hill climbing.
+
+Sensitivity treats a selected absolute weight or penalty x as a nonnegative
+variable. Each base is a line a+b*x. Baseline optimality is the intersection of
+linear inequalities against all candidates; equalities count as ties. A finite
+endpoint gives the outward successor by extremal slope. Pairwise roots remain
+useful for nonoptimal references, which have no next-optimum transitions.
+All thresholds and intervals use Fraction, including decimal parameter inputs.
+Claims are always relative to the evaluated candidate set, never to all possible
+land pools. Current table construction evaluates bases independently; it does
+not revive the old cross-base binomial-transform optimization.

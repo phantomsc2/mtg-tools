@@ -32,7 +32,7 @@ This measures sustained availability with optimistic land selection. It ignores
 sequencing, previously cast spells, tapped entry, conditional mana and Cavern.
 Counts describe the actual spell package; weights describe importance. Deck size
 is inferred from all land and spell counts. Only ordinary generic and WUBRG costs
-are supported. Mana-base search and decklist import are not wired yet.
+are supported. Decklist import is not wired yet.
 
 Run `python -m examples.sultai` for the sample Sultai cost profile and an
 illustrative mana base. The [original decklist](resources/decks/evoke_elementals.txt)
@@ -43,6 +43,50 @@ See [calculation notes](ideas/knowledge/mana-opportunities.md) for the mathemati
 python -m unittest -v test_mana_opportunities
 python -m doctest mana_opportunities.py
 ```
+
+## Mana-base search and crossings
+
+`mana_search.py` builds a shared component table: exact mean opportunities per
+cost, plus dual/rainbow counts, for each candidate base. Physical spell counts
+and evaluation settings are fixed when the table is built. Importance weights
+and penalties can then change without repeating draw calculations.
+
+```python
+from mana_search import ManaSpace, build_component_table
+
+space = ManaSpace({source: (max(0, n - 1), n + 1) for source, n in base.items()}, land_count=26)
+print(space.candidate_count())  # Size before paying the evaluation cost
+table = build_component_table(space, spells, mode="one_swap", baseline=base)
+best = table.rank(dual_penalty=0.01, rainbow_penalty=0.02)[0]
+change = table.crossings("UU", dual_penalty=0.01, rainbow_penalty=0.02)
+```
+
+Choose `mode="exhaustive"` to evaluate every composition within the caller's
+bounds, or `mode="one_swap"` for the starting base and legal one-land replacements.
+Ranked rows include score changes and concrete OUT/IN counts relative to the
+supplied baseline. No repeated hill climbing or automatic large-space search occurs.
+
+`rank(weights={"UU": 2})` replaces the weight for that cost, keeping other defaults.
+Canonical-equivalent input costs share a column. Duplicate entries' original
+weights combine by physical-copy-weighted mean, reproducing the evaluator.
+Ranking, penalties, and crossings use fractions; finite decimal inputs retain
+their decimal values exactly.
+
+`crossings("UU")`, `crossings("dual_penalty")`, or `crossings("rainbow_penalty")`
+varies one **absolute** parameter over values >= 0. Results include pairwise tie
+thresholds and which side favors each candidate, the baseline's closed optimality
+interval (including ties), and the next winner in either direction when the
+baseline is currently optimal. Simultaneous crossings select the outward winning
+slope, then fewest replacements, then canonical source-count order.
+
+An exhaustive table without a supplied baseline uses the current winner for
+crossings. A one-swap table uses its starting base; if it is already suboptimal,
+pairwise comparisons still work but next-optimum transitions are absent. An
+explicit `baseline=` can select another evaluated reference. Guarantees always
+cover only the table's candidate set; one-swap results are local.
+
+Run `python -m examples.sultai_search` to compare both analyses on a small bounded
+pool, with separate timings for building the table and querying it.
 
 ## Generic hand experiments
 
