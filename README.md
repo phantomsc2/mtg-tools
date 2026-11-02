@@ -13,6 +13,15 @@ Run `python mana_search.py` (requires NumPy) for an exhaustive comparison of all
 with one fixed Swamp and up to four of each Sultai shock, Sultai Verge, Starting Town and Cavern.
 See the [search results](reports/mana-base-search.md) and [complete exact ranking](reports/mana-base-search.csv).
 
+`python mana_dual_search.py` evaluates all 378 distributions of 26 unlimited U/B, B/G and U/G duals.
+See the [idealized dual results](reports/idealized-dual-search.md).
+
+`python mana_regularization.py --penalty 0.004` ranks the actual pool after adding a constant
+loss penalty per shockland or Starting Town. See the [regularized results](reports/regularized-mana-search.md).
+
+`python mana_fifth_copy.py` tests fifth Town, Tomb, Grave and Cavern copies independently and together,
+at the same regularization weight. See the [fifth-copy results](reports/fifth-copy-search.md).
+
 Compute the exact expected value of your own `Counter[TCard] -> float` function over unordered hands,
 then optimize integer deck compositions. `TCard` can be any hashable type. The supplied immutable `Card`
 has a name, mana value, and role tags; a multi-role card is still drawn only once.

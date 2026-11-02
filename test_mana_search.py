@@ -39,6 +39,16 @@ class ManaSearchTests(unittest.TestCase):
             self.assertEqual(denominator, conditioning)
             self.assertEqual(Fraction(int(weights[counts]), denominator), expected)
 
+    def test_fifth_copy_capacity(self):
+        counts = (1, 5, 4, 4, 3, 3, 2, 2, 2)
+        deck = Counter(dict(zip(NAMES, counts)))
+        deck.update({"target": 4, "other": 30})
+        mode = Mode("target", "test", 0, "BGU", False)
+        weights, denominator = event_weights(3, "BGU", False, 4, 9, capacities=counts)
+        expected, numerator, conditioning = probability(deck, mode, 9)
+        self.assertEqual((int(weights[counts]), denominator), (numerator, conditioning))
+        self.assertEqual(Fraction(numerator, denominator), expected)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,13 @@
+Deck
+4 Superior Spider-Man (MODEL) 0
+4 Deceit (MODEL) 0
+4 Wistfulness (MODEL) 0
+4 Formidable Speaker (MODEL) 0
+3 Bitter Triumph (MODEL) 0
+4 Moonshadow (MODEL) 0
+4 Emptiness (MODEL) 0
+4 Sunderflock (MODEL) 0
+3 Awaken the Honored Dead (MODEL) 0
+11 Watery Grave (MODEL) 0
+8 Overgrown Tomb (MODEL) 0
+7 Breeding Pool (MODEL) 0
