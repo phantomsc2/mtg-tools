@@ -3,4 +3,7 @@
 __pycache__/
 /.python/
 /.cache/
-/resources/
+/resources/*
+!/resources/decks/
+/resources/decks/*
+!/resources/decks/evoke_elementals.txt

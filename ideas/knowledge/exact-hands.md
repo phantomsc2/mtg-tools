@@ -1,8 +1,8 @@
 # Exact hand experiment
 
-The original scripts are historical references: the playout scripts sample with replacement,
-the evolutionary cache loses category identity through frozenset, and the probability scripts
-optimize fractional counts that do not define finite-deck hypergeometric probabilities.
+The original playout and fractional-count scripts were removed when introducing
+the standalone mana-opportunity evaluator. They sampled with replacement, lost category
+identity through frozenset caching, or used fractional finite-deck counts.
 
 The new entry point is experiment.py, with exact expectations in hands.py and integer searches
 in search.py. The project uses uv with editable ../leitwerk, currently 0.9.0. Its Optimizer accepts

@@ -1,7 +1,0 @@
-{
-  "deck": "resources/decks/evoke_elementals.txt",
-  "changes": {"Awaken the Honored Dead": -1, "Bitter Triumph": 1},
-  "weights": {},
-  "penalty": "0.0032",
-  "output": "reports/mana-report"
-}

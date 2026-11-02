@@ -1,66 +1,50 @@
-# MTG hand experiments
+# MTG mana and hand analysis
 
-## Interactive mana explorer
+## Mana opportunities
 
-Install the notebook extras with `uv sync --extra notebook`, then run `uv run jupyter lab`
-and open [mana_explorer.ipynb](mana_explorer.ipynb). Run its setup cell, choose spell copies,
-weights and penalty, then press **Run analysis**. The land count is inferred from 60 cards.
-The display marks results stale when inputs change; a full run can take several minutes.
-The search is exhaustive only within the bounded land pool described in the notebook.
+[The standalone evaluator](mana_opportunities.py) scores a supplied mana base
+against casting-cost counts and optional importance weights. It uses only the
+Python standard library.
 
-## Full optimum and swap report
+```python
+from mana_opportunities import ManaSource, SpellCost, evaluate
 
-Run `python mana_report.py --config mana-report.json` to regenerate the
-[complete mana report](reports/mana-report.md): optimal 26-land base, 34 nonlands, per-card
-lower/higher-importance crossing swaps, and separate play/draw T1–T6 coverage tables.
-The supplied configuration explicitly replaces one Awaken with one Bitter Triumph and fixes lambda=0.0032.
-The source deck file stays unchanged. Every input, candidate and suggested resulting deck must contain 60 cards.
+base = {
+    ManaSource("U", "basic"): 8,
+    ManaSource("B", "basic"): 8,
+    ManaSource("UB", "dual"): 6,
+    ManaSource("WUBRG", "rainbow"): 4,
+}
+spells = [SpellCost("UU", 12), SpellCost("BB", 21, weight=2), SpellCost("WWBU", 1, weight=0.05)]
+result = evaluate(base, spells, dual_penalty=0.01, rainbow_penalty=0.02)
+print(result.score)
+# Exact unweighted expectations and weighted contributions by cost, turn, position:
+print(result.opportunities[0])
+```
 
-Each suggestion records the exact first crossing, concrete OUT/IN counts, the target card's probability
-change and the fitness cost at the original weights. Scores tie at the crossing; the new base wins just beyond it.
-The report also compares both spell packages and isolates the gain from adjusting the lands under the revised package.
-Search is exhaustive in the established bounded 59,109-base pool, not unrestricted-basics optimization.
+Each drawn physical copy contributes its weight whenever its cost is payable.
+Copies and different costs score independently, even when they cannot all be cast
+with the same mana. The score averages T1 through T7 and play/draw equally by
+default, then subtracts the per-land dual/rainbow penalties. Mana shortage remains
+in the draw distribution. Zero-weight cards still occupy deck slots.
 
-JSON retains exact fractions; CSV exports the two directions per card, and `.deck.txt` exports the optimal full deck.
-Configure `deck`, physical nonland `changes`, positive per-card `weights`, `penalty`, and `output` in JSON.
-Paths are relative to the config file. CLI options override defaults; explicit `--changes` and `--weights` take JSON objects.
-Omitting the configuration applies no physical spell-count changes.
+This measures sustained availability with optimistic land selection. It ignores
+sequencing, previously cast spells, tapped entry, conditional mana and Cavern.
+Counts describe the actual spell package; weights describe importance. Deck size
+is inferred from all land and spell counts. Only ordinary generic and WUBRG costs
+are supported. Mana-base search and decklist import are not wired yet.
 
-## Sultai mana-base analysis
+Run `python -m examples.sultai` for the sample Sultai cost profile and an
+illustrative mana base. The [original decklist](resources/decks/evoke_elementals.txt)
+is retained as sample input; all Sultai-specific choices live in the example.
+See [calculation notes](ideas/knowledge/mana-opportunities.md) for the mathematics.
 
-Run `python mana_analysis.py` for the main deck in `resources/decks/evoke_elementals.txt`.
-The [full table](reports/sultai-mana.md) reports every nonland and agreed casting mode on the play/draw;
-the [CSV](reports/sultai-mana.csv) retains exact fractions and integer event weights.
-See [assumptions and mathematics](ideas/knowledge/mana-analysis.md) for the conditioning model,
-conditional lands, Spider-Man copying Elementals, and hypothetical Sunderflock discount scenarios.
-This command needs only the standard library.
+```sh
+python -m unittest -v test_mana_opportunities
+python -m doctest mana_opportunities.py
+```
 
-Run `python mana_search.py` (requires NumPy) for an exhaustive comparison of all 26-land bases
-with one fixed Swamp and up to four of each Sultai shock, Sultai Verge, Starting Town and Cavern.
-See the [search results](reports/mana-base-search.md) and [complete exact ranking](reports/mana-base-search.csv).
-
-`python mana_dual_search.py` evaluates all 378 distributions of 26 unlimited U/B, B/G and U/G duals.
-See the [idealized dual results](reports/idealized-dual-search.md).
-
-`python mana_regularization.py --penalty 0.004` ranks the actual pool after adding a constant
-loss penalty per shockland or Starting Town. See the [regularized results](reports/regularized-mana-search.md).
-The same command writes an [8–12 shock penalty sweep](reports/shock-penalty-sweep.md), including
-exact optimality intervals, example coefficients and each winning composition.
-
-`python mana_basic_search.py` tests adding basics around those optima and evaluates all 59,109 bases
-with up to two Swamps, one Island and one Forest. See [basic-land sensitivity](reports/basic-land-sensitivity.md).
-This is a bounded neighborhood, not an exhaustive search with unrestricted basics.
-It also writes the [basic-land penalty frontier](reports/basic-land-penalty-frontier.md) and
-the [first shock-return transition](reports/basic-shock-transition.md) when reducing lambda from 0.004.
-
-`python mana_card_weight_search.py` increases Awaken the Honored Dead's relative importance at
-lambda=0.0032 until the optimal base changes. Use `--weight 1.10` to set the multiplier explicitly.
-`--config weights.json` accepts `weight`, `penalty` and `output` defaults; CLI options take precedence.
-Weights multiply physical copy counts and the weighted average is renormalized; mode/play-draw
-weights stay uniform. See [Awaken weight sensitivity](reports/awaken-weight-search.md).
-
-`python mana_fifth_copy.py` tests fifth Town, Tomb, Grave and Cavern copies independently and together,
-at the same regularization weight. See the [fifth-copy results](reports/fifth-copy-search.md).
+## Generic hand experiments
 
 Compute the exact expected value of your own `Counter[TCard] -> float` function over unordered hands,
 then optimize integer deck compositions. `TCard` can be any hashable type. The supplied immutable `Card`
@@ -111,4 +95,4 @@ method guarantees the global optimum. The tests compare both with an exhaustivel
 
 Enumeration grows combinatorially with the number of types and hand size. Start with a few broad
 types; the example prints its initial feasible-hand count. This iteration excludes mulligans, color,
-tapped lands, sideboards, and playouts. The original scripts are retained as historical experiments.
+tapped lands, sideboards, and playouts.
