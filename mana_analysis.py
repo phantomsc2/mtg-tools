@@ -29,6 +29,8 @@ LANDS = {
     "Overgrown Tomb": Land("BG", "BG"),
     "Watery Grave": Land("UB", "UB"),
     "Swamp": Land("B", "B"),
+    "Island": Land("U", "U"),
+    "Forest": Land("G", "G"),
     "Cavern of Souls": Land("", cavern=True),
     "Starting Town": Land(COLORS),
     "Gloomlake Verge": Land("U", conditional="B", requires="UB"),

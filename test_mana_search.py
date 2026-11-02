@@ -49,6 +49,19 @@ class ManaSearchTests(unittest.TestCase):
         self.assertEqual((int(weights[counts]), denominator), (numerator, conditioning))
         self.assertEqual(Fraction(numerator, denominator), expected)
 
+    def test_basic_land_categories(self):
+        names = ("Swamp", "Island", "Forest", "Gloomlake Verge", "Willowrush Verge", "Wastewood Verge")
+        counts = (4, 4, 6, 4, 4, 4)
+        deck = Counter(dict(zip(names, counts)))
+        deck.update({"target": 4, "other": 30})
+        for colored in ("BB", "GG", "BGU"):
+            weights, denominator = event_weights(len(colored), colored, False, 4, len(colored)+6,
+                                                 capacities=counts, names=names)
+            value, numerator, conditioning = probability(deck, Mode("target", "test", 0, colored, False),
+                                                         len(colored)+6)
+            self.assertEqual((int(weights[counts]), denominator), (numerator, conditioning))
+            self.assertEqual(Fraction(numerator, denominator), value)
+
 
 if __name__ == "__main__":
     unittest.main()

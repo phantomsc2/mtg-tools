@@ -22,3 +22,18 @@ timing, whether a shock can enter tapped, or actual life payments.
 
 All 22 tests pass, including exact penalty-envelope checks. CSV includes
 every base's regularized score and fraction. The original deck is unchanged.
+
+## Direct-metric 8–12 shock sweep
+
+After the rollout experiment was reverted, regenerated all 3,144 actual-pool
+bases and rechecked the direct-metric penalty envelope. `generate_shock_sweep`
+writes reports/shock-penalty-sweep.md and .csv each time regularization runs.
+Town is not constrained to four; its count stays at four in every reported
+optimum. Cavern stays at four as well. All comparisons use exact Fractions.
+
+The five optima share 1 Swamp, 4 Tomb, 4 Grave, 3 Gloomlake, 4 Town, 4 Cavern.
+At 12/11/10/9/8 shocks respectively, the remaining (Pool, Wastewood, Willowrush)
+counts are (4,1,1), (3,1,2), (2,1,3), (1,1,4), (0,2,4). Example lambda values
+are 0, 0.003, 0.004, 0.005 and 0.008. Each example was checked against every
+base, not merely against other frontier rows. Exact interval bounds are in
+the CSV; adjacent winners tie at boundaries. All 23 current tests pass.

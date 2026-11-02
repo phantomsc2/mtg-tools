@@ -21,6 +21,63 @@ def frontier(best: dict[int, Fraction]) -> list[tuple[int, Fraction, Fraction | 
     return result
 
 
+def generate_shock_sweep(rows: list[dict], best: dict, intervals: list) -> None:
+    """Report the actual envelope, allowing Town counts to vary during optimization."""
+    examples = {12: Fraction(0), 11: Fraction("0.003"), 10: Fraction("0.004"),
+                9: Fraction("0.005"), 8: Fraction("0.008")}
+    selected = []
+    for count, lower, upper in intervals:
+        row = best[count]
+        if row["shock_count"] not in examples:
+            continue
+        coefficient = examples[row["shock_count"]]
+        if coefficient < lower or (upper is not None and coefficient > upper):
+            raise ValueError("Example penalty is outside the recomputed optimality interval")
+        target = row["exact_success"]-coefficient*count
+        assert all(target >= r["exact_success"]-coefficient*r["penalized_land_count"] for r in rows)
+        selected.append(dict(row, lower=lower, upper=upper, coefficient=coefficient))
+    output = ROOT / "reports/shock-penalty-sweep.csv"
+    with output.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["shocks", "success", "loss", "success_fraction", "penalty_from_fraction",
+                         "penalty_to_fraction", "example_penalty", *LANDS])
+        for row in selected:
+            writer.writerow([row["shock_count"], float(row["exact_success"]), float(1-row["exact_success"]),
+                             str(row["exact_success"]), str(row["lower"]), str(row["upper"]),
+                             str(row["coefficient"]), *(row[n] for n in LANDS)])
+    common = [n for n in LANDS if selected and len({r[n] for r in selected}) == 1 and int(selected[0][n])]
+    variable = [n for n in LANDS if n not in common and any(int(r[n]) for r in selected)]
+    text = ["# Direct-metric optima with 8–12 shocks", "",
+            "Minimize color failure + lambda * (shocklands + Starting Towns), with the same penalty for both.",
+            f"Rechecked all {len(rows):,} 26-land bases: one fixed Swamp, four-copy limits, Sultai shocks/Verges,",
+            "Starting Town and Cavern. No Sewers or fifth copies. All original spell modes and weights retained.",
+            "Starting Town was allowed to vary; every reported optimum keeps four. All also keep four Caverns.", "",
+            "## Compositions", "", "Every row shares: " + ", ".join(f"{selected[0][n]} {n}" for n in common) + ".", "",
+            "| Shocks | " + " | ".join(variable) + " | Color success | Color loss |",
+            "|---:|" + "---:|"*(len(variable)+2)]
+    for row in selected:
+        text.append(f"| {row['shock_count']} | " + " | ".join(row[n] for n in variable)
+                    + f" | {float(row['exact_success']):.6%} | {float(1-row['exact_success']):.6%} |")
+    text.extend(["", "## Penalties selecting each composition", "",
+                 "Penalty units below are percentage points of normalized score per included shock or Town.",
+                 "Adjacent optima tie at interval endpoints; interiors uniquely select the reported base.", "",
+                 "| Shocks | Penalty from (pp) | Penalty to (pp) | Example penalty (pp) | CLI lambda |",
+                 "|---:|---:|---:|---:|---:|"])
+    for row in selected:
+        text.append(f"| {row['shock_count']} | {float(row['lower'])*100:.6f} | "
+                    f"{float(row['upper'])*100:.6f} | {float(row['coefficient'])*100:.3f} | "
+                    f"{float(row['coefficient']):g} |")
+    text.extend(["", "The first three cuts replace Breeding Pool with Willowrush Verge. The fourth replaces",
+                 "the last Breeding Pool with Wastewood Verge. Overgrown Tomb and Watery Grave stay at four.",
+                 "Raw color success drops from 90.196576% at twelve shocks to 88.468713% at eight shocks.",
+                 "This penalty is a preference over deck composition, not expected life paid in a game.",
+                 "Starting Town and Cavern remain particularly valuable under the universal-creature Cavern",
+                 "assumption and uniform weighting of white modes.", "",
+                 "Results and interval comparisons use exact fractions. Displayed decimals are rounded.",
+                 "Regenerate with `python mana_search.py` followed by `python mana_regularization.py`.", ""])
+    output.with_suffix(".md").write_text("\n".join(text), encoding="utf-8")
+
+
 def generate(penalty: Fraction) -> None:
     if penalty < 0:
         raise ValueError("Penalty must be nonnegative")
@@ -36,6 +93,7 @@ def generate(penalty: Fraction) -> None:
     for row in rows:
         best.setdefault(row["penalized_land_count"], row)
     intervals = frontier({n: r["exact_success"] for n, r in best.items()})
+    generate_shock_sweep(rows, best, intervals)
     ranked = sorted(rows, key=lambda r: r["exact_loss"])
     output = ROOT / "reports/regularized-mana-search.csv"
     with output.open("w", encoding="utf-8", newline="") as stream:

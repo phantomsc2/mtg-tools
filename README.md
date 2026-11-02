@@ -1,5 +1,31 @@
 # MTG hand experiments
 
+## Interactive mana explorer
+
+Install the notebook extras with `uv sync --extra notebook`, then run `uv run jupyter lab`
+and open [mana_explorer.ipynb](mana_explorer.ipynb). Run its setup cell, choose spell copies,
+weights and penalty, then press **Run analysis**. The land count is inferred from 60 cards.
+The display marks results stale when inputs change; a full run can take several minutes.
+The search is exhaustive only within the bounded land pool described in the notebook.
+
+## Full optimum and swap report
+
+Run `python mana_report.py --config mana-report.json` to regenerate the
+[complete mana report](reports/mana-report.md): optimal 26-land base, 34 nonlands, per-card
+lower/higher-importance crossing swaps, and separate play/draw T1–T6 coverage tables.
+The supplied configuration explicitly replaces one Awaken with one Bitter Triumph and fixes lambda=0.0032.
+The source deck file stays unchanged. Every input, candidate and suggested resulting deck must contain 60 cards.
+
+Each suggestion records the exact first crossing, concrete OUT/IN counts, the target card's probability
+change and the fitness cost at the original weights. Scores tie at the crossing; the new base wins just beyond it.
+The report also compares both spell packages and isolates the gain from adjusting the lands under the revised package.
+Search is exhaustive in the established bounded 59,109-base pool, not unrestricted-basics optimization.
+
+JSON retains exact fractions; CSV exports the two directions per card, and `.deck.txt` exports the optimal full deck.
+Configure `deck`, physical nonland `changes`, positive per-card `weights`, `penalty`, and `output` in JSON.
+Paths are relative to the config file. CLI options override defaults; explicit `--changes` and `--weights` take JSON objects.
+Omitting the configuration applies no physical spell-count changes.
+
 ## Sultai mana-base analysis
 
 Run `python mana_analysis.py` for the main deck in `resources/decks/evoke_elementals.txt`.
@@ -18,6 +44,20 @@ See the [idealized dual results](reports/idealized-dual-search.md).
 
 `python mana_regularization.py --penalty 0.004` ranks the actual pool after adding a constant
 loss penalty per shockland or Starting Town. See the [regularized results](reports/regularized-mana-search.md).
+The same command writes an [8–12 shock penalty sweep](reports/shock-penalty-sweep.md), including
+exact optimality intervals, example coefficients and each winning composition.
+
+`python mana_basic_search.py` tests adding basics around those optima and evaluates all 59,109 bases
+with up to two Swamps, one Island and one Forest. See [basic-land sensitivity](reports/basic-land-sensitivity.md).
+This is a bounded neighborhood, not an exhaustive search with unrestricted basics.
+It also writes the [basic-land penalty frontier](reports/basic-land-penalty-frontier.md) and
+the [first shock-return transition](reports/basic-shock-transition.md) when reducing lambda from 0.004.
+
+`python mana_card_weight_search.py` increases Awaken the Honored Dead's relative importance at
+lambda=0.0032 until the optimal base changes. Use `--weight 1.10` to set the multiplier explicitly.
+`--config weights.json` accepts `weight`, `penalty` and `output` defaults; CLI options take precedence.
+Weights multiply physical copy counts and the weighted average is renormalized; mode/play-draw
+weights stay uniform. See [Awaken weight sensitivity](reports/awaken-weight-search.md).
 
 `python mana_fifth_copy.py` tests fifth Town, Tomb, Grave and Cavern copies independently and together,
 at the same regularization weight. See the [fifth-copy results](reports/fifth-copy-search.md).

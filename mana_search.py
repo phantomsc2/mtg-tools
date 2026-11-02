@@ -27,11 +27,12 @@ def binomial_transform(values: np.ndarray) -> np.ndarray:
 
 
 def feasible_draws(total: int, colored: str, creature: bool) -> np.ndarray:
-    return _feasible_draws(SHAPE, total, colored, creature)
+    return _feasible_draws(NAMES, SHAPE, total, colored, creature)
 
 
 @lru_cache(maxsize=1)
-def _feasible_draws(shape: tuple[int, ...], total: int, colored: str, creature: bool) -> np.ndarray:
+def _feasible_draws(names: tuple[str, ...], shape: tuple[int, ...], total: int,
+                    colored: str, creature: bool) -> np.ndarray:
     """Upward closure of payable exact-total land subsets: no future knowledge beyond the model."""
     counts = np.indices(shape, sparse=True)
     valid = sum(counts) == total
@@ -42,14 +43,14 @@ def _feasible_draws(shape: tuple[int, ...], total: int, colored: str, creature: 
             group = set(subset)
             needed = sum(requirements[c] for c in subset)
             supply = np.zeros(shape, dtype=np.int16)
-            for i, name in enumerate(NAMES):
+            for i, name in enumerate(names):
                 land = LANDS[name]
                 options = set(COLORS if creature and land.cavern else land.colors)
                 if options.intersection(group):
                     supply += counts[i]
                 elif set(land.conditional).intersection(group):
                     enabled = np.zeros(shape, dtype=bool)
-                    for j, other in enumerate(NAMES):
+                    for j, other in enumerate(names):
                         if set(LANDS[other].types).intersection(land.requires):
                             enabled |= counts[j] > 0
                     supply += counts[i] * enabled
@@ -60,15 +61,17 @@ def _feasible_draws(shape: tuple[int, ...], total: int, colored: str, creature: 
 
 
 def event_weights(total: int, colored: str, creature: bool, copies: int, seen: int,
-                  capacities: tuple[int, ...] | None = None) -> tuple[np.ndarray, int]:
+                  capacities: tuple[int, ...] | None = None,
+                  names: tuple[str, ...] = NAMES, land_count: int = 26) -> tuple[np.ndarray, int]:
     shape = SHAPE if capacities is None else tuple(n+1 for n in capacities)
     totals = sum(np.indices(shape, sparse=True))
-    spell_weights = [comb(34, seen-k) - (comb(34-copies, seen-k) if seen-k <= 34-copies else 0)
+    nonlands = 60 - land_count
+    spell_weights = [comb(nonlands, seen-k) - (comb(nonlands-copies, seen-k) if seen-k <= nonlands-copies else 0)
                      if total <= k <= seen-1 else 0 for k in range(sum(n-1 for n in shape)+1)]
-    denominator = sum(comb(26, k) * spell_weights[k] for k in range(27))
+    denominator = sum(comb(land_count, k) * spell_weights[k] for k in range(land_count+1))
     # Bound against the entire unrestricted capacity grid, not just legal 26-land bases.
-    assert comb(34+sum(n-1 for n in shape), seen) < 2**63
-    values = _feasible_draws(shape, total, colored, creature) * np.asarray(spell_weights, dtype=np.int64)[totals]
+    assert comb(nonlands+sum(n-1 for n in shape), seen) < 2**63
+    values = _feasible_draws(names, shape, total, colored, creature) * np.asarray(spell_weights, dtype=np.int64)[totals]
     return binomial_transform(values), denominator
 
 
