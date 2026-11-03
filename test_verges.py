@@ -4,13 +4,15 @@ from fractions import Fraction
 from itertools import combinations, product
 from math import comb
 
-from mana_opportunities import CastingMode, ManaSource, Spell, SpellCost, VERGE_RULES, evaluate
+from mana_lands import ManaSource, VERGE_RULES
+from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
 from mana_search import ManaSpace, build_component_table
 
 
 def can_pay_physical(lands, cost, turn):
     """Physical-draw oracle with enabling types from all seen lands."""
-    primary = {"UB": "U", "BG": "G", "UG": "U"}
+    primary = {"WU": "W", "WB": "B", "WR": "W", "WG": "G", "UB": "U",
+               "UR": "R", "UG": "U", "BR": "B", "BG": "G", "RG": "R"}
     colored = Counter(c for c in cost if c.isalpha())
     total = sum(colored.values()) + int("".join(c for c in cost if c.isdigit()) or 0)
     selected_count = min(turn, len(lands))
@@ -37,14 +39,17 @@ class VergeTests(unittest.TestCase):
         self.assertEqual(ManaSource("U", "basic").types, "U")
         self.assertEqual(ManaSource("BU", "shock", "BU"), ManaSource("UB", "shock", "UB"))
         self.assertEqual(ManaSource("UB", "shock").types, "")
-        for colors, kind, types in (("UR", "verge", ""), ("UB", "verge", "U"),
+        for colors, kind, types in (("U", "verge", ""), ("UB", "verge", "U"),
                                     ("WUBRG", "town", "U"), ("UB", "shock", "U"),
                                     ("UB", "shock", "GG"), ("U", "basic", "B")):
             with self.assertRaises(ValueError):
                 ManaSource(colors, kind, types)
 
     def test_unconditional_colors_and_enablers(self):
-        for pair, primary, secondary in (("UB", "U", "B"), ("BG", "G", "B"), ("UG", "U", "G")):
+        for pair, primary, secondary in (("WU", "W", "U"), ("WB", "B", "W"), ("WR", "W", "R"),
+                                         ("WG", "G", "W"), ("UB", "U", "B"), ("UR", "R", "U"),
+                                         ("UG", "U", "G"), ("BR", "B", "R"), ("BG", "G", "B"),
+                                         ("RG", "R", "G")):
             verge = ManaSource(pair, "verge")
             for color, expected in ((primary, 1), (secondary, 0)):
                 row = evaluate({verge: 1}, [SpellCost(color, 1)], turns=1).opportunities[-1]
@@ -83,6 +88,8 @@ class VergeTests(unittest.TestCase):
             {ManaSource("UB", "verge"): 1, ManaSource("UG", "shock", "UG"): 1,
              ManaSource("UG", "shock"): 1, ManaSource("WUBRG", "town"): 1},
         ]
+        bases += [{ManaSource(pair, "verge"): 2, ManaSource(pair[0], "basic"): 1}
+                  for pair in ("WU", "WB", "WR", "WG", "UR", "BR", "RG")]
         spells = [SpellCost("BB", 2), SpellCost("1G", 1), SpellCost("UB", 1)]
         for base in bases:
             deck = [s for s, n in base.items() for _ in range(n)]
@@ -126,7 +133,7 @@ class VergeTests(unittest.TestCase):
         base = {ManaSource(c, "basic"): n for c, n in (("U", 4), ("B", 4), ("G", 2))}
         base.update({ManaSource(c, "shock", c): 4 for c in ("UB", "UG", "BG")})
         base[ManaSource("WUBRG", "town")] = 4
-        base.update({ManaSource(c, "verge"): 0 for c in VERGE_RULES})
+        base.update({ManaSource(c, "verge"): 0 for c in ("UB", "UG", "BG")})
         caps = {"basic": 5, "shock": 4, "town": 8, "verge": 4}
         space = ManaSpace({s: (0, caps[s.kind]) for s in base}, 26)
         self.assertEqual(space.candidate_count(), 2040499)

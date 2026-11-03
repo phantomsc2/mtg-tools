@@ -3,7 +3,8 @@ from fractions import Fraction as F
 from itertools import product
 from unittest.mock import patch
 
-from mana_opportunities import ManaSource, SpellCost, evaluate
+from mana_lands import ManaSource
+from mana_opportunities import SpellCost, evaluate
 from mana_search import BaseComponents, ComponentTable, Interval, ManaSpace, build_component_table
 
 U = ManaSource("U", "basic")
@@ -64,7 +65,7 @@ class ManaSearchTests(unittest.TestCase):
         lines = [(F(9, 2), 0), (4, 1), (2, 2), (0, 3)]
         counts = tuple(space.exhaustive())
         rows = tuple(BaseComponents(base, (F(b), F(a)), 0, 0) for base, (a, b) in zip(counts, lines))
-        return ComponentTable(space, ("U", "B"), (F(1), F(1)), rows, counts[1])
+        return ComponentTable(space, ("U", "B"), (F(1), F(1)), rows)
 
     def test_exact_bidirectional_crossings_and_simultaneous_tie(self):
         table = self.line_table()
@@ -98,7 +99,7 @@ class ManaSearchTests(unittest.TestCase):
                                        c[space.sources.index(source)] if source == D else 0,
                                        c[space.sources.index(source)] if source == R else 0)
                          for c in space.exhaustive())
-            table = ComponentTable(space, ("U",), (F(1),), rows, None)
+            table = ComponentTable(space, ("U",), (F(1),), rows)
             result = table.crossings(parameter)
             self.assertTrue(result.baseline_is_optimal)
             self.assertEqual(result.upper.value, 1)
@@ -109,15 +110,15 @@ class ManaSearchTests(unittest.TestCase):
         counts = tuple(row.counts for row in table.rows)
         rows = tuple(BaseComponents(c, (F(slope), F(intercept)), 0, 0)
                      for c, intercept, slope in zip(counts, (1, 1, 0, 2), (1, 1, 1, 0)))
-        table = ComponentTable(table.space, ("U", "B"), (F(0), F(1)), rows, counts[0])
-        result = table.crossings("U")
+        table = ComponentTable(table.space, ("U", "B"), (F(0), F(1)), rows)
+        result = table.crossings("U", baseline=dict(zip(table.space.sources, counts[0])))
         self.assertFalse(result.baseline_is_optimal)
         self.assertEqual(result.optimal_interval, Interval(F(1), None))
-        at_boundary = table.crossings("U", weights={"U": 1})
+        at_boundary = table.crossings("U", baseline=dict(zip(table.space.sources, counts[0])), weights={"U": 1})
         self.assertTrue(at_boundary.baseline_is_optimal)
         self.assertEqual(at_boundary.lower.value, 1)
         self.assertIsNone(at_boundary.upper)
-        zero = table.crossings("U", weights={"U": 0, "B": 0})
+        zero = table.crossings("U", baseline=dict(zip(table.space.sources, counts[0])), weights={"U": 0, "B": 0})
         self.assertTrue(zero.baseline_is_optimal)
         self.assertEqual(zero.optimal_interval, Interval(F(0), None))
         self.assertIsNone(zero.lower)
@@ -139,7 +140,7 @@ class ManaSearchTests(unittest.TestCase):
         counts = tuple(space.exhaustive())
         rows = tuple(BaseComponents(c, (F(slope), F(intercept)), 0, 0)
                      for c, intercept, slope in zip(counts, (1, 1, 0), (0, 1, 0)))
-        table = ComponentTable(space, ("U", "B"), (F(0), F(1)), rows, counts[0])
+        table = ComponentTable(space, ("U", "B"), (F(0), F(1)), rows)
         result = table.crossings("U")
         self.assertTrue(result.baseline_is_optimal)
         self.assertEqual(result.optimal_interval, Interval(F(0), F(0)))

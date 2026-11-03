@@ -5,7 +5,8 @@ from itertools import combinations, product
 from math import comb
 from pathlib import Path
 
-from mana_opportunities import ManaSource, SpellCost, evaluate
+from mana_lands import ManaSource
+from mana_opportunities import SpellCost, evaluate
 
 
 def physical_expectations(base, spells, seen, turn):
@@ -112,16 +113,18 @@ class ManaOpportunityTests(unittest.TestCase):
         self.assertAlmostEqual(both.penalty, 1.1)
         self.assertAlmostEqual(both.score, both.raw_score - 1.1)
 
-    def test_town_and_cavern_share_production_but_not_penalties(self):
+    def test_town_and_cavern_share_colors_but_not_availability_or_penalties(self):
         shock = ManaSource("UB", "shock", "UB")
         town, cavern = ManaSource("WUBRG", "town"), ManaSource("WUBRG", "cavern")
-        spells = [SpellCost("UU", 2), SpellCost("WB", 1)]
+        spells = [SpellCost("UU", 2), SpellCost("WB", 1), SpellCost("4", 1)]
         first = evaluate({shock: 1, town: 1, cavern: 2}, spells, shock_penalty=0.2, town_penalty=0.3)
         second = evaluate({shock: 1, town: 2, cavern: 1}, spells, shock_penalty=0.2, town_penalty=0.3)
-        self.assertEqual(first.opportunities, second.opportunities)
+        self.assertEqual([r for r in first.opportunities if r.turn <= 3],
+                         [r for r in second.opportunities if r.turn <= 3])
+        self.assertGreater(first.raw_score, second.raw_score)
         self.assertAlmostEqual(first.penalty, 0.5)
         self.assertAlmostEqual(second.penalty, 0.8)
-        self.assertAlmostEqual(first.score - second.score, 0.3)
+        self.assertAlmostEqual(first.score - second.score, first.raw_score - second.raw_score + 0.3)
         with self.assertRaises(ValueError):
             ManaSource("WUBRG", "cavern", types="U")
 

@@ -191,3 +191,164 @@ absolute parameter values, with exact results retained in analysis dictionaries.
 All sections reuse the score snapshot. Report helpers and layout were exercised
 on the small 3,144-base reference table without running the notebook's expanded
 pool; all 18 cost sensitivities and both penalty sensitivities were present.
+
+
+## Explicit color and family selection
+
+`mana_lands` owns ManaSource, source eligibility, land-type validation, and all ten
+Verge rules. `ManaSpace.from_colors(land_count, colors, families=..., overrides=...)`
+expands explicit family bounds into the existing concrete bounded pool. Basics
+and duals stay within selected colors; Town and Cavern retain rainbow production.
+Generated shocks are typed. Overrides replace selected-source bounds only.
+Neither spells nor a reference base determine eligible colors or land count.
+Selected colors do not force every candidate to produce all those colors.
+
+Full Verge card-text reference, checked 2026-11-03:
+https://managathering.com/lands/by-cycle/verge-lands/
+The unconditional colors for WU/WB/WR/WG/UB/UR/UG/BR/BG/RG are respectively
+W/B/W/G/U/R/U/B/G/R; the secondary color unlocks with either corresponding
+basic land type among all lands seen, preserving the existing approximation.
+
+The notebook uses independent LAND_COUNT, COLORS, and LAND_FAMILIES inputs,
+retaining its edited spell/reference inputs. It prints candidate count and the
+product of (source upper bound + 1) before building. Both can grow sharply with
+more colors and families; construction remains exhaustive without cutoffs.
+Scalar/batch equality is checked on small generated pools for every newly
+supported Verge pair; the full five-color space is inspected without evaluation.
+
+
+## Independent land availability (2026-11-03)
+
+Per drawn multiset, multiply the optimistic color-payment indicator by the
+probability that at least MV lands independently succeed. A source played on a
+uniform turn 1..T is available on T if played earlier or if it enters untapped
+on T. Thus Town/fast are 1 through T3 then (T-1)/T; slow is 0, 1/2, then 1;
+tapped is (T-1)/T; basic/shock/Verge/Cavern remain 1. Assume one drop each turn
+for fast/slow conditions and life paid for shocks. New fast/slow/tapped kinds
+are untyped duals with all ten pairs, no extra penalty, and explicit pool opt-in.
+
+The factor is the >=MV tail of product((1-r_i)+r_i*z)^n_i. Surplus drawn lands
+compensate; zero costs have factor 1. Sources failing availability still count
+for colors and seen Verge-enabling types. This factorization is deliberately
+optimistic about color bottlenecks and makes independent failures possible even
+when real land order would correlate them. Four Towns for MV4 on T4 score
+81/256; one Town plus three basics score 3/4. Permanent Passage choices remain
+outside the model.
+
+Scalar counting adds a capped available-count state beside Hall supplies and
+seen types, grouping equivalent sources. Integer-scaled binomial outcome masses
+avoid Fraction arithmetic within the DP; normalization happens after each final
+mask sum. Cache keys include exact source availability rates. Batch still checks
+colors on the whole drawn-count grid, groups turns by rate signature, and uses
+binomial-tail lookups on total/certain/uncertain drawn counts. Currently all
+uncertain classes share the same rate on a given turn. A Python-integer grid
+combines exact weighted turn contributions before safe int64 limb transforms.
+This preserves exact rational components but adds memory and arithmetic compared
+with the previous boolean-mask grid; no automatic size cutoffs were introduced.
+
+Small benchmark (90 candidates, 729 grid cells, six sources, two costs, five
+turns, opening size 3, both positions; tracemalloc enabled): batch construction
+was 0.010s without availability discounts vs 0.021s with them. Observed Python
+allocation peaks were 0.15/0.13 MiB respectively; these tiny measurements are
+noisy and do not predict large-grid memory. The full notebook was not built.
+Tests compare physical draw/independent failure enumeration, analytic factors,
+new-family pool generation, and scalar/batch rankings and crossings.
+
+Rule references:
+- https://mtg.wtf/card/kld/243/Blooming-Marsh
+- https://www.mtg.wtf/card/mid/285/Shipwreck-Marsh
+- https://www.mtgsalvation.com/cards/universes-beyond-final-fantasy/67833-starting-town
+
+
+## Joint independent availability replaces separate factors
+
+Only available source copies now contribute both total mana and Hall color
+supplies. Source failures remain independent; no play sequences are simulated.
+Seen types still enable Verges. Scalar counting keeps its existing state shape,
+but updates color coverage by successful count instead of drawn count.
+
+Batch computes the success-payment mask once, then averages along each source
+axis with an integer-scaled binomial thinning matrix. It groups equal rate
+signatures across turns before the outer draw/composition transform. Typed
+sources (basics and shocks) always have availability one in the current catalog,
+so Verge enablers in the successful-count mask equal those among all seen lands.
+A future unreliable typed source would need a separate seen-type mask; do not
+silently reuse this assumption if extending the catalog. Python-integer grids
+and safe int64 limbs preserve exact rational components.
+
+Regression: tapped UB plus Mountain for U on T1 is now zero, not one. At T2,
+tapped UR plus tapped BG plus Mountain pay UB with probability 1/4. Tests
+independently enumerate physical draws, availability outcomes, and color
+assignments; all 63 tests pass. Zero costs and existing land rates are unchanged.
+Rebuild existing component tables. README and notebook explain joint payment.
+
+Profile: existing 3,144-candidate Sultai reference, 18 costs, T1-T7, both positions.
+Two isolated runs per model give medians 11.612s separate vs 10.628s joint.
+Detailed measurements and caveats are in reports/joint_availability_profile.md.
+Joint grid work increases, but tighter axis-based denominators reduced limb
+transform calls from 80 to 46 on this reference. No component increased;
+51,893/56,592 decreased. No full notebook build or
+peak-memory profiling was performed.
+
+
+## Baseline-free construction and notebook (2026-11-03)
+
+ComponentTable and build_component_table no longer accept or store a baseline.
+Construction depends only on the explicit bounded space, spells, and evaluation
+settings. Pass baseline=base to table.rank/scored.rank for query-local deltas
+and swaps; those calls validate the base is an evaluated candidate and do not
+change absolute ranks or later queries. Crossings defaults to the current winner;
+its existing optional baseline argument remains for explicit comparisons.
+
+The notebook has no MANA_BASE or baseline arguments. Its optimum and top-ten
+sections show absolute scores and the optimum composition. Sensitivities show
+transitions around the current optimum. Land count/colors/family bounds alone
+define the complete search. Stale outputs were cleared. Inputs and the entire
+report were exercised on a small complete eight-candidate pool without building
+the notebook's large selected pool. Comparison helpers remain in the library
+and the command-line example illustrates optional query-time comparisons.
+
+
+## Total reliability feature cost profile (2026-11-03)
+
+Compared current joint reliability with all land rates forced to one on the
+3,144-candidate Sultai batch reference: nine source axes, 781,250 grid cells,
+18 costs, T1-T7, both positions. Fresh processes, three unprofiled runs per mode,
+imports excluded, no concurrent tests. Median build 2.663s off vs
+8.786s on (3.30x). Median Windows peak process resident memory
+85.1 vs 141.4 MiB. Only Town is unreliable in this pool.
+This comparison measures the whole feature, unlike separate-vs-joint profiling.
+Joint profile spends 4.246s in weighted grids (including 2.923s availability
+transforms) and 2.903s in 46 integer-limb transforms, versus 1.811s/34 transforms
+with reliability off. Grid integer arithmetic dominates the added cost, not rate
+lookup or candidate enumeration. See reports/land_reliability_cost.md for raw
+runs, method, caveats, optimization candidates, and local reproduction artifacts.
+No evaluator or notebook behavior was changed by this profiling task.
+
+
+## Standard pool filter (2026-11-03)
+
+sources_for_colors and ManaSpace.from_colors accept format="standard", using
+STANDARD_COLORS and STANDARD_AS_OF in mana_lands. None retains the unrestricted
+model. The snapshot admits all basic/shock/Verge/tapped pairs and Town/Cavern;
+fast lands admit only the five enemy pairs (WB, WR, UR, UG, BG), slow lands none.
+Tapped means a legal untyped representative exists, not a specific named card.
+This is explicit dated card knowledge, not a live format/rotation service.
+Overrides cannot reintroduce excluded sources. An empty family may make the
+requested land count infeasible, using existing bounds validation.
+
+Standard legality evidence checked for the current Sultai question:
+https://mtg.wtf/card/otj/266/Blooming-Marsh (legal)
+https://mtg.wtf/card/otj/267/Botanical-Sanctum (legal)
+https://mtg.wtf/card/one/250/Darkslick-Shores (not legal)
+https://mtg.wtf/card/lci/269/Cavern-of-Souls (legal)
+https://magic.wizards.com/en/formats/standard
+https://magic.wizards.com/en/news/feature/edge-of-eternities-release-notes
+https://www.magic.wizards.com/en/news/feature/collecting-lorwyn-eclipsed
+
+Notebook now explicitly sets FORMAT="standard". Current 26-land UBG search with
+shock/fast/Verge/Town/Cavern bounds 0-4 becomes 10 sources, 363,165 candidates,
+and 9,765,625 grid cells, down from 11 / 2,897,884 / 48,828,125. This removes
+Darkslick Shores while retaining Botanical Sanctum and Blooming Marsh. The user
+requested a report before continuing profiling; no full notebook profiling was
+started during this change.

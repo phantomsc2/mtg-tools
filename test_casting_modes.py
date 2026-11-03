@@ -1,7 +1,8 @@
 import unittest
 from fractions import Fraction
 
-from mana_opportunities import CastingMode, ManaSource, Spell, SpellCost, evaluate
+from mana_lands import ManaSource
+from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
 from mana_search import ManaSpace, build_component_table
 
 

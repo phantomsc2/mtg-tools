@@ -3,7 +3,7 @@ from fractions import Fraction as F
 from random import Random
 from unittest.mock import patch
 
-from mana_opportunities import ManaSource
+from mana_lands import ManaSource
 from mana_search import BaseComponents, ComponentTable, Interval, ManaSpace
 
 
@@ -28,7 +28,7 @@ class ReportingTests(unittest.TestCase):
         space = ManaSpace({ManaSource(c, "basic"): (0, 8) for c in "UBG"}, 8)
         rows = tuple(BaseComponents(counts, tuple(F(rng.randrange(50), rng.randrange(1, 20)) for _ in range(3)),
                                     rng.randrange(9), rng.randrange(9)) for counts in space.exhaustive())
-        return ComponentTable(space, ("U", "B", "G"), (F(1), F(1), F(1)), rows, rows[0].counts)
+        return ComponentTable(space, ("U", "B", "G"), (F(1), F(1), F(1)), rows)
 
     def test_rank_and_crossings_against_fraction_oracle(self):
         table = self.table()
@@ -84,7 +84,7 @@ class ReportingTests(unittest.TestCase):
         original = ComponentTable._swap
         with patch.object(ComponentTable, "score", side_effect=AssertionError("Repeated scoring")):
             with patch.object(ComponentTable, "_swap", autospec=True, side_effect=original) as swap:
-                top = scored.rank(limit=5)
+                top = scored.rank(limit=5, baseline=dict(zip(table.space.sources, table.rows[0].counts)))
                 self.assertEqual(swap.call_count, 5)
                 winner = dict(zip(table.space.sources, top[0].counts))
                 for parameter in ("shock_penalty", "town_penalty"):
@@ -93,6 +93,27 @@ class ReportingTests(unittest.TestCase):
                 self.assertLessEqual(swap.call_count, 9)
         with self.assertRaises(ValueError):
             scored.rank(limit=-1)
+
+    def test_reference_comparisons_are_query_local(self):
+        table = self.table()
+        scored = table.score()
+        absolute = scored.rank()
+        self.assertFalse(hasattr(table, "baseline"))
+        self.assertTrue(all(row.delta is None and row.swap is None for row in absolute))
+        winner = absolute[0].counts
+        self.assertEqual(scored.crossings("U").baseline, winner)
+        for counts in (table.rows[0].counts, winner):
+            base = dict(zip(table.space.sources, counts))
+            compared = scored.rank(baseline=base)
+            score = next(row.score for row in absolute if row.counts == counts)
+            self.assertEqual([row.counts for row in compared], [row.counts for row in absolute])
+            self.assertEqual([row.delta for row in compared], [row.score-score for row in absolute])
+            self.assertEqual(compared, table.rank(baseline=base))
+            self.assertTrue(all(row.swap == table._swap(counts, row.counts) for row in compared))
+        self.assertEqual(scored.rank(), absolute)
+        self.assertEqual(scored.crossings("U").baseline, winner)
+        with self.assertRaises(ValueError):
+            scored.rank(baseline={ManaSource("R", "basic"):8})
 
 
 if __name__ == "__main__":

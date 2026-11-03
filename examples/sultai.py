@@ -9,7 +9,8 @@ Cavern restrictions remain outside this model. Shocks carry both land types.
 Run from the project root: python -m examples.sultai
 """
 
-from mana_opportunities import CastingMode, ManaSource, Spell, SpellCost, evaluate
+from mana_lands import ManaSource
+from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
 
 SPELLS = (
     SpellCost("2UB", 4),  # Superior Spider-Man

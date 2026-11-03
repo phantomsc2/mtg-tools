@@ -17,7 +17,8 @@ from types import MappingProxyType
 from typing import Literal
 
 from hands import compositions
-from mana_opportunities import ManaSource, Spell, SpellCost, evaluate, spell_components
+from mana_lands import ManaSource, sources_for_colors
+from mana_opportunities import Spell, SpellCost, evaluate, spell_components
 
 
 def _fraction(value: Real) -> Fraction:
@@ -30,6 +31,29 @@ def _fraction(value: Real) -> Fraction:
 class ManaSpace:
     bounds: Mapping[ManaSource, tuple[int, int]]
     land_count: int
+
+    @classmethod
+    def from_colors(cls, land_count: int, colors: str, *,
+                    families: Mapping[str, tuple[int, int]],
+                    format: Literal["standard"] | None = None,
+                    overrides: Mapping[ManaSource, tuple[int, int]] | None = None) -> "ManaSpace":
+        """Derive source bounds from explicit colors and opt-in family bounds.
+
+        Overrides replace bounds for selected sources. Colors constrain eligible
+        lands, not the colors every candidate must produce. Optional format filtering
+        uses the centralized catalog's dated legality snapshot.
+        """
+        sources = sources_for_colors(colors, families, format=format)
+        for limits in families.values():
+            if (len(limits) != 2 or any(type(n) is not int for n in limits)
+                    or not 0 <= limits[0] <= limits[1]):
+                raise ValueError("Supply a (minimum, maximum) integer pair per family")
+        bounds = {source: families[source.kind] for source in sources}
+        if overrides is not None:
+            if set(overrides) - set(bounds):
+                raise ValueError("Overrides contain sources outside the selected pool")
+            bounds.update(overrides)
+        return cls(bounds, land_count)
 
     def __post_init__(self) -> None:
         if type(self.land_count) is not int or self.land_count < 0:
@@ -156,7 +180,6 @@ class ComponentTable:
     costs: tuple[str, ...]
     default_weights: tuple[Fraction, ...]
     rows: tuple[BaseComponents, ...]
-    baseline: tuple[int, ...] | None
 
     def _weights(self, overrides: Mapping[str, Real] | None) -> tuple[Fraction, ...]:
         weights = dict(zip(self.costs, self.default_weights))
@@ -211,8 +234,9 @@ class ComponentTable:
         return ScoredTable(self, weights, shock, town, denominator, tuple(raw), scores, winner)
 
     def rank(self, weights: Mapping[str, Real] | None = None, *, shock_penalty: Real = 0,
-             town_penalty: Real = 0, limit: int | None = None) -> tuple[RankedBase, ...]:
-        return self.score(weights, shock_penalty=shock_penalty, town_penalty=town_penalty).rank(limit=limit)
+             town_penalty: Real = 0, limit: int | None = None,
+             baseline: Mapping[ManaSource, int] | None = None) -> tuple[RankedBase, ...]:
+        return self.score(weights, shock_penalty=shock_penalty, town_penalty=town_penalty).rank(limit=limit, baseline=baseline)
 
     def crossings(self, parameter: str, *, baseline: Mapping[ManaSource, int] | None = None,
                   weights: Mapping[str, Real] | None = None, shock_penalty: Real = 0,
@@ -233,21 +257,25 @@ class ScoredTable:
     score_numbers: tuple[int, ...]
     winner_index: int
 
-    def rank(self, *, limit: int | None = None) -> tuple[RankedBase, ...]:
+    def rank(self, *, limit: int | None = None,
+             baseline: Mapping[ManaSource, int] | None = None) -> tuple[RankedBase, ...]:
         if limit is not None and (type(limit) is not int or limit < 0):
             raise ValueError("Rank limit must be a nonnegative integer or None")
         table = self.table
         key = lambda i: (-self.score_numbers[i], table.rows[i].counts)
         indices = (sorted(range(len(table.rows)), key=key) if limit is None
                    else nsmallest(limit, range(len(table.rows)), key=key))
-        reference = None if table.baseline is None else self.score_numbers[table._indices[table.baseline]]
+        reference_counts = table.space.counts(baseline) if baseline is not None else None
+        if reference_counts is not None and reference_counts not in table._indices:
+            raise ValueError("Baseline must be one of the evaluated candidates")
+        reference = None if reference_counts is None else self.score_numbers[table._indices[reference_counts]]
         result = []
         for i in indices:
             row, raw, score = table.rows[i], self.raw_numbers[i], self.score_numbers[i]
             result.append(RankedBase(row.counts, Fraction(raw, self.denominator),
                           Fraction(raw - score, self.denominator), Fraction(score, self.denominator),
                           None if reference is None else Fraction(score - reference, self.denominator),
-                          None if table.baseline is None else table._swap(table.baseline, row.counts)))
+                          None if reference_counts is None else table._swap(reference_counts, row.counts)))
         return tuple(result)
 
     def crossings(self, parameter: str, *, baseline: Mapping[ManaSource, int] | None = None) -> Sensitivity:
@@ -265,7 +293,7 @@ class ScoredTable:
             column = table._integer_columns[j]
             slopes, slope_denominator = column.numbers, column.denominator
         reference = (table.space.counts(baseline) if baseline is not None else
-                     table.baseline if table.baseline is not None else table.rows[self.winner_index].counts)
+                     table.rows[self.winner_index].counts)
         if reference not in table._indices:
             raise ValueError("Baseline must be one of the evaluated candidates")
         reference_index = table._indices[reference]
@@ -315,7 +343,7 @@ class ScoredTable:
 
 
 def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell], *,
-                          baseline: Mapping[ManaSource, int] | None = None, turns: int = 7,
+                          turns: int = 7,
                           position: Literal["both", "play", "draw"] = "both",
                           opening_hand_size: int = 7,
                           progress: Callable[[Iterable[tuple[int, ...]]], Iterable[tuple[int, ...]]] | None = None,
@@ -343,7 +371,6 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
     defaults = tuple(weighted[cost] / copies[cost] if copies[cost] else Fraction(1) for cost in costs)
     unweighted = tuple(Spell(s.count, s.modes) if isinstance(s, Spell) else SpellCost(s.cost, s.count)
                        for s in spells)
-    reference = space.counts(baseline) if baseline is not None else None
     candidates = space.exhaustive()
     use_batch = backend in ("auto", "batch")
     if use_batch:
@@ -383,4 +410,4 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
         rows.append(BaseComponents(counts, values,
                                   sum(n for s, n in base.items() if s.kind == "shock"),
                                   sum(n for s, n in base.items() if s.kind == "town")))
-    return ComponentTable(space, costs, defaults, tuple(rows), reference)
+    return ComponentTable(space, costs, defaults, tuple(rows))

@@ -7,7 +7,8 @@ against casting-cost counts and optional importance weights. It uses only the
 Python standard library.
 
 ```python
-from mana_opportunities import ManaSource, SpellCost, evaluate
+from mana_lands import ManaSource
+from mana_opportunities import SpellCost, evaluate
 
 base = {
     ManaSource("U", "basic"): 8,
@@ -30,7 +31,8 @@ default, then subtracts the per-land shock/Town penalties. Mana shortage remains
 in the draw distribution. Zero-weight cards still occupy deck slots.
 
 This measures sustained availability with optimistic land selection. It ignores
-sequencing, previously cast spells, tapped entry and Cavern's creature restrictions.
+sequencing, previously cast spells and Cavern's creature restrictions. Tapped entry
+is approximated by independent per-land availability, described below.
 Counts describe the actual spell package; weights describe importance. Deck size
 is inferred from all land and spell counts. Only ordinary generic and WUBRG costs
 are supported. Decklist import is not wired yet.
@@ -45,11 +47,51 @@ python -m unittest -v test_mana_opportunities
 python -m doctest mana_opportunities.py
 ```
 
+## Land availability
+
+For each aggregate draw, compute the probability that the lands which succeed
+on availability can jointly pay the spell's generic and colored mana cost.
+Every land independently has a uniform assumed play turn from 1 through the
+current turn T. Earlier drops have untapped; fast/slow entry assumes one drop
+each turn.
+
+| Family | Availability on turn T |
+| --- | --- |
+| `basic`, `shock`, `verge`, `cavern` | 1 |
+| `town`, `fast` | 1 through T3, then (T-1)/T |
+| `slow` | 0 on T1, 1/2 on T2, then 1 |
+| `tapped` | (T-1)/T |
+
+`ManaSource("BG", "fast")` represents Blooming Marsh;
+`ManaSource("UB", "slow")` represents Shipwreck Marsh. `tapped` duals are
+identified only by their two colors. Each new family supports all ten pairs,
+has no basic land types or extra composition penalty, and is an explicit opt-in
+in `ManaSpace.from_colors(..., families={"fast": (0, 4), ...})`.
+`mana_lands.land_availability(kind, turn)` exposes the exact per-land rate.
+
+Only available lands contribute mana and colors to the payment check. For
+example, a tapped UB dual and a Mountain cannot pay U on T1; the Mountain cannot
+substitute for the unavailable blue source. Surplus lands compensate only if
+the available sources can satisfy the whole cost. Verge enabling still uses
+basic land types among all lands seen. These assumptions do not describe an
+actual land sequence:
+four Towns on T4 give an MV4 opportunity factor of (3/4)^4 = 81/256.
+One Town and three basics instead give 3/4; two tapped duals give an MV1 factor
+of 3/4 on T2. Zero-cost spells have factor one. There is no fractional mana.
+Life is assumed paid for shocks; configured shock/Town penalties still apply.
+
+Rebuild component tables after this change. Scalar and batch components remain
+exact fractions; batch calculation now needs a Python-integer weighted grid
+before safe integer-limb transforms. Separable binomial transforms average
+successful source counts along each source axis, avoiding enumeration of all
+combinations of independent failures. Unreliable sources add time and memory
+cost on large pools.
+
 ## Verge sources and land types
 
 `ManaSource("UB", "verge")` represents Gloomlake Verge: U unconditionally,
-B with an Island or Swamp. `VERGE_RULES` also supports Wastewood (BG: G first,
-conditional B) and Willowrush (UG: U first, conditional G).
+B with an Island or Swamp. `mana_lands.VERGE_RULES` covers all ten color pairs,
+including their asymmetric primary and secondary production.
 
 Basics infer their own land type. Shocks are untyped unless explicitly declared,
 for example `ManaSource("UG", "shock", types="UG")` for a Forest/Island shock.
@@ -65,10 +107,9 @@ sources; Cavern restrictions remain excluded. Cavern has no composition penalty.
 The notebook starts `shock_penalty` and `town_penalty` at 0.01 each, independently
 editable. Search scans every legal composition within the bounds.
 
-The notebook additionally allows 0–2 of each basic type (W/U/B/R/G), starting
-with one Swamp and zero other basics. Its expanded pool contains 4,581,982 bases
-and uses the batch backend for exhaustive builds without size cutoffs.
-Search covers the entire bounded pool.
+The notebook explicitly selects 26 lands in UBG, with 0?3 of each selected basic
+and 0?4 of each shock, Verge, Town, and Cavern. No baseline is defined in the notebook. Candidate count and batch capacity-grid size are printed
+before exhaustive construction; adding colors or families can increase both sharply.
 
 
 ## Alternate casting costs
@@ -101,14 +142,34 @@ NumPy accelerates table construction. The scalar evaluator remains a reference.
 ```python
 from mana_search import ManaSpace, build_component_table
 
-space = ManaSpace({source: (0, 4) for source in base}, land_count=26)
-table = build_component_table(space, spells, baseline=base)
+space = ManaSpace.from_colors(26, "UBG", families={
+    "basic": (0, 3), "shock": (0, 4), "verge": (0, 4),
+    "town": (0, 4), "cavern": (0, 4),
+})
+table = build_component_table(space, spells)
 scored = table.score(shock_penalty=0.01, town_penalty=0.01)
 top = scored.rank(limit=10)
 winner = dict(zip(space.sources, top[0].counts))
 shock_change = scored.crossings("shock_penalty", baseline=winner)
 town_change = scored.crossings("town_penalty", baseline=winner)
 ```
+
+Families are explicit opt-ins. Basics use the selected colors; shocks and Verges
+use pairs entirely within them. Generated shocks carry both basic land types.
+Town and Cavern offer all five colors; Town additionally has its availability discount. Colors are not derived
+from spells or the reference base, and do not require every candidate to produce
+every selected color. `overrides={source: (minimum, maximum)}` replaces bounds
+for individual selected sources; direct `ManaSpace(bounds, land_count)` remains
+available for custom pools. Land definitions live in `mana_lands`.
+
+Use `format="standard"` in `ManaSpace.from_colors(...)` to filter sources using
+the dated `mana_lands.STANDARD_AS_OF` snapshot (2026-11-03). The notebook enables
+this explicitly. Sultai fast lands are Blooming Marsh (BG) and Botanical Sanctum
+(UG); Darkslick Shores (UB) is excluded. Unfiltered construction remains available
+with `format=None`, the default. Unsupported format names are rejected. The
+snapshot must be updated after rotations or relevant reprints; it does not query
+a card service at runtime. Abstract tapped duals represent a legal untyped dual
+for each pair, without adding card-specific abilities.
 
 All search is exhaustive within the supplied bounds. There is no search-mode
 switch or neighborhood search. `backend="auto"` attempts the NumPy batch backend
@@ -145,8 +206,10 @@ but receives no next-optimum transitions at the current settings.
 
 Convenience methods `table.rank(...)` and `table.crossings(...)` remain; use an
 explicit `scored = table.score(...)` snapshot to share scoring work across queries.
-Crossings default to the supplied starting baseline, or the current winner when
-none was supplied. Results cover the full bounded pool, not unrestricted bases.
+Tables contain no baseline. Rankings return absolute scores by default; pass
+`baseline=base` to `scored.rank(...)` or `table.rank(...)` for optional deltas
+and swaps. Crossings default to the current winner; an explicit `baseline=base`
+queries another evaluated candidate without changing the table. Results cover the full bounded pool, not unrestricted bases.
 
 Run `python -m examples.sultai_search` for the reduced reference-pool example and
 separate table-build/report timings.

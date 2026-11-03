@@ -8,11 +8,11 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from fractions import Fraction
 from itertools import combinations
-from math import comb, lcm
+from math import comb, lcm, prod
 
 import numpy as np
 
-from mana_opportunities import ManaSource, VERGE_RULES
+from mana_lands import ManaSource, VERGE_RULES, land_availability
 
 def binomial_transform(values: np.ndarray, max_drawn: int | None = None) -> np.ndarray:
     """Sum product(comb(capacity, drawn)) * values[drawn] for all capacities."""
@@ -22,6 +22,59 @@ def binomial_transform(values: np.ndarray, max_drawn: int | None = None) -> np.n
                            for n in range(size)], dtype=np.int64)
         values = np.moveaxis(np.tensordot(matrix, values, axes=(1, axis)), 0, axis)
     return values
+
+
+def _availability_transform(valid: np.ndarray, rates: tuple[Fraction, ...]) -> tuple[np.ndarray, int]:
+    """Average payment over independent successes using separable axis transforms.
+
+    For drawn count n, each axis averages its successful count k ~ Binomial(n,r).
+    Integer matrices share a denominator per axis, so no floating point or
+    enumeration of the Cartesian product of failure outcomes is needed.
+    """
+    values = valid.astype(object)
+    denominator = 1
+    for axis, (size, rate) in enumerate(zip(valid.shape, rates)):
+        if rate == 1:
+            continue
+        p, d = rate.numerator, rate.denominator
+        matrix = np.array([[comb(n, k) * p**k * (d-p)**(n-k) * d**(size-1-n) if k <= n else 0
+                            for k in range(size)] for n in range(size)], dtype=object)
+        values = np.moveaxis(np.tensordot(matrix, values, axes=(1, axis)), 0, axis)
+        denominator *= d**(size-1)
+    return values, denominator
+
+
+def _opportunity_grid(sources: tuple[ManaSource, ...], totals: np.ndarray, valid: np.ndarray,
+                      total: int, max_drawn: int, seen_by_turn: list[tuple[int, int]],
+                      nonlands: int, deck_size: int) -> tuple[np.ndarray, int]:
+    """Joint payment/draw weights before transforming across mana bases.
+
+    The payment mask describes successful counts. All typed sources currently
+    have rate one, so its Verge enabling masks also describe all seen types.
+    Group equal rate signatures to share availability transforms across turns.
+    """
+    scenarios = {}
+    for turn, seen in seen_by_turn:
+        if turn < total:
+            continue
+        rates = tuple(land_availability(source.kind, turn) for source in sources)
+        factors = scenarios.setdefault(rates, [Fraction()] * (max_drawn + 1))
+        for k in range(total, max_drawn + 1):
+            if 0 <= seen - k - 1 < nonlands:
+                factors[k] += Fraction(comb(nonlands - 1, seen - k - 1),
+                                       comb(deck_size, seen) * len(seen_by_turn))
+    denominator = lcm(*(factor.denominator * prod(r.denominator**(size-1)
+                                                 for r, size in zip(rates, valid.shape))
+                        for rates, factors in scenarios.items() for factor in factors))
+    values = np.zeros(totals.shape, dtype=object)
+    for rates, factors in scenarios.items():
+        if not any(factors):
+            continue
+        payable, scale = _availability_transform(valid, rates)
+        coefficients = [f.numerator * (denominator // (f.denominator * scale)) for f in factors]
+        lookup = np.array(coefficients + [0] * (sum(size-1 for size in valid.shape) - max_drawn), dtype=object)
+        values += payable * lookup[totals]
+    return values, denominator
 
 
 def component_columns(bounds: Mapping[ManaSource, tuple[int, int]], land_count: int,
@@ -63,7 +116,7 @@ def component_columns(bounds: Mapping[ManaSource, tuple[int, int]], land_count: 
         generic = int(cost.rstrip("WUBRG") or 0)
         required = Counter(c for c in cost if c in "WUBRG")
         total = generic + sum(required.values())
-        if not copies[cost] or total > turns or not nonlands:
+        if not copies[cost] or total > turns or total > max_drawn or not nonlands:
             yield cost, (Fraction(),) * len(candidates)
             continue
         # Average the spell-draw factors first, so only a few limb transforms
@@ -86,6 +139,20 @@ def component_columns(bounds: Mapping[ManaSource, tuple[int, int]], land_count: 
                     elif source.kind == "verge" and VERGE_RULES[source.colors].secondary in group:
                         supply += drawn * enabled[source.colors]
                 valid &= supply >= sum(required[c] for c in subset)
+        if total and any(land_availability(source.kind, turn) != 1
+                         for source in sources for turn, _ in seen_by_turn if turn >= total):
+            values, denominator = _opportunity_grid(sources, totals, valid, total, max_drawn,
+                                                   seen_by_turn, nonlands, deck_size)
+            numerators = [0] * len(candidates)
+            for shift in range(0, denominator.bit_length(), limb_bits):
+                digits = np.asarray((values >> shift) & limb_mask, dtype=np.int64)
+                if not digits.any():
+                    continue
+                transformed = binomial_transform(digits, max_drawn=max_drawn)
+                selected = np.atleast_1d(transformed[indices])
+                numerators = [a + (int(b) << shift) for a, b in zip(numerators, selected)]
+            yield cost, tuple(copies[cost] * Fraction(n, denominator) for n in numerators)
+            continue
         numerators = [0] * len(candidates)
         for shift in range(0, max(coefficients, default=0).bit_length(), limb_bits):
             digits = [(value >> shift) & limb_mask for value in coefficients]
