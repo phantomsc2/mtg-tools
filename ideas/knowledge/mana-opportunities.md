@@ -180,3 +180,14 @@ On the same 50,000-row workload, the previous implementation took 7.986s versus
 0.344s (23.2x); top results and exact crossing endpoints/successors matched.
 The actual 3,144-base reference report took 0.022s. All 52 tests pass. These are
 local measurements, not guarantees of notebook timing on other component data.
+
+## Notebook result layout
+
+Results are ordered: optimum metrics/composition, top ten candidates, cost-weight
+sensitivities for all canonical costs, then shock/Town penalty sensitivities.
+Candidate changes are relative to the starting base; sensitivity changes are
+relative to the optimum. OUT and IN are separate columns. Boundaries show
+absolute parameter values, with exact results retained in analysis dictionaries.
+All sections reuse the score snapshot. Report helpers and layout were exercised
+on the small 3,144-base reference table without running the notebook's expanded
+pool; all 18 cost sensitivities and both penalty sensitivities were present.

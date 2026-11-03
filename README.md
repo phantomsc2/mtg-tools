@@ -104,7 +104,7 @@ from mana_search import ManaSpace, build_component_table
 space = ManaSpace({source: (0, 4) for source in base}, land_count=26)
 table = build_component_table(space, spells, baseline=base)
 scored = table.score(shock_penalty=0.01, town_penalty=0.01)
-top = scored.rank(limit=5)
+top = scored.rank(limit=10)
 winner = dict(zip(space.sources, top[0].counts))
 shock_change = scored.crossings("shock_penalty", baseline=winner)
 town_change = scored.crossings("town_penalty", baseline=winner)
@@ -128,8 +128,8 @@ importance using `table.score(weights={"UU": 2}, ...)`.
 
 The first score prepares cached integer columns with a common denominator per
 cost. Weighted scores then use integer dot products with one score denominator.
-A score snapshot is reused for ranking and every crossing query. `rank(limit=5)`
-selects five winners without sorting the full pool or constructing unused swap
+A score snapshot is reused for ranking and every crossing query. `rank(limit=10)`
+selects ten winners without sorting the full pool or constructing unused swap
 records. The optional limit changes displayed results only; every candidate is
 scored and participates in crossings. Omit it for a complete ranking.
 
@@ -203,3 +203,7 @@ method guarantees the global optimum. The tests compare both with an exhaustivel
 Enumeration grows combinatorially with the number of types and hand size. Start with a few broad
 types; the example prints its initial feasible-hand count. This iteration excludes mulligans, color,
 tapped lands, sideboards, and playouts.
+
+The notebook report shows the optimum first, then the top ten candidates with
+separate OUT/IN columns, casting-cost weight sensitivities for every cost, and
+finally shock/Town penalty sensitivities. All use the same score snapshot.
