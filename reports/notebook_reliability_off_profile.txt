@@ -1,0 +1,26 @@
+         22961821 function calls (18407277 primitive calls) in 19.022 seconds
+
+   Ordered by: cumulative time
+   List reduced from 119 to 18 due to restriction <18>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        4    2.986    0.747   16.047    4.012 mana_batch.py:80(component_columns)
+        6    0.389    0.065    6.529    1.088 mana_batch.py:17(binomial_transform)
+       60    4.607    0.077    6.134    0.102 numeric.py:997(tensordot)
+  1089498    0.792    0.000    5.884    0.000 mana_batch.py:165(<genexpr>)
+  1089958    0.458    0.000    3.523    0.000 fractions.py:613(forward)
+   363166    0.640    0.000    2.975    0.000 mana_search.py:91(exhaustive)
+  1089543    2.036    0.000    2.947    0.000 fractions.py:742(_mul)
+4917672/363166    1.600    0.000    1.871    0.000 hands.py:30(compositions)
+  1090069    1.039    0.000    1.571    0.000 fractions.py:186(__new__)
+      190    1.526    0.008    1.526    0.008 {method 'reshape' of 'numpy.ndarray' objects}
+  3269850    0.669    0.000    0.669    0.000 {built-in method math.gcd}
+  1090024    0.440    0.000    0.610    0.000 fractions.py:317(_from_coprime_ints)
+  3994815    0.464    0.000    0.464    0.000 mana_search.py:95(<genexpr>)
+559780/559766    0.403    0.000    0.405    0.000 {built-in method builtins.sum}
+  2180693    0.334    0.000    0.334    0.000 {built-in method __new__ of type object at 0x00007FFF90FB28F0}
+       11    0.176    0.016    0.299    0.027 mana_batch.py:91(<genexpr>)
+      130    0.124    0.001    0.124    0.001 {built-in method numpy.asarray}
+  1090753    0.118    0.000    0.118    0.000 {built-in method builtins.isinstance}
+
+

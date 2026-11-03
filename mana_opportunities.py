@@ -4,7 +4,7 @@ No sequencing or spells are played out: each drawn copy scores on every turn
 its cost is payable, independently of all other copies and costs. Town and
 Cavern are unrestricted rainbow sources; Cavern restrictions remain excluded.
 Every available source produces one mana. Independent land failures model tapped entry;
-payment jointly checks mana and colors from successful sources.
+payment checks colors among all seen lands and separately discounts availability.
 life costs are not simulated. Verge secondary colors
 use enabling land types anywhere among lands seen, ignoring enabler land drops.
 
@@ -220,10 +220,11 @@ def _verge_land_weights(sources: tuple[tuple[ManaSource, int], ...], generic: in
 @lru_cache(maxsize=128)
 def _available_land_weights(sources: tuple[tuple[ManaSource, int], ...], generic: int,
                             colored: str, max_drawn: int, rates: tuple[Fraction, ...]) -> tuple[Fraction, ...]:
-    """Joint payment from independently available lands, weighted over draws.
+    """Separate color coverage and independent availability, weighted over draws.
 
-    Only successes add mana and color coverage. Enabling land types still
-    come from all seen lands, preserving the optimistic Verge approximation.
+    All drawn sources add color coverage and enabling types. Independently,
+    successful counts must cover total mana value; colors need not come from
+    the successful sources. This is the deliberately optimistic V1 model.
     """
     total = generic + len(colored)
     relevant = set().union(*(set(VERGE_RULES[s.colors].requires) for s, _ in sources
@@ -272,7 +273,7 @@ def _available_land_weights(sources: tuple[tuple[ManaSource, int], ...], generic
                 for take in range(min(count, max_drawn - drawn) + 1):
                     seen_types = observed | type_mask if take else observed
                     for extra, mass in outcomes[take]:
-                        updated = tuple(min(cap, have + extra * adds)
+                        updated = tuple(min(cap, have + take * adds)
                                         for cap, have, adds in zip(caps, covered, supply))
                         next_states[drawn + take, seen_types, updated, min(total, available + extra)] += weight * mass
             states = next_states

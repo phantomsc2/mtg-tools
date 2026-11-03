@@ -352,3 +352,68 @@ and 9,765,625 grid cells, down from 11 / 2,897,884 / 48,828,125. This removes
 Darkslick Shores while retaining Botanical Sanctum and Blooming Marsh. The user
 requested a report before continuing profiling; no full notebook profiling was
 started during this change.
+
+
+## Current notebook three-way benchmark (2026-11-03)
+
+Full filtered notebook workload (26 lands, 34 nonlands, UBG, standard snapshot;
+shock/fast/Verge/Town/Cavern 0-4, 363,165 candidates, 9,765,625 grid cells,
+21 costs, seven turns/both positions/opening seven) was built in fresh sequential
+processes. Reliability off: 83.57s / 1.58 GiB peak resident; V1 separate:
+219.23s / 2.08 GiB; V2 joint: 378.50s / 2.30 GiB. Single full runs, not medians.
+All meet the requested 15-minute build target; report/scoring time is excluded.
+
+Representative three-cost full-grid profiles show equal outer transform counts
+for V1/V2 (18), versus 6 off. V2's joint axis transforms add 39.14s in those
+profiles, dominating its slower runtime here. There are three unreliable axes
+(two fast and Town), unlike the prior one-Town reference. Do not extrapolate the
+small reference's V2 speed advantage. Raw inputs/results, implementation hashes,
+profile summaries and caveats are in reports/notebook_reliability_profile.md and
+its linked artifacts. No evaluator behavior was changed by profiling.
+
+
+## No-Cavern optima comparison
+
+Removed Cavern from notebook LAND_FAMILIES at the user's request. The same
+Standard-filtered UBG/deck setup now has 32,211 candidates and 1,953,125 grid
+cells. Full builds: off 8.76s, V1 separate 37.68s, V2 joint 74.80s; scoring/top-ten
+selection under one second each. Shock/Town penalties are 0.014/0.01.
+All three models have distinct unique optima. V1 optimum ranks 8th under V2,
+losing 0.002180735 score; V2 swaps two Blooming Marsh for two BG shocks. Off's
+optimum ranks 2,657th under V2, losing 0.036343067. Detailed counts and exact
+cross-model scores are in reports/no_cavern_optimization.md and .json.
+Crucially, full component tables are now saved in .cache/no_cavern_*_table.pkl,
+so later comparisons can be derived without repeating expensive construction.
+
+
+## Land-model robustness experiments
+
+Used complete no-Cavern pool for 25 penalty settings and four importance/mode
+weight settings, reusing exact components. Under V2, V1 optima lost at most
+0.113% across penalties and 0.176% across weight cases; off optima lost more in
+all 29 scenarios (0.642-2.881% penalties, 0.977-2.296% weights).
+A single-failure stress kernel preserving marginals only when k<=T picked the
+original V1 winner; original V2 lost 0.043%, off lost 0.904%. This is not full
+sequencing and reduces marginal failures for surplus k>T.
+A pessimistic no-Verge-secondary endpoint gave only a 0.024% V1/V2 gap but
+changed V2's optimum by eight replacements, restoring four Botanical Sanctum.
+Thus near-equivalence of V1/V2 score quality is robust over these tests, while
+exact land counts and no-Botanical advice depend on remaining assumptions.
+Raw scenario results, exact experiment definitions and caveats are in
+reports/land_model_robustness.md, robustness_results.json, and
+robustness_experiment.py. No production evaluator or notebook defaults changed.
+
+
+## V1 restored as default
+
+At the user's request, scalar and batch evaluators again use separate per-draw
+color coverage and independent total-availability factors (V1). Drawn source
+counts contribute colors even when those sources fail availability. Standard
+filtering, explicit search inputs, baseline-free construction, new land families,
+and the no-Cavern notebook pool remain. README and notebook describe V1; stale
+notebook outputs were cleared. Historical V2 reports/results are retained.
+A local V2 backend snapshot is in .cache/mana_batch_joint.py; historical benchmark
+scripts which assume production is V2 need that archived backend patched in
+before rerunning. Original saved component tables remain usable without rebuilding.
+The restored scalar was checked exactly against nine saved V1 reference rows;
+independent draw/failure enumeration and scalar/batch parity tests cover V1.

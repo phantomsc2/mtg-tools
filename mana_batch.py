@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from fractions import Fraction
 from itertools import combinations
-from math import comb, lcm, prod
+from math import comb, lcm
 
 import numpy as np
 
@@ -24,34 +24,15 @@ def binomial_transform(values: np.ndarray, max_drawn: int | None = None) -> np.n
     return values
 
 
-def _availability_transform(valid: np.ndarray, rates: tuple[Fraction, ...]) -> tuple[np.ndarray, int]:
-    """Average payment over independent successes using separable axis transforms.
+def _opportunity_grid(sources: tuple[ManaSource, ...], counts: tuple[np.ndarray, ...],
+                      totals: np.ndarray, valid: np.ndarray, total: int, max_drawn: int,
+                      seen_by_turn: list[tuple[int, int]], nonlands: int,
+                      deck_size: int) -> tuple[np.ndarray, int]:
+    """Exact draw/availability weights before transforming across mana bases.
 
-    For drawn count n, each axis averages its successful count k ~ Binomial(n,r).
-    Integer matrices share a denominator per axis, so no floating point or
-    enumeration of the Cartesian product of failure outcomes is needed.
-    """
-    values = valid.astype(object)
-    denominator = 1
-    for axis, (size, rate) in enumerate(zip(valid.shape, rates)):
-        if rate == 1:
-            continue
-        p, d = rate.numerator, rate.denominator
-        matrix = np.array([[comb(n, k) * p**k * (d-p)**(n-k) * d**(size-1-n) if k <= n else 0
-                            for k in range(size)] for n in range(size)], dtype=object)
-        values = np.moveaxis(np.tensordot(matrix, values, axes=(1, axis)), 0, axis)
-        denominator *= d**(size-1)
-    return values, denominator
-
-
-def _opportunity_grid(sources: tuple[ManaSource, ...], totals: np.ndarray, valid: np.ndarray,
-                      total: int, max_drawn: int, seen_by_turn: list[tuple[int, int]],
-                      nonlands: int, deck_size: int) -> tuple[np.ndarray, int]:
-    """Joint payment/draw weights before transforming across mana bases.
-
-    The payment mask describes successful counts. All typed sources currently
-    have rate one, so its Verge enabling masks also describe all seen types.
-    Group equal rate signatures to share availability transforms across turns.
+    All uncertain classes on a given turn share one rate. Group by that rate
+    signature; lookup tables depend only on total, certain, and uncertain counts.
+    Python integers hold the weighted grid, split into safe int64 limbs later.
     """
     scenarios = {}
     for turn, seen in seen_by_turn:
@@ -63,17 +44,30 @@ def _opportunity_grid(sources: tuple[ManaSource, ...], totals: np.ndarray, valid
             if 0 <= seen - k - 1 < nonlands:
                 factors[k] += Fraction(comb(nonlands - 1, seen - k - 1),
                                        comb(deck_size, seen) * len(seen_by_turn))
-    denominator = lcm(*(factor.denominator * prod(r.denominator**(size-1)
-                                                 for r, size in zip(rates, valid.shape))
+    denominator = lcm(*(factor.denominator * max((r.denominator for r in rates), default=1)**max_drawn
                         for rates, factors in scenarios.items() for factor in factors))
     values = np.zeros(totals.shape, dtype=object)
     for rates, factors in scenarios.items():
-        if not any(factors):
-            continue
-        payable, scale = _availability_transform(valid, rates)
-        coefficients = [f.numerator * (denominator // (f.denominator * scale)) for f in factors]
-        lookup = np.array(coefficients + [0] * (sum(size-1 for size in valid.shape) - max_drawn), dtype=object)
-        values += payable * lookup[totals]
+        certain = np.zeros(totals.shape, dtype=np.int64)
+        uncertain = np.zeros(totals.shape, dtype=np.int64)
+        rate = next((r for r in rates if 0 < r < 1), Fraction(1))
+        for r, drawn in zip(rates, counts):
+            if r == 1:
+                certain += drawn
+            elif r:
+                uncertain += drawn
+        # Only color-valid draws within max_drawn need lookups.
+        lookup = np.zeros((max_drawn + 1,) * 3, dtype=object)
+        for n in range(max_drawn + 1):
+            for a in range(max_drawn + 1 - n):
+                tail = sum((comb(n, j) * rate**j * (1-rate)**(n-j)
+                            for j in range(max(0, total-a), n+1)), Fraction())
+                for k in range(max(total, a+n), max_drawn + 1):
+                    weight = factors[k] * tail
+                    lookup[k, a, n] = weight.numerator * (denominator // weight.denominator)
+        values += lookup[np.minimum(totals, max_drawn), np.minimum(certain, max_drawn),
+                         np.minimum(uncertain, max_drawn)]
+    values *= valid
     return values, denominator
 
 
@@ -141,7 +135,7 @@ def component_columns(bounds: Mapping[ManaSource, tuple[int, int]], land_count: 
                 valid &= supply >= sum(required[c] for c in subset)
         if total and any(land_availability(source.kind, turn) != 1
                          for source in sources for turn, _ in seen_by_turn if turn >= total):
-            values, denominator = _opportunity_grid(sources, totals, valid, total, max_drawn,
+            values, denominator = _opportunity_grid(sources, counts, totals, valid, total, max_drawn,
                                                    seen_by_turn, nonlands, deck_size)
             numerators = [0] * len(candidates)
             for shift in range(0, denominator.bit_length(), limb_bits):

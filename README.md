@@ -49,8 +49,9 @@ python -m doctest mana_opportunities.py
 
 ## Land availability
 
-For each aggregate draw, compute the probability that the lands which succeed
-on availability can jointly pay the spell's generic and colored mana cost.
+The default is V1: for each aggregate draw, check whether all seen lands can
+supply the spell's colors, then multiply by the independent probability that
+at least its total mana value in lands is available.
 Every land independently has a uniform assumed play turn from 1 through the
 current turn T. Earlier drops have untapped; fast/slow entry assumes one drop
 each turn.
@@ -69,12 +70,12 @@ has no basic land types or extra composition penalty, and is an explicit opt-in
 in `ManaSpace.from_colors(..., families={"fast": (0, 4), ...})`.
 `mana_lands.land_availability(kind, turn)` exposes the exact per-land rate.
 
-Only available lands contribute mana and colors to the payment check. For
-example, a tapped UB dual and a Mountain cannot pay U on T1; the Mountain cannot
-substitute for the unavailable blue source. Surplus lands compensate only if
-the available sources can satisfy the whole cost. Verge enabling still uses
-basic land types among all lands seen. These assumptions do not describe an
-actual land sequence:
+Colors and availability are separate factors within each draw. An unavailable
+source still counts for color coverage and seen Verge-enabling types. For
+example, a tapped UB dual and a Mountain score a U opportunity on T1: the dual
+passes the color check and the Mountain passes availability. This is deliberate
+optimism, not joint payment or a real land sequence. Surplus drawn lands can
+compensate for unavailable sources. With independent per-land failures,
 four Towns on T4 give an MV4 opportunity factor of (3/4)^4 = 81/256.
 One Town and three basics instead give 3/4; two tapped duals give an MV1 factor
 of 3/4 on T2. Zero-cost spells have factor one. There is no fractional mana.
@@ -82,9 +83,8 @@ Life is assumed paid for shocks; configured shock/Town penalties still apply.
 
 Rebuild component tables after this change. Scalar and batch components remain
 exact fractions; batch calculation now needs a Python-integer weighted grid
-before safe integer-limb transforms. Separable binomial transforms average
-successful source counts along each source axis, avoiding enumeration of all
-combinations of independent failures. Unreliable sources add time and memory
+before safe integer-limb transforms. Grouped binomial-tail lookups average available land counts independently of
+the color-payment mask, without enumerating independent failure combinations. Unreliable sources add time and memory
 cost on large pools.
 
 ## Verge sources and land types

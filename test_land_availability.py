@@ -32,7 +32,8 @@ def physical_oracle(base, spells, seen, turn):
                 continue
             available = [s for s, flag in zip(lands, flags) if flag]
             for cost in (s for s in hand if isinstance(s, str)):
-                if can_pay_physical(available, cost, turn):
+                total = int(cost.rstrip("WUBRG") or 0) + sum(c in "WUBRG" for c in cost)
+                if len(available) >= total and can_pay_physical(lands, cost, turn):
                     result[cost] += mass
     return {cost: F(value, comb(len(deck), seen)) for cost, value in result.items()}
 
@@ -95,12 +96,12 @@ class AvailabilityTests(unittest.TestCase):
             self.assertEqual(scalar.rank(),batch.rank())
             self.assertEqual(scalar.crossings("BB"),batch.crossings("BB"))
 
-    def test_unavailable_color_sources_cannot_pay(self):
-        cases = [({ManaSource("UB", "tapped"):1, ManaSource("R", "basic"):1}, "U", 1, F(0)),
+    def test_availability_factor_is_separate_from_color_coverage(self):
+        cases = [({ManaSource("UB", "tapped"):1, ManaSource("R", "basic"):1}, "U", 1, F(1)),
                  ({ManaSource("UB", "tapped"):1, ManaSource("U", "basic"):1,
-                   ManaSource("G", "basic"):1}, "UB", 2, F(1,2)),
+                   ManaSource("G", "basic"):1}, "UB", 2, F(1)),
                  ({ManaSource("UR", "tapped"):1, ManaSource("BG", "tapped"):1,
-                   ManaSource("R", "basic"):1}, "UB", 2, F(1,4))]
+                   ManaSource("R", "basic"):1}, "UB", 2, F(3,4))]
         for base, cost, turn, expected in cases:
             with self.subTest(base=base):
                 result = evaluate(base, [SpellCost(cost,1)], turns=turn, opening_hand_size=99)
