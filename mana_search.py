@@ -1,4 +1,4 @@
-"""Reusable opportunity components, exhaustive search, and efficient exact sensitivity.
+"""Reusable opportunity components, local/exhaustive search, and exact sensitivity.
 
 Tables hold exact mean opportunities, independent of importance and penalties.
 Crossings vary one absolute cost weight or penalty over the nonnegative domain.
@@ -13,12 +13,13 @@ from functools import cached_property
 from heapq import nsmallest
 from math import isfinite, lcm
 from numbers import Real
+from time import perf_counter
 from types import MappingProxyType
 from typing import Literal
 
 from hands import compositions
 from mana_lands import ManaSource, sources_for_colors
-from mana_opportunities import Spell, SpellCost, evaluate, spell_components
+from mana_opportunities import OpportunityResult, Spell, SpellCost, evaluate, spell_components
 
 
 def _fraction(value: Real) -> Fraction:
@@ -36,12 +37,15 @@ class ManaSpace:
     def from_colors(cls, land_count: int, colors: str, *,
                     families: Mapping[str, tuple[int, int]],
                     format: Literal["standard"] | None = None,
+                    fixed: Mapping[ManaSource, int] | None = None,
                     overrides: Mapping[ManaSource, tuple[int, int]] | None = None) -> "ManaSpace":
         """Derive source bounds from explicit colors and opt-in family bounds.
 
         Overrides replace bounds for selected sources. Colors constrain eligible
         lands, not the colors every candidate must produce. Optional format filtering
-        uses the centralized catalog's dated legality snapshot.
+        uses the centralized catalog's dated legality snapshot. Fixed sources may
+        belong to families omitted from the flexible pool; their exact counts
+        replace family bounds and are included in land_count, not added to it.
         """
         sources = sources_for_colors(colors, families, format=format)
         for limits in families.values():
@@ -49,10 +53,18 @@ class ManaSpace:
                     or not 0 <= limits[0] <= limits[1]):
                 raise ValueError("Supply a (minimum, maximum) integer pair per family")
         bounds = {source: families[source.kind] for source in sources}
+        if fixed is not None and overrides is not None and set(fixed).intersection(overrides):
+            raise ValueError("A source cannot have both fixed counts and overrides")
         if overrides is not None:
             if set(overrides) - set(bounds):
                 raise ValueError("Overrides contain sources outside the selected pool")
             bounds.update(overrides)
+        for source, count in (fixed or {}).items():
+            if not isinstance(source, ManaSource) or type(count) is not int or count < 0:
+                raise ValueError("Fixed lands require ManaSource keys and nonnegative integer counts")
+            if source not in sources_for_colors(colors, (source.kind,), format=format):
+                raise ValueError("Fixed source is outside the selected colors or format")
+            bounds[source] = (count, count)
         return cls(bounds, land_count)
 
     def __post_init__(self) -> None:
@@ -119,6 +131,149 @@ class RankedBase:
     score: Fraction
     delta: Fraction | None
     swap: LandSwap | None
+
+
+@dataclass(frozen=True)
+class LocalNeighborhood:
+    current: RankedBase
+    neighbors: tuple[RankedBase, ...]
+    complete: bool
+
+
+@dataclass(frozen=True)
+class LocalSearchResult:
+    baseline: RankedBase
+    best: RankedBase
+    moves: tuple[RankedBase, ...]
+    evaluations: int
+    seconds: float
+    stopped: str
+
+
+class LocalManaEvaluator:
+    """Exact, lazy per-base evaluation; configuration is immutable, cache is reusable.
+
+    Opportunities retain cost/turn/position axes. Penalties are applied after
+    evaluation, so changing them never invalidates cached draw calculations.
+    """
+
+    def __init__(self, space: ManaSpace, spells: Sequence[SpellCost | Spell], *, turns: int = 7,
+                 position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7):
+        if (type(turns) is not int or turns < 1 or type(opening_hand_size) is not int
+                or opening_hand_size < 0 or position not in ("both", "play", "draw")):
+            raise ValueError("Positive turns, nonnegative opening size, and valid position required")
+        self._space, self._spells = space, tuple(spells)
+        self._turns, self._position, self._opening = turns, position, opening_hand_size
+        nonlands, copies, weighted = spell_components(self._spells)
+        if not nonlands + space.land_count:
+            raise ValueError("Deck must contain at least one card")
+        self._weights = {c: weighted[c] / n if n else Fraction() for c, n in copies.items()}
+        self._cache: dict[tuple[int, ...], OpportunityResult] = {}
+
+    @property
+    def space(self) -> ManaSpace:
+        return self._space
+
+    @property
+    def cache(self) -> Mapping[tuple[int, ...], OpportunityResult]:
+        return MappingProxyType(self._cache)
+
+    def components(self, base: Mapping[ManaSource, int]) -> OpportunityResult:
+        counts = self.space.counts(base)
+        if counts not in self._cache:
+            self._cache[counts] = evaluate(base, self._spells, turns=self._turns,
+                                          position=self._position, opening_hand_size=self._opening)
+        return self._cache[counts]
+
+    def value(self, base: Mapping[ManaSource, int], *, shock_penalty: Real = 0,
+              town_penalty: Real = 0) -> RankedBase:
+        shock, town = _fraction(shock_penalty), _fraction(town_penalty)
+        counts = self.space.counts(base)
+        components = self.components(base)
+        divisor = self._turns * (2 if self._position == "both" else 1)
+        raw = sum((row.expected_copies * self._weights[row.cost]
+                   for row in components.opportunities), Fraction()) / divisor
+        penalty = sum(n * (shock if s.kind == "shock" else town if s.kind == "town" else 0)
+                      for s, n in zip(self.space.sources, counts))
+        return RankedBase(counts, raw, penalty, raw - penalty, None, None)
+
+    def _relative(self, reference: RankedBase, value: RankedBase) -> RankedBase:
+        out = tuple((s, a-b) for s, a, b in zip(self.space.sources, reference.counts, value.counts) if a > b)
+        incoming = tuple((s, b-a) for s, a, b in zip(self.space.sources, reference.counts, value.counts) if b > a)
+        return RankedBase(value.counts, value.raw_score, value.penalty, value.score,
+                          value.score - reference.score, LandSwap(out, incoming, sum(n for _, n in out)))
+
+    def value_and_swap_deltas(self, base: Mapping[ManaSource, int], *, shock_penalty: Real = 0,
+                              town_penalty: Real = 0, evaluation_budget: int | None = None,
+                              _visited: set[tuple[int, ...]] | None = None) -> LocalNeighborhood:
+        """Score legal transfers in canonical order, with exact structured cache rows.
+
+        Budget counts distinct bases considered, including cached ones and the
+        reference. The search shares its visited set between neighborhoods.
+        """
+        if evaluation_budget is not None and (type(evaluation_budget) is not int or evaluation_budget < 1):
+            raise ValueError("Evaluation budget must be a positive integer or None")
+        visited = set() if _visited is None else _visited
+        counts = self.space.counts(base)
+        current = self.value(base, shock_penalty=shock_penalty, town_penalty=town_penalty)
+        visited.add(counts)
+        candidates = set()
+        limits = tuple(self.space.bounds.values())
+        for i, n in enumerate(counts):
+            for j, m in enumerate(counts):
+                if i != j and n > limits[i][0] and m < limits[j][1]:
+                    candidate = list(counts)
+                    candidate[i] -= 1
+                    candidate[j] += 1
+                    candidates.add(tuple(candidate))
+        neighbors = []
+        complete = True
+        for candidate in sorted(candidates):
+            if candidate not in visited and evaluation_budget is not None and len(visited) >= evaluation_budget:
+                complete = False
+                break
+            value = self.value(dict(zip(self.space.sources, candidate)),
+                               shock_penalty=shock_penalty, town_penalty=town_penalty)
+            visited.add(candidate)
+            neighbors.append(self._relative(current, value))
+        return LocalNeighborhood(current, tuple(neighbors), complete)
+
+
+def local_search(evaluator: LocalManaEvaluator, initial: Mapping[ManaSource, int], *,
+                 shock_penalty: Real = 0, town_penalty: Real = 0, evaluation_budget: int = 500,
+                 progress: Callable[[int, RankedBase], None] | None = None) -> LocalSearchResult:
+    """Deterministic best-improvement transfers, without grids or restarts.
+
+    evaluations counts unique bases visited this run (cache hits included).
+    A partial final neighborhood returns the best evaluated base, without a
+    local-optimality claim. Move deltas are relative to the preceding base.
+    """
+    if type(evaluation_budget) is not int or evaluation_budget < 1:
+        raise ValueError("Evaluation budget must be a positive integer")
+    started = perf_counter()
+    baseline = evaluator.value(initial, shock_penalty=shock_penalty, town_penalty=town_penalty)
+    current = baseline
+    visited: set[tuple[int, ...]] = set()
+    moves = []
+    while True:
+        neighborhood = evaluator.value_and_swap_deltas(
+            dict(zip(evaluator.space.sources, current.counts)), shock_penalty=shock_penalty,
+            town_penalty=town_penalty, evaluation_budget=evaluation_budget, _visited=visited)
+        best = min((current, *neighborhood.neighbors), key=lambda row: (-row.score, row.counts))
+        improved = best.score > current.score
+        if improved:
+            moves.append(best)
+            current = best
+        if progress is not None:
+            progress(len(visited), current)
+        if not neighborhood.complete:
+            stopped = "evaluation budget"
+            break
+        if not improved:
+            stopped = "one-land local optimum"
+            break
+    return LocalSearchResult(baseline, evaluator._relative(baseline, current), tuple(moves),
+                             len(visited), perf_counter() - started, stopped)
 
 
 @dataclass(frozen=True)

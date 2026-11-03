@@ -87,3 +87,55 @@ class LandPoolTests(unittest.TestCase):
                                  overrides={ManaSource("UB","fast"):(0,4)})
         with self.assertRaises(ValueError):
             sources_for_colors("UB",["fast"],format="unknown")
+
+    def test_fixed_sources_inside_and_outside_families(self):
+        swamp = ManaSource("B", "basic")
+        cavern = ManaSource("WUBRG", "cavern")
+        space = ManaSpace.from_colors(7, "UB", families={"basic":(0,2)},
+                                      fixed={swamp:3, cavern:4})
+        self.assertEqual(space.bounds[swamp], (3,3))
+        self.assertEqual(space.bounds[cavern], (4,4))
+        self.assertEqual(space.candidate_count(), 1)
+        for counts in space.exhaustive():
+            self.assertEqual(counts[space.sources.index(swamp)], 3)
+            self.assertEqual(counts[space.sources.index(cavern)], 4)
+            self.assertEqual(sum(counts), 7)
+        zero = ManaSpace.from_colors(2, "UB", families={"basic":(0,2)}, fixed={swamp:0})
+        self.assertEqual(zero.candidate_count(), 1)
+        self.assertEqual(zero.bounds[swamp], (0,0))
+        fixed_only = ManaSpace.from_colors(5, "B", families={}, fixed={swamp:1, cavern:4})
+        self.assertEqual(fixed_only.candidate_count(), 1)
+        self.assertEqual(fixed_only.counts({swamp:1, cavern:4}), next(fixed_only.exhaustive()))
+
+    def test_invalid_fixed_sources_counts_and_conflicts(self):
+        swamp = ManaSource("B", "basic")
+        for fixed in ({swamp:-1}, {swamp:True}, {swamp:1.5}, {"Swamp":1},
+                      {ManaSource("R","basic"):1}, {ManaSource("UB","fast"):1}):
+            with self.subTest(fixed=fixed), self.assertRaises(ValueError):
+                ManaSpace.from_colors(2,"UB",families={"basic":(0,2)},format="standard",fixed=fixed)
+        with self.assertRaisesRegex(ValueError, "both fixed"):
+            ManaSpace.from_colors(2,"UB",families={"basic":(0,2)},fixed={swamp:1},overrides={swamp:(0,2)})
+        for total,fixed in ((1,{swamp:2}),(3,{swamp:2})):
+            with self.assertRaises(ValueError):
+                ManaSpace.from_colors(total,"B",families={},fixed=fixed)
+
+    def test_fixed_draw_counts_batch_agree_with_scalar(self):
+        swamp = ManaSource("B", "basic")
+        cavern = ManaSource("WUBRG", "cavern")
+        space = ManaSpace.from_colors(4,"UB",format="standard",families={"shock":(0,2),"verge":(0,2)},
+                                      fixed={swamp:1,cavern:1})
+        spells = [SpellCost("BB",2),SpellCost("UU",1),SpellCost("W",1)]
+        args = dict(turns=3,opening_hand_size=2)
+        scalar = build_component_table(space,spells,backend="scalar",**args)
+        self.assertEqual(scalar,build_component_table(space,spells,backend="batch",**args))
+        self.assertTrue(all(row.counts[space.sources.index(swamp)] == 1 and
+                            row.counts[space.sources.index(cavern)] == 1 for row in scalar.rows))
+
+    def test_notebook_fixed_pool_size_and_every_candidate(self):
+        fixed = {ManaSource("WUBRG","cavern"):4, ManaSource("B","basic"):1}
+        space = ManaSpace.from_colors(26,"UBG",format="standard",fixed=fixed,
+                                      families={k:(0,4) for k in ("shock","fast","verge","town")})
+        self.assertEqual(space.candidate_count(), 142740)
+        indices = [(space.sources.index(source), n) for source,n in fixed.items()]
+        self.assertTrue(all(sum(counts)==26 and all(counts[i]==n for i,n in indices)
+                            for counts in space.exhaustive()))
