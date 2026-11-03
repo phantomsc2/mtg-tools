@@ -1,4 +1,4 @@
-"""Small bounded exhaustive and one-swap examples: python -m examples.sultai_search."""
+"""Reference-pool exhaustive example: python -m examples.sultai_search."""
 
 from time import perf_counter
 
@@ -7,27 +7,26 @@ from mana_search import ManaSpace, build_component_table
 
 
 def main() -> None:
-    # A deliberately small neighborhood, not unrestricted mana-base search.
-    space = ManaSpace({source: (count - 1, count + 1) for source, count in MANA_BASE.items()}, land_count=26)
-    print(f"Bounded exhaustive pool: {space.candidate_count()} bases")
-    for mode in ("exhaustive", "one_swap"):
-        start = perf_counter()
-        table = build_component_table(space, SPELLS, mode=mode, baseline=MANA_BASE)
-        built = perf_counter() - start
-        start = perf_counter()
-        ranked = table.rank(dual_penalty=0.01, rainbow_penalty=0.02)
-        # Vary absolute UU weight, using the current winner as reference.
-        winner = dict(zip(space.sources, ranked[0].counts))
-        sensitivity = table.crossings("UU", baseline=winner, dual_penalty=0.01, rainbow_penalty=0.02)
-        print(f"\n{mode}: {len(table.rows)} bases, build {built:.3f}s, rank + crossings {perf_counter()-start:.3f}s")
-        print(f"Best score within this candidate set: {float(ranked[0].score):.6f}")
-        print("Best base:", {f"{s.kind}:{s.colors}": n for s, n in winner.items() if n})
-        print("Starting-base score change:", f"{float(ranked[0].delta):+.6f}")
-        print("Winner's absolute UU-weight interval:", sensitivity.optimal_interval)
-        for direction, transition in (("lower", sensitivity.lower), ("higher", sensitivity.upper)):
+    space = ManaSpace({source: ((n, n) if source.kind == "basic" else (0, 4))
+                       for source, n in MANA_BASE.items()}, land_count=26)
+    print(f'Exhaustive pool: {space.candidate_count()} bases')
+    start = perf_counter()
+    table = build_component_table(space, SPELLS, baseline=MANA_BASE)
+    print(f'Table built in {perf_counter() - start:.3f}s')
+    start = perf_counter()
+    scored = table.score(shock_penalty=0.01, town_penalty=0.01)
+    ranked = scored.rank(limit=5)
+    winner = dict(zip(space.sources, ranked[0].counts))
+    print(f'Best score: {float(ranked[0].score):.6f}')
+    print('Best base:', {f'{s.kind}:{s.colors}': n for s, n in winner.items() if n})
+    for parameter in ('shock_penalty', 'town_penalty'):
+        sensitivity = scored.crossings(parameter, baseline=winner)
+        print(parameter, sensitivity.optimal_interval)
+        for transition in (sensitivity.lower, sensitivity.upper):
             if transition is not None:
-                print(f"Next winner at {direction} UU weight {transition.value}:", transition.swap)
+                print(f'Crossing at {transition.value}:', transition.swap)
+    print(f'Report computed in {perf_counter() - start:.3f}s')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

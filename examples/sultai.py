@@ -2,8 +2,9 @@
 
 Incarnation payment modes share importance uniformly; physical cards count once.
 Sunderflock remains undiscounted; copying and board scenarios are excluded.
-The 26-land base is illustrative, using only the supported source kinds;
-it does not reproduce the original deck's Caverns or conditional lands.
+The 26-land reference base fixes one Swamp and has no Island or Forest.
+Starting Town and Cavern are separate unrestricted rainbow categories; actual
+Cavern restrictions remain outside this model. Shocks carry both land types.
 
 Run from the project root: python -m examples.sultai
 """
@@ -23,13 +24,15 @@ SPELLS = (
 )
 
 MANA_BASE = {
-    ManaSource("U", "basic"): 4,
-    ManaSource("B", "basic"): 4,
-    ManaSource("G", "basic"): 2,
-    ManaSource("UB", "dual"): 4,
-    ManaSource("UG", "dual"): 4,
-    ManaSource("BG", "dual"): 4,
-    ManaSource("WUBRG", "rainbow"): 4,
+    ManaSource("B", "basic"): 1,
+    ManaSource("UB", "shock", types="UB"): 4,
+    ManaSource("UG", "shock", types="UG"): 4,
+    ManaSource("BG", "shock", types="BG"): 4,
+    ManaSource("WUBRG", "town"): 4,
+    ManaSource("WUBRG", "cavern"): 4,
+    ManaSource("UB", "verge"): 3,
+    ManaSource("BG", "verge"): 1,
+    ManaSource("UG", "verge"): 1,
 }
 
 

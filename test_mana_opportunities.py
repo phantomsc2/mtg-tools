@@ -38,8 +38,8 @@ def physical_expectations(base, spells, seen, turn):
 
 class ManaOpportunityTests(unittest.TestCase):
     def test_against_physical_draws(self):
-        base = {ManaSource("U", "basic"): 1, ManaSource("BU", "dual"): 1,
-                ManaSource("WUBRG", "rainbow"): 1}
+        base = {ManaSource("U", "basic"): 1, ManaSource("BU", "shock"): 1,
+                ManaSource("WUBRG", "town"): 1}
         spells = [SpellCost("UU", 2, 1.5), SpellCost("1B", 1), SpellCost("BU", 1, 0),
                   SpellCost("2", 1), SpellCost("0", 1, 0.5)]
         for opening in (0, 2, 7, 20):
@@ -59,11 +59,11 @@ class ManaOpportunityTests(unittest.TestCase):
         self.assertEqual(result.raw_score, 2)
 
     def test_source_assignment_and_generic_mana(self):
-        cases = [({ManaSource("UB", "dual"): 1}, "UB", 0),
-                 ({ManaSource("UB", "dual"): 2}, "UB", 1),
-                 ({ManaSource("UB", "dual"): 2}, "UU", 1),
-                 ({ManaSource("WUBRG", "rainbow"): 1, ManaSource("G", "basic"): 1}, "UB", 0),
-                 ({ManaSource("WUBRG", "rainbow"): 1, ManaSource("G", "basic"): 1}, "1B", 1),
+        cases = [({ManaSource("UB", "shock"): 1}, "UB", 0),
+                 ({ManaSource("UB", "shock"): 2}, "UB", 1),
+                 ({ManaSource("UB", "shock"): 2}, "UU", 1),
+                 ({ManaSource("WUBRG", "town"): 1, ManaSource("G", "basic"): 1}, "UB", 0),
+                 ({ManaSource("WUBRG", "town"): 1, ManaSource("G", "basic"): 1}, "1B", 1),
                  ({ManaSource("G", "basic"): 2}, "2", 1)]
         for base, cost, expected in cases:
             with self.subTest(base=base, cost=cost):
@@ -91,26 +91,39 @@ class ManaOpportunityTests(unittest.TestCase):
         self.assertGreater(removed.raw_score, zero_weight.raw_score)
 
     def test_equivalent_costs_and_weights_are_aggregated(self):
-        base = {ManaSource("BU", "dual"): 2}
+        base = {ManaSource("BU", "shock"): 2}
         result = evaluate(base, [SpellCost("BU", 1, 2), SpellCost("UB", 2, 0.5)],
                           turns=2, opening_hand_size=20)
         rows = [r for r in result.opportunities if r.turn == 2]
         self.assertEqual(len(rows), 2)
         self.assertTrue(all(r.cost == "UB" and r.expected_copies == 3 and r.weighted_contribution == 3 for r in rows))
         self.assertEqual(SpellCost("0U", 1).cost, "U")
-        self.assertEqual(ManaSource("BU", "dual"), ManaSource("UB", "dual"))
+        self.assertEqual(ManaSource("BU", "shock"), ManaSource("UB", "shock"))
 
     def test_positions_horizon_and_composition_penalty(self):
-        base = {ManaSource("U", "basic"): 2, ManaSource("UB", "dual"): 2,
-                ManaSource("WUBRG", "rainbow"): 1}
+        base = {ManaSource("U", "basic"): 2, ManaSource("UB", "shock"): 2,
+                ManaSource("WUBRG", "town"): 1}
         spells = [SpellCost("U", 5)]
         play = evaluate(base, spells, position="play")
         draw = evaluate(base, spells, position="draw")
-        both = evaluate(base, spells, dual_penalty=0.2, rainbow_penalty=0.7)
+        both = evaluate(base, spells, shock_penalty=0.2, town_penalty=0.7)
         self.assertEqual(len(both.opportunities), 14)
         self.assertAlmostEqual(both.raw_score, (play.raw_score + draw.raw_score) / 2)
         self.assertAlmostEqual(both.penalty, 1.1)
         self.assertAlmostEqual(both.score, both.raw_score - 1.1)
+
+    def test_town_and_cavern_share_production_but_not_penalties(self):
+        shock = ManaSource("UB", "shock", "UB")
+        town, cavern = ManaSource("WUBRG", "town"), ManaSource("WUBRG", "cavern")
+        spells = [SpellCost("UU", 2), SpellCost("WB", 1)]
+        first = evaluate({shock: 1, town: 1, cavern: 2}, spells, shock_penalty=0.2, town_penalty=0.3)
+        second = evaluate({shock: 1, town: 2, cavern: 1}, spells, shock_penalty=0.2, town_penalty=0.3)
+        self.assertEqual(first.opportunities, second.opportunities)
+        self.assertAlmostEqual(first.penalty, 0.5)
+        self.assertAlmostEqual(second.penalty, 0.8)
+        self.assertAlmostEqual(first.score - second.score, 0.3)
+        with self.assertRaises(ValueError):
+            ManaSource("WUBRG", "cavern", types="U")
 
     def test_empty_categories_and_unavailable_costs(self):
         base = {ManaSource("U", "basic"): 2}
@@ -125,8 +138,8 @@ class ManaOpportunityTests(unittest.TestCase):
         for cost in ("", "U2", "XU", "{U}", "C", "-1U", "01U", "u", "U/B"):
             with self.subTest(cost=cost), self.assertRaises(ValueError):
                 SpellCost(cost, 1)
-        for colors, kind in (("UU", "dual"), ("U", "dual"), ("C", "basic"),
-                             ("UB", "basic"), ("UBG", "rainbow"), ("U", "creature")):
+        for colors, kind in (("UU", "shock"), ("U", "shock"), ("C", "basic"),
+                             ("UB", "basic"), ("UBG", "town"), ("U", "creature")):
             with self.assertRaises(ValueError):
                 ManaSource(colors, kind)
         for count in (-1, 1.5, True):
@@ -138,7 +151,7 @@ class ManaOpportunityTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 SpellCost("U", 1, weight)
             with self.assertRaises(ValueError):
-                evaluate({}, [SpellCost("U", 1)], dual_penalty=weight)
+                evaluate({}, [SpellCost("U", 1)], shock_penalty=weight)
         for options in ({"turns": 0}, {"turns": 1.5}, {"opening_hand_size": -1}, {"position": "side"}):
             with self.assertRaises(ValueError):
                 evaluate({}, [SpellCost("U", 1)], **options)

@@ -12,11 +12,12 @@ from mana_opportunities import ManaSource, SpellCost, evaluate
 base = {
     ManaSource("U", "basic"): 8,
     ManaSource("B", "basic"): 8,
-    ManaSource("UB", "dual"): 6,
-    ManaSource("WUBRG", "rainbow"): 4,
+    ManaSource("UB", "shock"): 6,
+    ManaSource("WUBRG", "town"): 2,
+    ManaSource("WUBRG", "cavern"): 2,
 }
 spells = [SpellCost("UU", 12), SpellCost("BB", 21, weight=2), SpellCost("WWBU", 1, weight=0.05)]
-result = evaluate(base, spells, dual_penalty=0.01, rainbow_penalty=0.02)
+result = evaluate(base, spells, shock_penalty=0.01, town_penalty=0.01)
 print(result.score)
 # Exact unweighted expectations and weighted contributions by cost, turn, position:
 print(result.opportunities[0])
@@ -25,11 +26,11 @@ print(result.opportunities[0])
 Each drawn physical copy contributes its weight whenever its cost is payable.
 Copies and different costs score independently, even when they cannot all be cast
 with the same mana. The score averages T1 through T7 and play/draw equally by
-default, then subtracts the per-land dual/rainbow penalties. Mana shortage remains
+default, then subtracts the per-land shock/Town penalties. Mana shortage remains
 in the draw distribution. Zero-weight cards still occupy deck slots.
 
 This measures sustained availability with optimistic land selection. It ignores
-sequencing, previously cast spells, tapped entry, conditional mana and Cavern.
+sequencing, previously cast spells, tapped entry and Cavern's creature restrictions.
 Counts describe the actual spell package; weights describe importance. Deck size
 is inferred from all land and spell counts. Only ordinary generic and WUBRG costs
 are supported. Decklist import is not wired yet.
@@ -43,6 +44,32 @@ See [calculation notes](ideas/knowledge/mana-opportunities.md) for the mathemati
 python -m unittest -v test_mana_opportunities
 python -m doctest mana_opportunities.py
 ```
+
+## Verge sources and land types
+
+`ManaSource("UB", "verge")` represents Gloomlake Verge: U unconditionally,
+B with an Island or Swamp. `VERGE_RULES` also supports Wastewood (BG: G first,
+conditional B) and Willowrush (UG: U first, conditional G).
+
+Basics infer their own land type. Shocks are untyped unless explicitly declared,
+for example `ManaSource("UG", "shock", types="UG")` for a Forest/Island shock.
+Town, Cavern, and Verges carry no basic land types. Enablers must be among the
+lands seen so far. They need not fit within the turn's land drops, an
+optimistic approximation that deliberately ignores enabler sequencing.
+Verges have no composition penalty beyond their conditional production.
+
+The command-line example's reference pool fixes one Swamp and excludes Islands/Forests.
+Each typed shock, Verge, Starting Town, and Cavern ranges from 0?4. This gives
+3,144 legal 26-land bases. Town and Cavern are separate unrestricted rainbow
+sources; Cavern restrictions remain excluded. Cavern has no composition penalty.
+The notebook starts `shock_penalty` and `town_penalty` at 0.01 each, independently
+editable. Search scans every legal composition within the bounds.
+
+The notebook additionally allows 0–2 of each basic type (W/U/B/R/G), starting
+with one Swamp and zero other basics. Its expanded pool contains 4,581,982 bases
+and uses the batch backend for exhaustive builds without size cutoffs.
+Search covers the entire bounded pool.
+
 
 ## Alternate casting costs
 
@@ -66,56 +93,63 @@ importance for that cost's shares. Rebuild a table to change mode shares.
 
 ## Mana-base search and crossings
 
-Open [sultai_explorer.ipynb](sultai_explorer.ipynb) in PyCharm or Jupyter for the
-interactive workflow. Run all cells once, then edit the dual/rainbow penalties
-in the parameter cell and rerun the analysis cell. It reuses the built tables
-and displays rankings, winning sources, concrete replacements, and crossing
-intervals for both penalties. The notebook needs an IPython/Jupyter kernel;
-the evaluator and search modules themselves use only the standard library.
-Install `tqdm` in the notebook kernel environment for build progress bars
-(`python -m pip install tqdm`).
-
-`mana_search.py` builds a shared component table: exact mean opportunities per
-cost, plus dual/rainbow counts, for each candidate base. Physical spell counts
-and evaluation settings are fixed when the table is built. Importance weights
-and penalties can then change without repeating draw calculations.
+Open [sultai_explorer.ipynb](sultai_explorer.ipynb) in PyCharm or Jupyter. Definitions
+and bounds are notebook-local. Build the full component table once, then edit
+shock/Town penalties and rerun the report. The notebook needs IPython and tqdm;
+NumPy accelerates table construction. The scalar evaluator remains a reference.
 
 ```python
 from mana_search import ManaSpace, build_component_table
 
-space = ManaSpace({source: (max(0, n - 1), n + 1) for source, n in base.items()}, land_count=26)
-print(space.candidate_count())  # Size before paying the evaluation cost
-table = build_component_table(space, spells, mode="one_swap", baseline=base)
-best = table.rank(dual_penalty=0.01, rainbow_penalty=0.02)[0]
-change = table.crossings("UU", dual_penalty=0.01, rainbow_penalty=0.02)
+space = ManaSpace({source: (0, 4) for source in base}, land_count=26)
+table = build_component_table(space, spells, baseline=base)
+scored = table.score(shock_penalty=0.01, town_penalty=0.01)
+top = scored.rank(limit=5)
+winner = dict(zip(space.sources, top[0].counts))
+shock_change = scored.crossings("shock_penalty", baseline=winner)
+town_change = scored.crossings("town_penalty", baseline=winner)
 ```
 
-Choose `mode="exhaustive"` to evaluate every composition within the caller's
-bounds, or `mode="one_swap"` for the starting base and legal one-land replacements.
-Ranked rows include score changes and concrete OUT/IN counts relative to the
-supplied baseline. No repeated hill climbing or automatic large-space search occurs.
+All search is exhaustive within the supplied bounds. There is no search-mode
+switch or neighborhood search. `backend="auto"` attempts the NumPy batch backend
+without size cutoffs; `backend="scalar"` evaluates all bases independently.
+Missing NumPy or an unsafe integer-transform bound can select scalar. Memory
+allocation errors propagate. Batch probability calculations are exact integer
+binomial transforms; no float approximation is introduced.
 
-`rank(weights={"UU": 2})` replaces the weight for that cost, keeping other defaults.
-Canonical-equivalent input costs share a column. Duplicate entries' original
-weights combine by physical-copy-weighted mean, reproducing the evaluator.
-Ranking, penalties, and crossings use fractions; finite decimal inputs retain
-their decimal values exactly.
+`progress=` wraps candidate row assembly (per-base evaluation in scalar).
+`component_progress=` wraps expensive cost-column transforms in batch. The
+notebook supplies tqdm; library code has no UI dependency.
 
-`crossings("UU")`, `crossings("dual_penalty")`, or `crossings("rainbow_penalty")`
-varies one **absolute** parameter over values >= 0. Results include pairwise tie
-thresholds and which side favors each candidate, the baseline's closed optimality
-interval (including ties), and the next winner in either direction when the
-baseline is currently optimal. Simultaneous crossings select the outward winning
-slope, then fewest replacements, then canonical source-count order.
+A component table holds mean opportunities per cost, separate shock/Town counts,
+and default importance weights. Canonical-equivalent costs share a column;
+mode-copy shares and importance reproduce the scalar evaluator. Override cost
+importance using `table.score(weights={"UU": 2}, ...)`.
 
-An exhaustive table without a supplied baseline uses the current winner for
-crossings. A one-swap table uses its starting base; if it is already suboptimal,
-pairwise comparisons still work but next-optimum transitions are absent. An
-explicit `baseline=` can select another evaluated reference. Guarantees always
-cover only the table's candidate set; one-swap results are local.
+The first score prepares cached integer columns with a common denominator per
+cost. Weighted scores then use integer dot products with one score denominator.
+A score snapshot is reused for ranking and every crossing query. `rank(limit=5)`
+selects five winners without sorting the full pool or constructing unused swap
+records. The optional limit changes displayed results only; every candidate is
+scored and participates in crossings. Omit it for a complete ranking.
 
-Run `python -m examples.sultai_search` to compare both analyses on a small bounded
-pool, with separate timings for building the table and querying it.
+`scored.crossings("UU")`, `scored.crossings("shock_penalty")`, and
+`scored.crossings("town_penalty")` vary one absolute nonnegative parameter.
+Parallel lines are reduced to the best representative for each exact slope;
+this preserves the global envelope. Integer inequalities produce exact closed
+optimality intervals and immediate successors. At simultaneous crossings, the
+outward winning slope wins, then fewest replacements, then canonical count order.
+Only actual successors get OUT/IN descriptions; no per-candidate comparison
+objects are materialized. A nonoptimal reference can have an interval elsewhere,
+but receives no next-optimum transitions at the current settings.
+
+Convenience methods `table.rank(...)` and `table.crossings(...)` remain; use an
+explicit `scored = table.score(...)` snapshot to share scoring work across queries.
+Crossings default to the supplied starting baseline, or the current winner when
+none was supplied. Results cover the full bounded pool, not unrestricted bases.
+
+Run `python -m examples.sultai_search` for the reduced reference-pool example and
+separate table-build/report timings.
 
 ## Generic hand experiments
 

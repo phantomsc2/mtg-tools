@@ -8,8 +8,8 @@ from mana_search import BaseComponents, ComponentTable, Interval, ManaSpace, bui
 
 U = ManaSource("U", "basic")
 B = ManaSource("B", "basic")
-D = ManaSource("UB", "dual")
-R = ManaSource("WUBRG", "rainbow")
+D = ManaSource("UB", "shock")
+R = ManaSource("WUBRG", "town")
 
 
 class ManaSearchTests(unittest.TestCase):
@@ -19,41 +19,31 @@ class ManaSearchTests(unittest.TestCase):
                     if sum(counts) == 3}
         self.assertEqual(set(space.exhaustive()), expected)
         self.assertEqual(space.candidate_count(), len(expected))
-        baseline = {U: 2, B: 1}
-        reference = space.counts(baseline)
-        local = tuple(space.one_swap(baseline))
-        expected_local = {counts for counts in expected if sum(abs(a - b) for a, b in zip(counts, reference)) <= 2}
-        self.assertEqual(set(local), expected_local)
-        self.assertEqual(len(local), len(set(local)))
-        self.assertEqual(local[0], reference)
-        self.assertEqual(space.one_swap_count(baseline), len(local))
 
     def test_progress_wraps_each_candidate_without_changing_results(self):
         space = ManaSpace({U: (0, 2), B: (0, 2)}, 2)
         spells = [SpellCost("U", 2)]
-        for mode, baseline in (("exhaustive", None), ("one_swap", {U: 1, B: 1})):
-            seen = []
+        seen = []
 
-            def progress(candidates):
-                for candidate in candidates:
-                    seen.append(candidate)
-                    yield candidate
+        def progress(candidates):
+            for candidate in candidates:
+                seen.append(candidate)
+                yield candidate
 
-            wrapped = build_component_table(space, spells, mode=mode, baseline=baseline, progress=progress)
-            plain = build_component_table(space, spells, mode=mode, baseline=baseline)
-            self.assertEqual(wrapped, plain)
-            self.assertEqual(seen, [row.counts for row in plain.rows])
-            expected = space.candidate_count() if baseline is None else space.one_swap_count(baseline)
-            self.assertEqual(len(seen), expected)
+        wrapped = build_component_table(space, spells, progress=progress)
+        plain = build_component_table(space, spells)
+        self.assertEqual(wrapped, plain)
+        self.assertEqual(seen, [row.counts for row in plain.rows])
+        self.assertEqual(len(seen), space.candidate_count())
 
     def test_components_and_rank_agree_with_evaluator(self):
         space = ManaSpace({U: (0, 2), D: (0, 2), R: (0, 1)}, 2)
         spells = [SpellCost("U", 2, 0.5), SpellCost("U", 1, 2), SpellCost("BU", 1, 3)]
         table = build_component_table(space, spells, turns=3, opening_hand_size=2)
-        for row in table.rank(dual_penalty=F(1, 10), rainbow_penalty=F(1, 5)):
+        for row in table.rank(shock_penalty=F(1, 10), town_penalty=F(1, 5)):
             base = dict(zip(space.sources, row.counts))
             expected = evaluate(base, spells, turns=3, opening_hand_size=2,
-                                dual_penalty=0.1, rainbow_penalty=0.2)
+                                shock_penalty=0.1, town_penalty=0.2)
             self.assertAlmostEqual(float(row.raw_score), expected.raw_score)
             self.assertAlmostEqual(float(row.score), expected.score)
         self.assertEqual(table.default_weights[table.costs.index("U")], 1)
@@ -67,22 +57,6 @@ class ManaSearchTests(unittest.TestCase):
             table.rank({"U": 3})
             table.crossings("U")
 
-    def test_one_swap_scores_and_scope(self):
-        space = ManaSpace({U: (0, 3), B: (0, 3), D: (0, 2)}, 3)
-        base = {U: 2, B: 1}
-        spells = [SpellCost("UU", 2), SpellCost("BB", 1)]
-        full = build_component_table(space, spells, baseline=base, opening_hand_size=2, turns=2)
-        local = build_component_table(space, spells, mode="one_swap", baseline=base,
-                                      opening_hand_size=2, turns=2)
-        full_rows = {row.counts: row for row in full.rows}
-        for row in local.rows:
-            self.assertEqual(row, full_rows[row.counts])
-        for row in local.rank():
-            self.assertIn(row.swap.cards_replaced, (0, 1))
-            self.assertEqual(sum(n for _, n in row.swap.incoming), row.swap.cards_replaced)
-        self.assertEqual(local.crossings("UU").mode, "one_swap")
-        self.assertEqual(local.crossings("UU").baseline, space.counts(base))
-        self.assertGreaterEqual(full.rank()[0].score, local.rank()[0].score)
 
     def line_table(self):
         space = ManaSpace({U: (0, 3), B: (0, 3)}, 3)
@@ -90,7 +64,7 @@ class ManaSearchTests(unittest.TestCase):
         lines = [(F(9, 2), 0), (4, 1), (2, 2), (0, 3)]
         counts = tuple(space.exhaustive())
         rows = tuple(BaseComponents(base, (F(b), F(a)), 0, 0) for base, (a, b) in zip(counts, lines))
-        return ComponentTable(space, ("U", "B"), (F(1), F(1)), rows, "exhaustive", counts[1])
+        return ComponentTable(space, ("U", "B"), (F(1), F(1)), rows, counts[1])
 
     def test_exact_bidirectional_crossings_and_simultaneous_tie(self):
         table = self.line_table()
@@ -107,10 +81,8 @@ class ManaSearchTests(unittest.TestCase):
             self.assertEqual(at[result.baseline], at[transition.counts])
             beyond = table.rank({"U": transition.value + side * F(1, 100)})[0]
             self.assertEqual(beyond.counts, transition.counts)
-        self.assertEqual(result.comparisons[0].better, "below")
-        self.assertEqual(result.comparisons[0].tie_at, F(1, 2))
 
-    def test_nonoptimal_reference_gets_pairwise_comparisons(self):
+    def test_nonoptimal_reference_has_no_transitions(self):
         table = self.line_table()
         reference = table.rows[2].counts
         result = table.crossings("U", baseline=dict(zip(table.space.sources, reference)))
@@ -118,16 +90,15 @@ class ManaSearchTests(unittest.TestCase):
         self.assertEqual(result.optimal_interval, Interval(F(2), F(2)))
         self.assertIsNone(result.lower)
         self.assertIsNone(result.upper)
-        self.assertEqual(len(result.comparisons), 3)
 
     def test_penalty_crossings(self):
-        for source, parameter in ((D, "dual_penalty"), (R, "rainbow_penalty")):
+        for source, parameter in ((D, "shock_penalty"), (R, "town_penalty")):
             space = ManaSpace({U: (0, 1), source: (0, 1)}, 1)
             rows = tuple(BaseComponents(c, (F(2 if c[space.sources.index(source)] else 1),),
                                        c[space.sources.index(source)] if source == D else 0,
                                        c[space.sources.index(source)] if source == R else 0)
                          for c in space.exhaustive())
-            table = ComponentTable(space, ("U",), (F(1),), rows, "exhaustive", None)
+            table = ComponentTable(space, ("U",), (F(1),), rows, None)
             result = table.crossings(parameter)
             self.assertTrue(result.baseline_is_optimal)
             self.assertEqual(result.upper.value, 1)
@@ -138,11 +109,9 @@ class ManaSearchTests(unittest.TestCase):
         counts = tuple(row.counts for row in table.rows)
         rows = tuple(BaseComponents(c, (F(slope), F(intercept)), 0, 0)
                      for c, intercept, slope in zip(counts, (1, 1, 0, 2), (1, 1, 1, 0)))
-        table = ComponentTable(table.space, ("U", "B"), (F(0), F(1)), rows, "exhaustive", counts[0])
+        table = ComponentTable(table.space, ("U", "B"), (F(0), F(1)), rows, counts[0])
         result = table.crossings("U")
         self.assertFalse(result.baseline_is_optimal)
-        self.assertEqual(result.comparisons[0].better, "tied")
-        self.assertEqual(result.comparisons[1].better, "never")
         self.assertEqual(result.optimal_interval, Interval(F(1), None))
         at_boundary = table.crossings("U", weights={"U": 1})
         self.assertTrue(at_boundary.baseline_is_optimal)
@@ -159,7 +128,7 @@ class ManaSearchTests(unittest.TestCase):
         table = build_component_table(space, [])
         self.assertEqual(table.rank()[0].score, 0)
         self.assertEqual(space.candidate_count(), 1)
-        self.assertIsNone(table.crossings("dual_penalty").upper)
+        self.assertIsNone(table.crossings("shock_penalty").upper)
         space = ManaSpace({}, 0)
         self.assertEqual(space.candidate_count(), 1)
         table = build_component_table(space, [SpellCost("0", 2)])
@@ -170,7 +139,7 @@ class ManaSearchTests(unittest.TestCase):
         counts = tuple(space.exhaustive())
         rows = tuple(BaseComponents(c, (F(slope), F(intercept)), 0, 0)
                      for c, intercept, slope in zip(counts, (1, 1, 0), (0, 1, 0)))
-        table = ComponentTable(space, ("U", "B"), (F(0), F(1)), rows, "exhaustive", counts[0])
+        table = ComponentTable(space, ("U", "B"), (F(0), F(1)), rows, counts[0])
         result = table.crossings("U")
         self.assertTrue(result.baseline_is_optimal)
         self.assertEqual(result.optimal_interval, Interval(F(0), F(0)))
@@ -190,8 +159,8 @@ class ManaSearchTests(unittest.TestCase):
         for base in ({U: 1}, {D: 2}, {U: -1, B: 3}):
             with self.assertRaises(ValueError):
                 space.counts(base)
-        with self.assertRaises(ValueError):
-            build_component_table(space, [SpellCost("U", 1)], mode="one_swap")
+        with self.assertRaises(TypeError):
+            build_component_table(space, [SpellCost("U", 1)], mode="exhaustive")
         table = build_component_table(space, [SpellCost("U", 1)])
         for weights in ({"B": 1}, {"U": -1}, {"U": float("nan")}):
             with self.assertRaises(ValueError):

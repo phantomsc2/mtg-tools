@@ -1,12 +1,14 @@
 """Draw-based casting opportunities, with independent copies and optimistic land selection.
 
 No sequencing or spells are played out: each drawn copy scores on every turn
-its cost is payable, independently of all other copies and costs. Every source
-produces one mana, with no tapped entry, life costs, or conditional production.
+its cost is payable, independently of all other copies and costs. Town and
+Cavern are unrestricted rainbow sources; Cavern restrictions remain excluded.
+Every source produces one mana, with no tapped entry or life costs. Verge secondary colors
+use enabling land types anywhere among lands seen, ignoring enabler land drops.
 
 Example (run with ``python -m doctest mana_opportunities.py``)::
 
-    >>> base = {ManaSource("U", "basic"): 12, ManaSource("UB", "dual"): 12}
+    >>> base = {ManaSource("U", "basic"): 12, ManaSource("UB", "shock"): 12}
     >>> result = evaluate(base, [SpellCost("UU", 20), SpellCost("1B", 16, weight=2)])
     >>> result.score > 0
     True
@@ -23,9 +25,26 @@ from fractions import Fraction
 from functools import lru_cache
 from math import comb, fsum, isfinite
 from numbers import Real
+from types import MappingProxyType
 from typing import Literal
 
 COLORS = "WUBRG"
+
+
+@dataclass(frozen=True)
+class VergeRule:
+    name: str
+    primary: str
+    secondary: str
+    requires: str
+
+
+# Source: published card text, linked in ideas/knowledge/mana-opportunities.md.
+VERGE_RULES = MappingProxyType({
+    "UB": VergeRule("Gloomlake Verge", "U", "B", "UB"),
+    "BG": VergeRule("Wastewood Verge", "G", "B", "BG"),
+    "UG": VergeRule("Willowrush Verge", "U", "G", "UG"),
+})
 
 
 def _count(value: int, label: str) -> None:
@@ -49,15 +68,32 @@ def _parse_cost(cost: str) -> tuple[int, str]:
 @dataclass(frozen=True)
 class ManaSource:
     colors: str
-    kind: Literal["basic", "dual", "rainbow"]
+    kind: Literal["basic", "shock", "town", "cavern", "verge"]
+    types: str = ""
 
     def __post_init__(self) -> None:
-        sizes = {"basic": 1, "dual": 2, "rainbow": 5}
+        sizes = {"basic": 1, "shock": 2, "town": 5, "cavern": 5, "verge": 2}
         if (self.kind not in sizes or not isinstance(self.colors, str)
                 or len(self.colors) != sizes[self.kind] or len(set(self.colors)) != len(self.colors)
                 or set(self.colors) - set(COLORS)):
-            raise ValueError("Sources require one basic color, two dual colors, or all five rainbow colors")
+            raise ValueError("Sources require one basic color, two shock/verge colors, or five rainbow colors")
         object.__setattr__(self, "colors", "".join(c for c in COLORS if c in self.colors))
+        if (not isinstance(self.types, str) or len(set(self.types)) != len(self.types)
+                or set(self.types) - set(self.colors)):
+            raise ValueError("Land types must be distinct WUBRG letters belonging to the source's colors")
+        types = "".join(c for c in COLORS if c in self.types)
+        if self.kind == "basic":
+            types = types or self.colors
+        if ((self.kind in ("town", "cavern", "verge") and types)
+                or (self.kind == "shock" and types not in ("", self.colors))):
+            raise ValueError("Only basics and explicitly typed shocks carry basic land types")
+        if self.kind == "verge" and self.colors not in VERGE_RULES:
+            raise ValueError(f"No Verge production rule registered for {self.colors}")
+        object.__setattr__(self, "types", types)
+
+    @property
+    def primary_colors(self) -> str:
+        return VERGE_RULES[self.colors].primary if self.kind == "verge" else self.colors
 
 
 @dataclass(frozen=True)
@@ -168,9 +204,67 @@ def _payable_land_weights(sources: tuple[tuple[str, int], ...], generic: int,
     return tuple(payable)
 
 
+@lru_cache(maxsize=128)
+def _verge_land_weights(sources: tuple[tuple[ManaSource, int], ...], generic: int,
+                        colored: str, max_drawn: int) -> tuple[int, ...]:
+    """Capped-supply DP partitioned by enabling types among all lands seen.
+
+    Each draw belongs to exactly one final type mask. For that mask production
+    options are fixed, so states need only land count, observed types, and Hall
+    supplies. No drawn multisets or selected battlefields are enumerated.
+    """
+    relevant = set().union(*(set(VERGE_RULES[s.colors].requires) for s, _ in sources
+                            if s.kind == "verge" and VERGE_RULES[s.colors].secondary in colored))
+    possible = set().union(*(set(s.types) for s, _ in sources))
+    types = tuple(c for c in COLORS if c in relevant & possible)
+    if not types:
+        primary = Counter()
+        for source, count in sources:
+            primary[source.primary_colors] += count
+        return _payable_land_weights(tuple(sorted(primary.items())), generic, colored, max_drawn)
+
+    required = Counter(colored)
+    colors = tuple(required)
+    groups = [tuple(c for i, c in enumerate(colors) if mask & (1 << i))
+              for mask in range(1, 1 << len(colors))]
+    caps = tuple(sum(required[c] for c in group) for group in groups)
+    payable = [0] * (max_drawn + 1)
+    for target in range(1 << len(types)):
+        supplies = Counter()
+        reachable = 0
+        for source, count in sources:
+            type_mask = sum(1 << i for i, c in enumerate(types) if c in source.types)
+            if type_mask & ~target:
+                continue  # This scenario draws zero of this source.
+            reachable |= type_mask
+            options = source.primary_colors
+            if source.kind == "verge":
+                rule = VERGE_RULES[source.colors]
+                if any(target & (1 << i) for i, c in enumerate(types) if c in rule.requires):
+                    options += rule.secondary
+            supply = tuple(int(any(c in options for c in group)) for group in groups)
+            supplies[supply, type_mask] += count
+        if reachable != target:
+            continue
+        states = {(0, 0, (0,) * len(caps)): 1}
+        for (supply, type_mask), count in supplies.items():
+            next_states = defaultdict(int)
+            binomials = [comb(count, take) for take in range(min(count, max_drawn) + 1)]
+            for (drawn, observed, covered), weight in states.items():
+                for take in range(min(count, max_drawn - drawn) + 1):
+                    updated = tuple(min(cap, have + take * adds) for cap, have, adds in zip(caps, covered, supply))
+                    seen_types = observed | type_mask if take else observed
+                    next_states[drawn + take, seen_types, updated] += weight * binomials[take]
+            states = next_states
+        for (drawn, observed, covered), weight in states.items():
+            if drawn >= generic + len(colored) and observed == target and covered == caps:
+                payable[drawn] += weight
+    return tuple(payable)
+
+
 def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | Spell], *, turns: int = 7,
              position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
-             rainbow_penalty: float = 0, dual_penalty: float = 0) -> OpportunityResult:
+             town_penalty: float = 0, shock_penalty: float = 0) -> OpportunityResult:
     """Score the full draw distribution, including hands short on lands.
 
     Deck size is inferred. On turn T see opening_hand_size + T - 1 cards on
@@ -182,8 +276,8 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
     _count(opening_hand_size, "Opening hand size")
     if not turns or position not in ("both", "play", "draw"):
         raise ValueError("Turn limit must be positive and position must be both, play, or draw")
-    rainbow_penalty = _weight(rainbow_penalty, "Rainbow penalty")
-    dual_penalty = _weight(dual_penalty, "Dual penalty")
+    town_penalty = _weight(town_penalty, "Town penalty")
+    shock_penalty = _weight(shock_penalty, "Shock penalty")
 
     sources = Counter()
     penalties = []
@@ -192,8 +286,9 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
             raise ValueError("Mana base keys must be ManaSource inputs")
         _count(count, "Land count")
         if count:
-            sources[source.colors] += count
-        penalties.append(count * {"basic": 0, "dual": dual_penalty, "rainbow": rainbow_penalty}[source.kind])
+            sources[source] += count
+        penalties.append(count * {"basic": 0, "verge": 0, "shock": shock_penalty,
+                                  "town": town_penalty, "cavern": 0}[source.kind])
     nonlands, counts, weighted_counts = spell_components(spells)
     deck_size = sum(sources.values()) + nonlands
     if not deck_size:
@@ -201,13 +296,21 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
     positions = ("play", "draw") if position == "both" else (position,)
     max_seen = min(deck_size, max(opening_hand_size + turns - (side == "play") for side in positions))
     max_lands = min(sum(sources.values()), max(0, max_seen - 1))
-    source_key = tuple(sorted(sources.items()))
+    source_key = tuple(sorted(sources.items(), key=lambda item: (item[0].kind, item[0].colors, item[0].types)))
+    conditional = any(s.kind == "verge" for s in sources)
+    plain_sources = Counter()
+    for source, count in sources.items():
+        plain_sources[source.colors] += count
     rows = []
     for cost, copies in counts.items():
         generic, colored = _parse_cost(cost)
         total = generic + len(colored)
-        weights = (_payable_land_weights(source_key, generic, colored, max_lands)
-                   if copies and total <= turns else ())
+        weights = ()
+        if copies and total <= turns:
+            if conditional:
+                weights = _verge_land_weights(source_key, generic, colored, max_lands)
+            else:
+                weights = _payable_land_weights(tuple(sorted(plain_sources.items())), generic, colored, max_lands)
         weighted_copies = float(weighted_counts[cost])
         for turn in range(1, turns + 1):
             for side in positions:
