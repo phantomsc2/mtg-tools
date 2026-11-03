@@ -1,20 +1,20 @@
 """Sample input from resources/decks/evoke_elementals.txt, not core defaults.
 
-Choose one representative payment per physical spell: UU for Wistfulness,
-BB for Deceit/Emptiness, and undiscounted 7UU for Sunderflock. There are no
-copy scenarios, triggers, alternative payments, or gameplay assumptions.
+Incarnation payment modes share importance uniformly; physical cards count once.
+Sunderflock remains undiscounted; copying and board scenarios are excluded.
 The 26-land base is illustrative, using only the supported source kinds;
 it does not reproduce the original deck's Caverns or conditional lands.
 
 Run from the project root: python -m examples.sultai
 """
 
-from mana_opportunities import ManaSource, SpellCost, evaluate
+from mana_opportunities import CastingMode, ManaSource, Spell, SpellCost, evaluate
 
 SPELLS = (
     SpellCost("2UB", 4),  # Superior Spider-Man
-    SpellCost("BB", 8),   # Deceit and Emptiness
-    SpellCost("UU", 4),   # Wistfulness
+    Spell(4, tuple(CastingMode(c) for c in ("UU", "BB", "4UU", "4BB", "2UUBB"))),  # Deceit
+    Spell(4, tuple(CastingMode(c) for c in ("WW", "BB", "4WW", "4BB", "2WWBB"))),  # Emptiness
+    Spell(4, tuple(CastingMode(c) for c in ("UU", "GG", "3UU", "3GG", "1UUGG"))),  # Wistfulness
     SpellCost("2G", 4),   # Formidable Speaker
     SpellCost("1B", 3),   # Bitter Triumph
     SpellCost("B", 4),    # Moonshadow

@@ -74,6 +74,49 @@ class SpellCost:
 
 
 @dataclass(frozen=True)
+class CastingMode:
+    cost: str
+    weight: float = 1
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "cost", SpellCost(self.cost, 0).cost)
+        _weight(self.weight, "Mode weight")
+
+
+@dataclass(frozen=True)
+class Spell:
+    count: int
+    modes: tuple[CastingMode, ...]
+    weight: float = 1
+
+    def __post_init__(self) -> None:
+        _count(self.count, "Spell count")
+        _weight(self.weight, "Spell weight")
+        object.__setattr__(self, "modes", tuple(self.modes))
+        if not self.modes or any(not isinstance(m, CastingMode) for m in self.modes):
+            raise ValueError("Supply at least one CastingMode")
+        if not any(m.weight > 0 for m in self.modes):
+            raise ValueError("At least one mode must have positive weight")
+
+
+def spell_components(spells: Sequence[SpellCost | Spell]) -> tuple[int, Counter, Counter]:
+    """Physical nonlands, normalized copy shares, and importance-weighted shares."""
+    nonlands = 0
+    counts, weighted = Counter(), Counter()
+    for spell in spells:
+        if not isinstance(spell, (SpellCost, Spell)):
+            raise ValueError("Spells must be SpellCost or Spell inputs")
+        nonlands += spell.count
+        modes = spell.modes if isinstance(spell, Spell) else (CastingMode(spell.cost),)
+        total = sum((Fraction(str(m.weight)) for m in modes), Fraction())
+        for mode in modes:
+            share = spell.count * Fraction(str(mode.weight)) / total
+            counts[mode.cost] += share
+            weighted[mode.cost] += share * Fraction(str(spell.weight))
+    return nonlands, counts, weighted
+
+
+@dataclass(frozen=True)
 class Opportunity:
     cost: str
     turn: int
@@ -125,7 +168,7 @@ def _payable_land_weights(sources: tuple[tuple[str, int], ...], generic: int,
     return tuple(payable)
 
 
-def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost], *, turns: int = 7,
+def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | Spell], *, turns: int = 7,
              position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
              rainbow_penalty: float = 0, dual_penalty: float = 0) -> OpportunityResult:
     """Score the full draw distribution, including hands short on lands.
@@ -151,15 +194,7 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost], *
         if count:
             sources[source.colors] += count
         penalties.append(count * {"basic": 0, "dual": dual_penalty, "rainbow": rainbow_penalty}[source.kind])
-    counts = Counter()
-    weighted_counts = defaultdict(list)
-    for spell in spells:
-        if not isinstance(spell, SpellCost):
-            raise ValueError("Spells must be SpellCost inputs")
-        counts[spell.cost] += spell.count
-        weighted_counts[spell.cost].append(spell.count * float(spell.weight))
-
-    nonlands = sum(counts.values())
+    nonlands, counts, weighted_counts = spell_components(spells)
     deck_size = sum(sources.values()) + nonlands
     if not deck_size:
         raise ValueError("Deck must contain at least one card")
@@ -173,7 +208,7 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost], *
         total = generic + len(colored)
         weights = (_payable_land_weights(source_key, generic, colored, max_lands)
                    if copies and total <= turns else ())
-        weighted_copies = fsum(weighted_counts[cost])
+        weighted_copies = float(weighted_counts[cost])
         for turn in range(1, turns + 1):
             for side in positions:
                 seen = min(deck_size, opening_hand_size + turn - (side == "play"))

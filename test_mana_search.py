@@ -26,6 +26,25 @@ class ManaSearchTests(unittest.TestCase):
         self.assertEqual(set(local), expected_local)
         self.assertEqual(len(local), len(set(local)))
         self.assertEqual(local[0], reference)
+        self.assertEqual(space.one_swap_count(baseline), len(local))
+
+    def test_progress_wraps_each_candidate_without_changing_results(self):
+        space = ManaSpace({U: (0, 2), B: (0, 2)}, 2)
+        spells = [SpellCost("U", 2)]
+        for mode, baseline in (("exhaustive", None), ("one_swap", {U: 1, B: 1})):
+            seen = []
+
+            def progress(candidates):
+                for candidate in candidates:
+                    seen.append(candidate)
+                    yield candidate
+
+            wrapped = build_component_table(space, spells, mode=mode, baseline=baseline, progress=progress)
+            plain = build_component_table(space, spells, mode=mode, baseline=baseline)
+            self.assertEqual(wrapped, plain)
+            self.assertEqual(seen, [row.counts for row in plain.rows])
+            expected = space.candidate_count() if baseline is None else space.one_swap_count(baseline)
+            self.assertEqual(len(seen), expected)
 
     def test_components_and_rank_agree_with_evaluator(self):
         space = ManaSpace({U: (0, 2), D: (0, 2), R: (0, 1)}, 2)

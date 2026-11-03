@@ -54,3 +54,19 @@ All thresholds and intervals use Fraction, including decimal parameter inputs.
 Claims are always relative to the evaluated candidate set, never to all possible
 land pools. Current table construction evaluates bases independently; it does
 not revive the old cross-base binomial-transform optimization.
+
+The table builder accepts an optional candidate-iterable wrapper for progress
+reporting. The notebook wraps it with tqdm, while the core has no UI dependency.
+`candidate_count()` and `one_swap_count(baseline)` supply progress totals.
+
+## Alternate modes
+
+Spell profiles hold physical count, importance, and CastingMode entries whose
+weights normalize per profile. SpellCost is the unchanged single-mode shorthand.
+spell_components computes physical nonlands separately from rational mode-copy
+shares, preventing alternatives from enlarging the deck. The evaluator and
+search builder share this decomposition. Table columns retain unweighted mode
+shares; default importance is the share-weighted mean for each cost. Cost-weight
+crossings stay affine with mode shares fixed. Changing normalized mode shares
+requires rebuilding the table. The Sultai fixture now includes incarnation
+payment alternatives, with no copied-card or board-discount scenarios.

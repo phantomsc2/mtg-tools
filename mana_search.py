@@ -6,7 +6,7 @@ All guarantees refer only to the candidates in the table.
 """
 
 from collections import Counter
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from math import isfinite
@@ -15,7 +15,7 @@ from types import MappingProxyType
 from typing import Literal
 
 from hands import compositions
-from mana_opportunities import ManaSource, SpellCost, evaluate
+from mana_opportunities import ManaSource, Spell, SpellCost, evaluate, spell_components
 
 Mode = Literal["exhaustive", "one_swap"]
 
@@ -80,6 +80,13 @@ class ManaSpace:
                     candidate[i] -= 1
                     candidate[j] += 1
                     yield tuple(candidate)
+
+    def one_swap_count(self, baseline: Mapping[ManaSource, int]) -> int:
+        """Count the baseline and its legal single replacements."""
+        counts = self.counts(baseline)
+        return 1 + sum(i != j and counts[i] > low and counts[j] < high
+                       for i, (low, _) in enumerate(self.bounds.values())
+                       for j, (_, high) in enumerate(self.bounds.values()))
 
 
 @dataclass(frozen=True)
@@ -274,29 +281,30 @@ class ComponentTable:
                            transition(interval.upper, 1) if interval else None, tuple(comparisons))
 
 
-def build_component_table(space: ManaSpace, spells: Sequence[SpellCost], *, mode: Mode = "exhaustive",
+def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell], *, mode: Mode = "exhaustive",
                           baseline: Mapping[ManaSource, int] | None = None, turns: int = 7,
                           position: Literal["both", "play", "draw"] = "both",
-                          opening_hand_size: int = 7) -> ComponentTable:
+                          opening_hand_size: int = 7,
+                          progress: Callable[[Iterable[tuple[int, ...]]], Iterable[tuple[int, ...]]] | None = None
+                          ) -> ComponentTable:
     """Evaluate each legal candidate once. Bounds and fixed land count are caller supplied.
 
     Exhaustive construction is explicit: call space.candidate_count() first
     when sizing a large pool. One-swap tables include the original base and
-    its legal neighbors only, without repeated hill climbing.
+    its legal neighbors only, without repeated hill climbing. A progress wrapper
+    may observe the candidates; it must yield each candidate once, in order.
     """
     if mode not in ("exhaustive", "one_swap") or (mode == "one_swap" and baseline is None):
         raise ValueError("Choose exhaustive, or one_swap with a baseline")
-    copies, weighted = Counter(), Counter()
-    for spell in spells:
-        if not isinstance(spell, SpellCost):
-            raise ValueError("Spells must be SpellCost inputs")
-        copies[spell.cost] += spell.count
-        weighted[spell.cost] += spell.count * _fraction(spell.weight)
+    _, copies, weighted = spell_components(spells)
     costs = tuple(sorted(copies))
     defaults = tuple(weighted[cost] / copies[cost] if copies[cost] else Fraction(1) for cost in costs)
-    unweighted = tuple(SpellCost(cost, copies[cost]) for cost in costs)
+    unweighted = tuple(Spell(s.count, s.modes) if isinstance(s, Spell) else SpellCost(s.cost, s.count)
+                       for s in spells)
     reference = space.counts(baseline) if baseline is not None else None
     candidates = space.exhaustive() if mode == "exhaustive" else space.one_swap(baseline)
+    if progress is not None:
+        candidates = progress(candidates)
     rows = []
     for counts in candidates:
         base = dict(zip(space.sources, counts))

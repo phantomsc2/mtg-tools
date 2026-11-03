@@ -44,7 +44,36 @@ python -m unittest -v test_mana_opportunities
 python -m doctest mana_opportunities.py
 ```
 
+## Alternate casting costs
+
+Keep physical copies separate from payment options:
+
+```python
+from mana_opportunities import CastingMode, Spell
+
+spell = Spell(count=4, modes=(CastingMode("UU"), CastingMode("BB")), weight=1)
+```
+
+Mode weights normalize within each profile (uniform by default). This profile
+occupies four deck slots, not eight. Each mode contributes half the profile's
+importance when payable; both together contribute the full importance. Mode
+weights may be zero, but their sum must be positive. `SpellCost` remains the
+single-mode shorthand with identical results. Both input types may be mixed.
+Reported `expected_copies` are normalized mode-copy opportunities when profiles
+have multiple modes. Search tables retain these normalized shares per cost;
+default cost weights reproduce profile importance, and overrides replace the
+importance for that cost's shares. Rebuild a table to change mode shares.
+
 ## Mana-base search and crossings
+
+Open [sultai_explorer.ipynb](sultai_explorer.ipynb) in PyCharm or Jupyter for the
+interactive workflow. Run all cells once, then edit the dual/rainbow penalties
+in the parameter cell and rerun the analysis cell. It reuses the built tables
+and displays rankings, winning sources, concrete replacements, and crossing
+intervals for both penalties. The notebook needs an IPython/Jupyter kernel;
+the evaluator and search modules themselves use only the standard library.
+Install `tqdm` in the notebook kernel environment for build progress bars
+(`python -m pip install tqdm`).
 
 `mana_search.py` builds a shared component table: exact mean opportunities per
 cost, plus dual/rainbow counts, for each candidate base. Physical spell counts
