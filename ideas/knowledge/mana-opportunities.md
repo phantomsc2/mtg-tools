@@ -1,5 +1,12 @@
 # Draw-based mana opportunities
 
+## Notebook turn horizon (2026-11-03)
+
+The build cell exposes `TURNS = 7` and passes it to `build_component_table`.
+Components store means across turns, not individual turn values, so the horizon
+must be chosen before construction. Changing it requires rebuilding and rerunning
+the report; penalties remain editable afterward without rebuilding.
+
 `mana_opportunities.py` replaces the Sultai-specific analysis/search/report pipeline.
 The core accepts cost counts with optional weights, and a supplied mana base.
 `examples/sultai.py` is the sample cost profile; its illustrative lands replace the
@@ -417,3 +424,22 @@ scripts which assume production is V2 need that archived backend patched in
 before rerunning. Original saved component tables remain usable without rebuilding.
 The restored scalar was checked exactly against nine saved V1 reference rows;
 independent draw/failure enumeration and scalar/batch parity tests cover V1.
+
+
+## Explicit fixed source counts
+
+ManaSpace.from_colors accepts fixed: Mapping[ManaSource,int]. Eligible sources
+may be outside enabled flexible families; fixed entries replace any generated
+bounds with (n,n), including zero. They count within land_count. Noninteger,
+negative, off-color/format-excluded sources, overlaps with overrides, and
+infeasible totals are rejected. Existing overrides remain limited to the
+flexible generated pool. Fixed eligibility uses the catalog's canonical sources
+(including typed shocks), while direct bounds construction remains available.
+
+Notebook now fixes four Caverns and one Swamp within 26 lands, leaving 21 slots
+for Standard-filtered shock/fast/Verge/Town sources. Same V1 model and penalties.
+This yields 142,740 candidates and 19,531,250 grid cells. Fixing deck counts
+must not remove their draw-count axes: draw uncertainty remains. Tests verify
+every candidate, small scalar/batch agreement, eligibility, conflicts, fixed-only
+spaces and zero counts. The entire notebook report was exercised on a nine-base
+six-land pool with the same fixed cards; no large table was built.

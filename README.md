@@ -107,9 +107,11 @@ sources; Cavern restrictions remain excluded. Cavern has no composition penalty.
 The notebook starts `shock_penalty` and `town_penalty` at 0.01 each, independently
 editable. Search scans every legal composition within the bounds.
 
-The notebook explicitly selects 26 lands in UBG, with 0?3 of each selected basic
-and 0?4 of each shock, Verge, Town, and Cavern. No baseline is defined in the notebook. Candidate count and batch capacity-grid size are printed
-before exhaustive construction; adding colors or families can increase both sharply.
+The notebook selects 26 lands in UBG, fixing four Caverns and one Swamp.
+The remaining 21 slots use 0-4 of each Standard-eligible shock, fast land,
+Verge, and Town. No baseline is defined. Candidate count and capacity-grid
+size are printed before construction: 142,740 candidates and 19,531,250 cells.
+Fixed deck counts retain draw uncertainty, so their batch axes are still needed.
 
 
 ## Alternate casting costs
@@ -138,14 +140,16 @@ Open [sultai_explorer.ipynb](sultai_explorer.ipynb) in PyCharm or Jupyter. Defin
 and bounds are notebook-local. Build the full component table once, then edit
 shock/Town penalties and rerun the report. The notebook needs IPython and tqdm;
 NumPy accelerates table construction. The scalar evaluator remains a reference.
+Set `TURNS` in the notebook's build cell to choose the horizon (default 7).
+Changing it requires rebuilding: table components already average turns 1 through `TURNS`.
 
 ```python
+from mana_lands import ManaSource
 from mana_search import ManaSpace, build_component_table
 
-space = ManaSpace.from_colors(26, "UBG", families={
-    "basic": (0, 3), "shock": (0, 4), "verge": (0, 4),
-    "town": (0, 4), "cavern": (0, 4),
-})
+space = ManaSpace.from_colors(26, "UBG", format="standard", families={
+    "shock": (0, 4), "fast": (0, 4), "verge": (0, 4), "town": (0, 4),
+}, fixed={ManaSource("WUBRG", "cavern"): 4, ManaSource("B", "basic"): 1})
 table = build_component_table(space, spells)
 scored = table.score(shock_penalty=0.01, town_penalty=0.01)
 top = scored.rank(limit=10)
@@ -161,6 +165,13 @@ from spells or the reference base, and do not require every candidate to produce
 every selected color. `overrides={source: (minimum, maximum)}` replaces bounds
 for individual selected sources; direct `ManaSpace(bounds, land_count)` remains
 available for custom pools. Land definitions live in `mana_lands`.
+
+`fixed={source: count}` adds eligible sources even when their families are absent
+from the flexible pool, or replaces their family bounds with exact counts.
+These counts occupy slots within `land_count`; they are not extra lands.
+Zero fixes a source at zero. Counts must be nonnegative integers, and fixed
+sources must satisfy the selected colors and format. A source cannot appear
+in both `fixed` and `overrides`; infeasible totals are rejected.
 
 Use `format="standard"` in `ManaSpace.from_colors(...)` to filter sources using
 the dated `mana_lands.STANDARD_AS_OF` snapshot (2026-11-03). The notebook enables

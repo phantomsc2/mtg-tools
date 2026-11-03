@@ -36,12 +36,15 @@ class ManaSpace:
     def from_colors(cls, land_count: int, colors: str, *,
                     families: Mapping[str, tuple[int, int]],
                     format: Literal["standard"] | None = None,
+                    fixed: Mapping[ManaSource, int] | None = None,
                     overrides: Mapping[ManaSource, tuple[int, int]] | None = None) -> "ManaSpace":
         """Derive source bounds from explicit colors and opt-in family bounds.
 
         Overrides replace bounds for selected sources. Colors constrain eligible
         lands, not the colors every candidate must produce. Optional format filtering
-        uses the centralized catalog's dated legality snapshot.
+        uses the centralized catalog's dated legality snapshot. Fixed sources may
+        belong to families omitted from the flexible pool; their exact counts
+        replace family bounds and are included in land_count, not added to it.
         """
         sources = sources_for_colors(colors, families, format=format)
         for limits in families.values():
@@ -49,10 +52,18 @@ class ManaSpace:
                     or not 0 <= limits[0] <= limits[1]):
                 raise ValueError("Supply a (minimum, maximum) integer pair per family")
         bounds = {source: families[source.kind] for source in sources}
+        if fixed is not None and overrides is not None and set(fixed).intersection(overrides):
+            raise ValueError("A source cannot have both fixed counts and overrides")
         if overrides is not None:
             if set(overrides) - set(bounds):
                 raise ValueError("Overrides contain sources outside the selected pool")
             bounds.update(overrides)
+        for source, count in (fixed or {}).items():
+            if not isinstance(source, ManaSource) or type(count) is not int or count < 0:
+                raise ValueError("Fixed lands require ManaSource keys and nonnegative integer counts")
+            if source not in sources_for_colors(colors, (source.kind,), format=format):
+                raise ValueError("Fixed source is outside the selected colors or format")
+            bounds[source] = (count, count)
         return cls(bounds, land_count)
 
     def __post_init__(self) -> None:
