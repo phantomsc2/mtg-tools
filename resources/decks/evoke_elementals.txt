@@ -2,29 +2,22 @@ Deck
 4 Superior Spider-Man (SPM) 155
 4 Deceit (ECL) 212
 4 Wistfulness (ECL) 252
-4 Overgrown Tomb (GRN) 253
-4 Watery Grave (GRN) 259
+2 Overgrown Tomb (GRN) 253
+3 Watery Grave (GRN) 259
 4 Formidable Speaker (ECL) 176
-3 Bitter Triumph (LCI) 91
+2 Bitter Triumph (LCI) 91
 1 Swamp (DMU) 270
-4 Moonshadow (ECL) 110
 4 Emptiness (ECL) 222
 4 Sunderflock (ECL) 74
-2 Cavern of Souls (LCI) 269
+4 Cavern of Souls (LCI) 269
 4 Starting Town (FIN) 289
-4 Gloomlake Verge (DSK) 260
-2 Breeding Pool (RNA) 246
+3 Gloomlake Verge (DSK) 260
+4 Breeding Pool (RNA) 246
 3 Awaken the Honored Dead (TDM) 170
-2 Wastewood Verge (DFT) 268
-2 Willowrush Verge (DFT) 270
-1 Undercity Sewers (MKM) 270
-
-Sideboard
-1 Deadly Cover-Up (MKM) 83
-1 Qarsi Revenant (TDM) 86
-1 Day of Black Sun (TLA) 94
-1 Vivien Reid (FDN) 234
-1 Bitter Triumph (LCI) 91
-2 Soul-Guide Lantern (WOE) 251
-4 Requiting Hex (ECL) 116
-3 Duress (STA) 29
+1 Wastewood Verge (DFT) 268
+2 Professor Dellian Fel (SOS) 214
+1 Glarb, Calamity's Augur (BLB) 215
+1 Willowrush Verge (DFT) 270
+2 Overlord of the Balemurk (DSK) 113
+1 Island (DMU) 265
+2 Restless Cottage (WOE) 258

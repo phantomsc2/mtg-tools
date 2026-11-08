@@ -443,3 +443,53 @@ must not remove their draw-count axes: draw uncertainty remains. Tests verify
 every candidate, small scalar/batch agreement, eligibility, conflicts, fixed-only
 spaces and zero counts. The entire notebook report was exercised on a nine-base
 six-land pool with the same fixed cards; no large table was built.
+
+
+## Supplied Sultai deck and tri-lands (2026-11-07)
+
+Added explicit untyped tapped `tri` family; unfiltered pools generate all ten
+triples. Standard filtering admits the five TDM tri-lands, so UBG adds only
+Opulent Palace. It supplies one mana, carries no basic land types, and uses
+(T-1)/T availability in V1. The dated snapshot is now 2026-11-07.
+
+Evidence checked:
+https://magic.wizards.com/en/formats/standard
+https://media.wizards.com/ContentResources/WPN/deck_checklists/tdm/MTGTDM_EN_DkCklst.pdf
+https://mtg.wtf/card/tdm/264/Opulent-Palace
+https://mtg.wtf/card/sos/214/Professor-Dellian-Fel (2BG)
+https://mtg.wtf/card/blb/215/Glarb-Calamitys-Augur (BGU)
+https://magic.wizards.com/en/news/feature/lorwyn-eclipsed-release-notes
+
+The shared example now matches the user's exact 34-spell / 26-land main deck.
+Effect-oriented incarnation profiles deliberately omit mixed evoke payments
+which trigger neither colored payoff. Spider-Man's extra colored payments
+represent copied incarnation payoffs. Sunderflock's 7UU/2UU/1UU are board
+scenarios, not independent cards; their weights normalize. Overlord retains
+1B impending-only weighting. Cavern remains unrestricted; full sequencing and
+joint color/availability simulation were not added. Availability rates are
+computed once per evaluation turn, shared by all costs.
+
+The bounded local search fixes four Caverns and one Swamp, allows zero to two
+Palaces, and shares one evaluator across three starts (supplied/zero/two Palace)
+with visit budgets 200/150/150. Optional Island and Forest are each capped at
+one. No full grid is allocated. See the reproducible example command and report
+in README; local-optimum certificates apply only to complete neighborhoods.
+
+
+## Fixed shock-family sweep (2026-11-08)
+
+Added LocalManaEvaluator family_totals, enforced in evaluation and neighborhood
+generation. The shock sweep fixes four Towns/Caverns and one Swamp, allows at
+most two Palaces, and compares 8-12 shocks with the existing spell/V1 model.
+Each run finished a one-land constrained neighborhood within its 500-visit
+budget; combined runtime 85.70s. These are local, not global certificates;
+coupled shock/nonshock two-transfer moves are not checked.
+
+Exact representative crossings as shock penalty decreases: 8 -> 9 at
+0.010716795; 9 -> 10 at 0.008396344; 10 -> 11 at 0.007141866;
+11 -> 12 at 0.004899995. At the existing 0.012 penalty, eight shocks still win.
+Town's penalty is constant across these bases. Full bases, exact raw scores,
+stopping reasons and intervals are in reports/sultai_shock_sweep.json and .md.
+Trusted local component caches are retained in .cache/sultai_shock_sweep.pkl.
+All five final bases were independently re-evaluated and constraints/intervals
+verified. LaTeX does not render in the main chat environment; use ASCII equations.

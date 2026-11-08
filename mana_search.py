@@ -158,11 +158,39 @@ class LocalManaEvaluator:
     """
 
     def __init__(self, space: ManaSpace, spells: Sequence[SpellCost | Spell], *, turns: int = 7,
-                 position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7):
+                 position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
+                 family_totals: Mapping[str, int] | None = None,
+                 family_maximums: Mapping[str, int] | None = None):
         if (type(turns) is not int or turns < 1 or type(opening_hand_size) is not int
                 or opening_hand_size < 0 or position not in ("both", "play", "draw")):
             raise ValueError("Positive turns, nonnegative opening size, and valid position required")
         self._space, self._spells = space, tuple(spells)
+        totals = dict(family_totals or {})
+        for kind, n in totals.items():
+            limits = [bounds for source, bounds in space.bounds.items() if source.kind == kind]
+            if (not limits or type(n) is not int
+                    or not sum(lo for lo, _ in limits) <= n <= sum(hi for _, hi in limits)):
+                raise ValueError("Family totals require feasible integer counts for selected families")
+        if not (sum(totals.values()) + sum(lo for s, (lo, _) in space.bounds.items() if s.kind not in totals)
+                <= space.land_count <=
+                sum(totals.values()) + sum(hi for s, (_, hi) in space.bounds.items() if s.kind not in totals)):
+            raise ValueError("Family totals are incompatible with the land count")
+        maximums = dict(family_maximums or {})
+        for kind, n in maximums.items():
+            limits = [bounds for source, bounds in space.bounds.items() if source.kind == kind]
+            if (not limits or type(n) is not int or n < sum(lo for lo, _ in limits)
+                    or totals.get(kind, 0) > n):
+                raise ValueError("Family maximums require feasible nonnegative integer caps")
+        capacities = {kind: sum(hi for source, (_, hi) in space.bounds.items() if source.kind == kind)
+                      for kind in {source.kind for source in space.sources}}
+        for kind, cap in maximums.items():
+            capacities[kind] = min(capacities[kind], cap)
+        capacities.update(totals)
+        capacity = sum(capacities.values())
+        if capacity < space.land_count:
+            raise ValueError("Family maximums are incompatible with the land count")
+        self._family_totals = MappingProxyType(totals)
+        self._family_maximums = MappingProxyType(maximums)
         self._turns, self._position, self._opening = turns, position, opening_hand_size
         nonlands, copies, weighted = spell_components(self._spells)
         if not nonlands + space.land_count:
@@ -180,10 +208,18 @@ class LocalManaEvaluator:
 
     def components(self, base: Mapping[ManaSource, int]) -> OpportunityResult:
         counts = self.space.counts(base)
+        if not self._eligible(counts):
+            raise ValueError("Base violates family totals or maximums")
         if counts not in self._cache:
             self._cache[counts] = evaluate(base, self._spells, turns=self._turns,
                                           position=self._position, opening_hand_size=self._opening)
         return self._cache[counts]
+
+    def _eligible(self, counts: tuple[int, ...]) -> bool:
+        return all(sum(n for s, n in zip(self.space.sources, counts) if s.kind == kind) == total
+                   for kind, total in self._family_totals.items()) and all(
+                       sum(n for s, n in zip(self.space.sources, counts) if s.kind == kind) <= cap
+                       for kind, cap in self._family_maximums.items())
 
     def value(self, base: Mapping[ManaSource, int], *, shock_penalty: Real = 0,
               town_penalty: Real = 0) -> RankedBase:
@@ -225,7 +261,8 @@ class LocalManaEvaluator:
                     candidate = list(counts)
                     candidate[i] -= 1
                     candidate[j] += 1
-                    candidates.add(tuple(candidate))
+                    if self._eligible(tuple(candidate)):
+                        candidates.add(tuple(candidate))
         neighbors = []
         complete = True
         for candidate in sorted(candidates):

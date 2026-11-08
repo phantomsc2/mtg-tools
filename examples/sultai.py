@@ -1,8 +1,14 @@
 """Sample input from resources/decks/evoke_elementals.txt, not core defaults.
 
 Incarnation payment modes share importance uniformly; physical cards count once.
-Sunderflock remains undiscounted; copying and board scenarios are excluded.
-The 26-land reference base fixes one Swamp and has no Island or Forest.
+Incarnation modes target one or both enters effects, not bare castability.
+Spider-Man modes represent copying incarnations with colored-mana payoffs.
+Sunderflock modes assume no Elemental, MV5, or MV6 on board, respectively.
+These scenarios share importance uniformly; board presence is not simulated.
+Overlord uses its 1B impending cost (printed cost 3BB is not weighted).
+The supplied 28-land list is reduced to a feasible 26-land starting base
+by cutting one Gloomlake Verge and one Wastewood Verge. Basics are flexible;
+four Caverns, four Towns and two Restless Cottages are fixed in the search.
 Starting Town and Cavern are separate unrestricted rainbow categories; actual
 Cavern restrictions remain outside this model. Shocks carry both land types.
 
@@ -13,27 +19,49 @@ from mana_lands import ManaSource
 from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
 
 SPELLS = (
-    SpellCost("2UB", 4),  # Superior Spider-Man
+    Spell(4, tuple(CastingMode(c) for c in ("2UB", "1UUB", "1UBB", "UUBB"))),  # Superior Spider-Man
     Spell(4, tuple(CastingMode(c) for c in ("UU", "BB", "4UU", "4BB", "2UUBB"))),  # Deceit
     Spell(4, tuple(CastingMode(c) for c in ("WW", "BB", "4WW", "4BB", "2WWBB"))),  # Emptiness
     Spell(4, tuple(CastingMode(c) for c in ("UU", "GG", "3UU", "3GG", "1UUGG"))),  # Wistfulness
     SpellCost("2G", 4),   # Formidable Speaker
-    SpellCost("1B", 3),   # Bitter Triumph
-    SpellCost("B", 4),    # Moonshadow
-    SpellCost("7UU", 4),  # Sunderflock
+    SpellCost("1B", 2),   # Bitter Triumph
+    SpellCost("1B", 2),   # Overlord of the Balemurk: impending
+    Spell(4, tuple(CastingMode(c) for c in ("7UU", "2UU", "1UU"))),  # Sunderflock scenarios
     SpellCost("BGU", 3),  # Awaken the Honored Dead
+    SpellCost("BGU", 1),  # Glarb, Calamity's Augur
+    SpellCost("2BG", 2),  # Professor Dellian Fel
 )
 
 MANA_BASE = {
     ManaSource("B", "basic"): 1,
-    ManaSource("UB", "shock", types="UB"): 4,
+    ManaSource("U", "basic"): 1,
+    ManaSource("BG", "tapped"): 2,
+    ManaSource("UB", "shock", types="UB"): 3,
     ManaSource("UG", "shock", types="UG"): 4,
-    ManaSource("BG", "shock", types="BG"): 4,
+    ManaSource("BG", "shock", types="BG"): 2,
     ManaSource("WUBRG", "town"): 4,
     ManaSource("WUBRG", "cavern"): 4,
     ManaSource("UB", "verge"): 3,
     ManaSource("BG", "verge"): 1,
     ManaSource("UG", "verge"): 1,
+}
+
+LAND_NAMES = {
+    ManaSource("BG", "tapped"): "Restless Cottage",
+    ManaSource("B", "basic"): "Swamp",
+    ManaSource("U", "basic"): "Island",
+    ManaSource("G", "basic"): "Forest",
+    ManaSource("UB", "shock", "UB"): "Watery Grave",
+    ManaSource("UG", "shock", "UG"): "Breeding Pool",
+    ManaSource("BG", "shock", "BG"): "Overgrown Tomb",
+    ManaSource("WUBRG", "town"): "Starting Town",
+    ManaSource("WUBRG", "cavern"): "Cavern of Souls",
+    ManaSource("UB", "verge"): "Gloomlake Verge",
+    ManaSource("BG", "verge"): "Wastewood Verge",
+    ManaSource("UG", "verge"): "Willowrush Verge",
+    ManaSource("UG", "fast"): "Botanical Sanctum",
+    ManaSource("BG", "fast"): "Blooming Marsh",
+    ManaSource("UBG", "tri"): "Opulent Palace",
 }
 
 

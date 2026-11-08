@@ -12,6 +12,38 @@ D = ManaSource("UB", "shock", types="UB")
 
 
 class LocalSearchTests(unittest.TestCase):
+    def test_family_maximum_limits_total_basics(self):
+        space = ManaSpace({U: (0, 3), B: (0, 3), D: (0, 3)}, 4)
+        evaluator = LocalManaEvaluator(space, [SpellCost('U', 2)], turns=2,
+                                       opening_hand_size=1, family_maximums={'basic': 2})
+        result = local_search(evaluator, {B: 1, D: 3})
+        self.assertEqual(result.stopped, 'one-land local optimum')
+        self.assertTrue(all(sum(n for source, n in zip(space.sources, counts)
+                                if source.kind == 'basic') <= 2 for counts in evaluator.cache))
+        self.assertEqual(result.best.counts, space.counts({U: 2, D: 2}))
+        with self.assertRaises(ValueError):
+            evaluator.value({U: 2, B: 1, D: 1})
+        for caps in ({'basic': -1}, {'basic': True}, {'missing': 2}, {'basic': 0}):
+            with self.subTest(caps=caps), self.assertRaises(ValueError):
+                LocalManaEvaluator(space, [], family_maximums=caps)
+        with self.assertRaises(ValueError):
+            LocalManaEvaluator(space, [], family_totals={'basic': 3}, family_maximums={'basic': 2})
+
+    def test_fixed_family_totals(self):
+        space = ManaSpace({U: (0, 3), B: (0, 3), D: (0, 3)}, 4)
+        evaluator = LocalManaEvaluator(space, [SpellCost('U', 4)],
+                                       family_totals={'shock': 2}, turns=2, opening_hand_size=1)
+        initial = {B: 2, D: 2}
+        result = local_search(evaluator, initial)
+        self.assertEqual(result.stopped, 'one-land local optimum')
+        self.assertTrue(all(counts[space.sources.index(D)] == 2 for counts in evaluator.cache))
+        self.assertEqual(result.best.counts, space.counts({U: 2, D: 2}))
+        with self.assertRaisesRegex(ValueError, 'family totals'):
+            evaluator.value({U: 3, D: 1})
+        for totals in ({'shock': True}, {'shock': 4}, {'unknown': 0}, {'basic': 4, 'shock': 2}):
+            with self.subTest(totals=totals), self.assertRaises(ValueError):
+                LocalManaEvaluator(space, [], family_totals=totals)
+
     def test_structured_scores_cache_and_penalties(self):
         space = ManaSpace({U: (0, 2), D: (0, 2)}, 2)
         base = {U: 1, D: 1}

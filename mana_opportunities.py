@@ -309,7 +309,8 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
         if count:
             sources[source] += count
         penalties.append(count * {"basic": 0, "verge": 0, "shock": shock_penalty,
-                                  "town": town_penalty, "cavern": 0, "fast": 0, "slow": 0, "tapped": 0}[source.kind])
+                                  "town": town_penalty, "cavern": 0, "fast": 0, "slow": 0,
+                                  "tapped": 0, "tri": 0}[source.kind])
     nonlands, counts, weighted_counts = spell_components(spells)
     deck_size = sum(sources.values()) + nonlands
     if not deck_size:
@@ -322,6 +323,8 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
     plain_sources = Counter()
     for source, count in sources.items():
         plain_sources[source.colors] += count
+    rates_by_turn = {turn: tuple(land_availability(source.kind, turn) for source, _ in source_key)
+                     for turn in range(1, turns + 1)}
     rows = []
     for cost, copies in counts.items():
         generic, colored = _parse_cost(cost)
@@ -334,7 +337,7 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
                 weights = _payable_land_weights(tuple(sorted(plain_sources.items())), generic, colored, max_lands)
         weighted_copies = float(weighted_counts[cost])
         for turn in range(1, turns + 1):
-            rates = tuple(land_availability(source.kind, turn) for source, _ in source_key)
+            rates = rates_by_turn[turn]
             turn_weights = weights
             if copies and total and total <= turn and any(rate != 1 for rate in rates):
                 turn_weights = _available_land_weights(source_key, generic, colored, max_lands, rates)

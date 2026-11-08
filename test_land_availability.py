@@ -10,7 +10,7 @@ from mana_search import ManaSpace, build_component_table
 
 
 def oracle_rate(kind, turn):
-    if kind == "tapped" or kind in ("town", "fast") and turn > 3 or kind == "slow" and turn < 3:
+    if kind in ("tapped", "tri") or kind in ("town", "fast") and turn > 3 or kind == "slow" and turn < 3:
         return F(turn-1, turn)
     return F(1)
 
