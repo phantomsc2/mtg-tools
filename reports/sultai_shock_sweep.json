@@ -2,13 +2,13 @@
   "budget": 500,
   "shock_penalty": 0.012,
   "town_penalty": 0.015,
-  "seconds": 49.33815680001862,
+  "seconds": 90.52877500001341,
   "results": [
     {
       "shocks": 8,
-      "raw": 3.2217884933778844,
-      "exact_raw": "67169437624112127279634672102253/20848493860529102729161200000000",
-      "score": 3.0657884933778843,
+      "raw": 3.163460128507353,
+      "exact_raw": "23983046933532419751881737473787/7581270494737855537876800000000",
+      "score": 3.007460128507353,
       "lands": {
         "Swamp": 1,
         "Island": 1,
@@ -19,14 +19,65 @@
         "Restless Cottage": 2,
         "Starting Town": 4,
         "Wastewood Verge": 2,
-        "Gloomlake Verge": 4
+        "Gloomlake Verge": 3,
+        "Willowrush Verge": 1
       },
-      "evaluations": 55,
+      "evaluations": 36,
       "stopped": "one-land local optimum",
-      "seconds": 35.43032260000473,
+      "seconds": 25.443162699986715,
+      "penalty_interval": {
+        "lower": "3035580947711141789/388140363566329374000",
+        "upper": null
+      }
+    },
+    {
+      "shocks": 9,
+      "raw": 3.171280961465357,
+      "exact_raw": "264465726620493284182003065011657/83393975442116410916644800000000",
+      "score": 3.003280961465357,
+      "lands": {
+        "Island": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 1,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3,
+        "Willowrush Verge": 1
+      },
+      "evaluations": 35,
+      "stopped": "one-land local optimum",
+      "seconds": 23.022132799960673,
+      "penalty_interval": {
+        "lower": "94541952800441410021/15633431310310488675000",
+        "upper": "3035580947711141789/388140363566329374000"
+      }
+    },
+    {
+      "shocks": 10,
+      "raw": 3.177328383232457,
+      "exact_raw": "264970045162826979611368846067657/83393975442116410916644800000000",
+      "score": 2.9973283832324573,
+      "lands": {
+        "Island": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 2,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 3,
+        "Willowrush Verge": 1
+      },
+      "evaluations": 35,
+      "stopped": "one-land local optimum",
+      "seconds": 18.072294000012334,
       "penalty_interval": {
         "lower": "0",
-        "upper": null
+        "upper": "94541952800441410021/15633431310310488675000"
       }
     }
   ],
@@ -37,13 +88,12 @@
     "Spell(count=4, modes=(CastingMode(cost='UU', weight=1), CastingMode(cost='GG', weight=1), CastingMode(cost='3UU', weight=1), CastingMode(cost='3GG', weight=1), CastingMode(cost='1UUGG', weight=1)), weight=1)",
     "SpellCost(cost='2G', count=4, weight=1)",
     "SpellCost(cost='1B', count=2, weight=1)",
-    "SpellCost(cost='1B', count=2, weight=1)",
     "Spell(count=4, modes=(CastingMode(cost='7UU', weight=1), CastingMode(cost='2UU', weight=1), CastingMode(cost='1UU', weight=1)), weight=1)",
-    "SpellCost(cost='UBG', count=3, weight=1)",
-    "SpellCost(cost='UBG', count=1, weight=1)",
+    "SpellCost(cost='UBG', count=4, weight=1)",
+    "SpellCost(cost='UBG', count=2, weight=1)",
     "SpellCost(cost='2BG', count=2, weight=1)"
   ],
-  "deck_note": "Two Dellian Fel and two Overlord, no Rapid Rescue; 34 spells, 26 lands. Input had 28 lands.",
+  "deck_note": "Four Awaken, two Glarb, two Dellian Fel, no Overlord or Rapid Rescue; 34 spells, 26 lands.",
   "initial": {
     "Swamp": 1,
     "Island": 1,

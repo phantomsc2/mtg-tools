@@ -5,7 +5,7 @@ Incarnation modes target one or both enters effects, not bare castability.
 Spider-Man modes represent copying incarnations with colored-mana payoffs.
 Sunderflock modes assume no Elemental, MV5, or MV6 on board, respectively.
 These scenarios share importance uniformly; board presence is not simulated.
-Overlord uses its 1B impending cost (printed cost 3BB is not weighted).
+The current spell package has four Awaken and two Glarb; no Overlords.
 The supplied 28-land list is reduced to a feasible 26-land starting base
 by cutting one Gloomlake Verge and one Wastewood Verge. Basics are flexible;
 four Caverns, four Towns and two Restless Cottages are fixed in the search.
@@ -25,10 +25,9 @@ SPELLS = (
     Spell(4, tuple(CastingMode(c) for c in ("UU", "GG", "3UU", "3GG", "1UUGG"))),  # Wistfulness
     SpellCost("2G", 4),   # Formidable Speaker
     SpellCost("1B", 2),   # Bitter Triumph
-    SpellCost("1B", 2),   # Overlord of the Balemurk: impending
     Spell(4, tuple(CastingMode(c) for c in ("7UU", "2UU", "1UU"))),  # Sunderflock scenarios
-    SpellCost("BGU", 3),  # Awaken the Honored Dead
-    SpellCost("BGU", 1),  # Glarb, Calamity's Augur
+    SpellCost("BGU", 4),  # Awaken the Honored Dead
+    SpellCost("BGU", 2),  # Glarb, Calamity's Augur
     SpellCost("2BG", 2),  # Professor Dellian Fel
 )
 

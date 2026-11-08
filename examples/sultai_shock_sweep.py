@@ -34,7 +34,7 @@ def penalty_intervals(rows):
 def render(report):
     rows = report['results']
     lines = ['# Sultai bases with 8-10 shocks and four Towns', '',
-             'Best found at each shock count; the evaluator and spell scenarios match the previous search.',
+             'Best found at each shock count for four Awaken, two Glarb and two Dellian Fels, without Overlords or Rapid Rescue.',
              'Four Caverns, four Towns and two Restless Cottages are fixed; at most two basics total; Palace capped at two.', '',
              '| Land | 8 shocks | 9 shocks | 10 shocks |',
              '| --- | ---: | ---: | ---: |']
@@ -103,7 +103,7 @@ def main():
         caches[total] = dict(evaluator.cache)
         report = {'budget': budget, 'shock_penalty': SHOCK_PENALTY, 'town_penalty': TOWN_PENALTY,
                   'seconds': perf_counter()-started, 'results': rows, 'spell_profiles': [repr(spell) for spell in SPELLS],
-                  'deck_note': 'Two Dellian Fel and two Overlord, no Rapid Rescue; 34 spells, 26 lands. Input had 28 lands.',
+                  'deck_note': 'Four Awaken, two Glarb, two Dellian Fel, no Overlord or Rapid Rescue; 34 spells, 26 lands.',
                   'initial': {LAND_NAMES[source]: n for source, n in MANA_BASE.items() if n},
                   'constraints': {'caverns': 4, 'towns': 4, 'cottages': 2, 'maximum_basics': 2, 'palace_cap': 2}}
         for row, interval in zip(rows, penalty_intervals(rows)):

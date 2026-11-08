@@ -13,11 +13,10 @@ Deck
 4 Starting Town (FIN) 289
 3 Gloomlake Verge (DSK) 260
 4 Breeding Pool (RNA) 246
-3 Awaken the Honored Dead (TDM) 170
+4 Awaken the Honored Dead (TDM) 170
 1 Wastewood Verge (DFT) 268
 2 Professor Dellian Fel (SOS) 214
-1 Glarb, Calamity's Augur (BLB) 215
+2 Glarb, Calamity's Augur (BLB) 215
 1 Willowrush Verge (DFT) 270
-2 Overlord of the Balemurk (DSK) 113
 1 Island (DMU) 265
 2 Restless Cottage (WOE) 258

@@ -238,7 +238,7 @@ Default penalties are 0.012 per shock and 0.015 per Town. The evaluator averages
 turns 1-7 and play/draw, with opening seven. Incarnation profiles target enters
 effects, Spider-Man includes copying payoff scenarios, and Sunderflock includes
 7UU/2UU/1UU scenarios. Physical copies count once and modes share importance
-uniformly. Overlord uses impending 1B. These are opportunity assumptions;
+uniformly. The current package has four Awaken and two Glarb, without Overlords. These are opportunity assumptions;
 board presence, sequencing, and Cavern restrictions are not simulated.
 
 The command writes named land counts, OUT/IN changes, score comparisons,
@@ -334,8 +334,8 @@ counts in evaluation and local neighborhoods. Only transfers preserving those
 totals are visited; coupled two-transfer moves are not included. `ManaSpace`
 continues to describe the underlying per-source bounds.
 
-The current shared deck has two Dellian Fels and two Overlords, without Rapid
-Rescue. The supplied list had 28 lands; the shared 26-land starting base cuts
+The current shared deck has four Awaken, two Glarb and two Dellian Fels,
+without Overlords or Rapid Rescue. The supplied list had 28 lands; the shared 26-land starting base cuts
 one Gloomlake Verge and one Wastewood Verge. The optimizer may change these
 cuts and both basics. Restless Cottage is modeled as an untyped tapped BG
 source; its activation, Food, and graveyard abilities do not contribute to the

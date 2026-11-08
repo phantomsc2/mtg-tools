@@ -120,8 +120,13 @@ class BatchTests(unittest.TestCase):
     def test_reference_pool_and_sampled_scalar_agreement(self):
         from examples.sultai import MANA_BASE, SPELLS
 
+        # Keep this benchmark fixture independent of the evolving example deck.
+        reference = {ManaSource("B", "basic"): 1,
+                     ManaSource("WUBRG", "cavern"): 4, ManaSource("WUBRG", "town"): 4}
+        reference.update({ManaSource(pair, kind, pair if kind == "shock" else ""): 4
+                          for kind in ("shock", "verge") for pair in ("UB", "UG", "BG")})
         space = ManaSpace({s: ((n, n) if s.kind == "basic" else (0, 4))
-                           for s, n in MANA_BASE.items()}, 26)
+                           for s, n in reference.items()}, 26)
         self.assertEqual(space.candidate_count(), 3144)
         with patch("mana_search.evaluate", side_effect=AssertionError("Auto should batch")):
             table = build_component_table(space, SPELLS)

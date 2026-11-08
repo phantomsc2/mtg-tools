@@ -16,7 +16,7 @@ class LocalSearchTests(unittest.TestCase):
         space = ManaSpace({U: (0, 3), B: (0, 3), D: (0, 3)}, 4)
         evaluator = LocalManaEvaluator(space, [SpellCost('U', 2)], turns=2,
                                        opening_hand_size=1, family_maximums={'basic': 2})
-        result = local_search(evaluator, {B: 1, D: 3})
+        result = local_search(evaluator, {B: 1, D: 3}, shock_penalty=0.01)
         self.assertEqual(result.stopped, 'one-land local optimum')
         self.assertTrue(all(sum(n for source, n in zip(space.sources, counts)
                                 if source.kind == 'basic') <= 2 for counts in evaluator.cache))

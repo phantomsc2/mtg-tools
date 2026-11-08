@@ -507,3 +507,17 @@ https://mtg.wtf/card/woe/258/Restless-Cottage
 Added LocalManaEvaluator family_maximums for aggregate basic limits; fixed
 family totals still enforce the shock count. Updated 8-10 shock sweep report
 in place. Historical Palace report is not a current-deck score.
+
+
+## Awaken/Glarb update (2026-11-08)
+
+Removed both Overlords, increased Awaken to four and Glarb to two. Main deck
+remains 34 spells and 26 lands; BGU profiles total six copies and 1B profiles
+total two (Bitter Triumph only). Reran 8-10 shocks with four Caverns, four
+Towns and two Cottages fixed, up to two basics combined. All three searches
+completed constrained one-land neighborhoods in 90.53 seconds total. The
+8-shock result replaces one Gloomlake Verge with one Willowrush Verge relative
+to the previous result. Nine and ten shocks retain one Island rather than the
+previous basic choices. Crossings: 8/9 at 0.007820833 and 9/10 at 0.006047422.
+Updated reports in place; independent scalar reevaluation and constraint/
+interval checks passed. Twenty-four targeted tests passed.
