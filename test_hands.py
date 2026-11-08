@@ -54,21 +54,19 @@ class ExactHandsTests(unittest.TestCase):
 
     def test_fixed_space_terminates(self):
         space = DeckSpace(("a", "b"), (2, 2), (2, 2), 4)
-        for method in ("discrete", "leitwerk"):
-            result = optimize(Objective(space, lambda h: 1, 10, 2), (2, 2), method, max_proposals=10)
-            self.assertEqual(result.evaluations, 1)
-            self.assertEqual(result.stopped, "proposal limit")
+        result = optimize(Objective(space, lambda h: 1, 10, 2), (2, 2), max_proposals=10)
+        self.assertEqual(result.evaluations, 1)
+        self.assertEqual(result.stopped, "proposal limit")
 
     def test_search_against_exhaustive_optimum(self):
         space = DeckSpace(("a", "b"), (0, 0), (6, 6), 6)
         score = lambda h: h["a"]
         optimum = max(expected_score(dict(zip(space.cards, d)), score, 2) for d in compositions(space.maximum, 6))
-        for method in ("discrete", "leitwerk"):
-            for seed in (0, 1, 2):
-                objective = Objective(space, score, 7, 2)
-                result = optimize(objective, (3, 3), method, seed, max_proposals=500)
-                self.assertAlmostEqual(result.score, optimum)
-                self.assertLessEqual(result.evaluations, 7)
+        for seed in (0, 1, 2):
+            objective = Objective(space, score, 7, 2)
+            result = optimize(objective, (3, 3), seed=seed, max_proposals=500)
+            self.assertAlmostEqual(result.score, optimum)
+            self.assertLessEqual(result.evaluations, 7)
 
 
 if __name__ == "__main__":

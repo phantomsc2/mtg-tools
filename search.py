@@ -103,15 +103,15 @@ class SearchResult:
     stopped: str
 
 
-def optimize(objective: Objective, initial: Sequence[int], method: str = "discrete", seed: int = 0,
+def optimize(objective: Objective, initial: Sequence[int], seed: int = 0,
              max_proposals: int | None = None) -> SearchResult:
-    """Search a fresh objective; count the common initial deck against both budgets.
+    """Search a fresh objective; count the initial deck against the evaluation budget.
 
     A proposal cap prevents endless duplicate proposals on plateaus or exhausted spaces.
     Discrete search uses best-improvement transfers, restarting at local optima.
     """
-    if method not in {"discrete", "leitwerk"} or objective.cache:
-        raise ValueError("Use a fresh objective and method 'discrete' or 'leitwerk'")
+    if objective.cache:
+        raise ValueError("Use a fresh objective")
     start = perf_counter()
     current = objective.space.validate(initial)
     objective(current)
@@ -120,43 +120,31 @@ def optimize(objective: Objective, initial: Sequence[int], method: str = "discre
     limit = max_proposals if max_proposals is not None else 20 * objective.budget
     stopped = "proposal limit"
     space = objective.space
-    if method == "leitwerk":
-        from leitwerk import Optimizer, Parameter
-
-        names = [f"type_{i:04d}" for i in range(len(space.cards))]
-        optimizer = Optimizer({name: Parameter() for name in names}, seed=seed)
-
     try:
         while proposals < limit:
             if len(objective.cache) >= objective.budget:
                 stopped = "evaluation budget"
                 break
-            if method == "leitwerk":
-                params = optimizer.ask()
-                candidate = space.decode([params[name] for name in names])
-                proposals += 1
-                optimizer.tell(objective(candidate))
-            else:
-                best, best_score = current, objective(current)
-                for i in range(len(current)):
-                    for j in range(len(current)):
-                        if i == j or current[i] <= space.minimum[i] or current[j] >= space.maximum[j]:
-                            continue
-                        if proposals >= limit:
-                            break
-                        candidate = list(current)
-                        candidate[i] -= 1
-                        candidate[j] += 1
-                        proposals += 1
-                        score = objective(candidate)
-                        if score > best_score:
-                            best, best_score = tuple(candidate), score
-                if best == current and proposals < limit:
-                    current = space.decode([rng.gauss(0, 1.5) for _ in current])
+            best, best_score = current, objective(current)
+            for i in range(len(current)):
+                for j in range(len(current)):
+                    if i == j or current[i] <= space.minimum[i] or current[j] >= space.maximum[j]:
+                        continue
+                    if proposals >= limit:
+                        break
+                    candidate = list(current)
+                    candidate[i] -= 1
+                    candidate[j] += 1
                     proposals += 1
-                    objective(current)
-                else:
-                    current = best
+                    score = objective(candidate)
+                    if score > best_score:
+                        best, best_score = tuple(candidate), score
+            if best == current and proposals < limit:
+                current = space.decode([rng.gauss(0, 1.5) for _ in current])
+                proposals += 1
+                objective(current)
+            else:
+                current = best
     except BudgetExhausted:
         stopped = "evaluation budget"
     best = max(objective.cache, key=objective.cache.__getitem__)

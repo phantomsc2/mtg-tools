@@ -276,9 +276,9 @@ This sums multivariate hypergeometric probabilities over every feasible hand, wi
 It is exact enumeration with floating-point arithmetic. Scorers must be deterministic and return finite
 numbers; Boolean scorers give event probabilities. There is no sequencing or gameplay assumption.
 
-## Run the comparison
+## Run the experiment
 
-The development setup uses the neighboring `../leitwerk` checkout as an editable dependency:
+Install dependencies and run the discrete search experiment:
 
 ```sh
 uv sync
@@ -298,15 +298,12 @@ definitions to explore other roles, costs, or synergies. No automatic card looku
 {"budget": 100, "seeds": [0, 1], "initial": [24, 12, 6, 12, 6]}
 ```
 
-Both methods receive the same initial deck and unique-evaluation budget, with separate ordered-tuple
-caches. Discrete search tests single-card transfers and restarts at local optima. Leitwerk maximizes the
-same exact score, decoding preferences through capped proportional allocation and largest-remainder
-rounding. Ties follow the fixed input order. Minimum counts are allocated first.
+Discrete search tests single-card transfers and restarts at local optima. Random restarts
+use capped proportional allocation and largest-remainder rounding, allocating minimums first.
 
 Each JSON result reports the baseline score, best composition and score, unique evaluations, proposal
 count, elapsed seconds, and stopping reason. A cap of 20 proposals per budgeted evaluation prevents
-duplicate proposals from running forever; a method may stop below its evaluation budget. Neither
-method guarantees the global optimum. The tests compare both with an exhaustively solved tiny case.
+duplicate proposals from running forever; search may stop below its evaluation budget. Search does not guarantee the global optimum. Tests compare it with an exhaustively solved tiny case.
 
 Enumeration grows combinatorially with the number of types and hand size. Start with a few broad
 types; the example prints its initial feasible-hand count. This iteration excludes mulligans, color,

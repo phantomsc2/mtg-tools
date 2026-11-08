@@ -31,8 +31,7 @@ def score_hand(hand: Counter[Card]) -> float:
 @click.option("--config", type=click.Path(exists=True, path_type=Path), help="JSON overrides for experiment defaults.")
 @click.option("--budget", type=click.IntRange(min=1), default=None)
 @click.option("--seed", "seeds", type=int, multiple=True, help="Repeat to compare several search seeds.")
-@click.option("--method", type=click.Choice(["both", "discrete", "leitwerk"]), default="both")
-def main(config: Path | None, budget: int | None, seeds: tuple[int, ...], method: str) -> None:
+def main(config: Path | None, budget: int | None, seeds: tuple[int, ...]) -> None:
     settings = {
         "size": 60, "minimum": [18, 4, 2, 4, 0], "maximum": [30, 24, 12, 20, 12],
         "initial": [24, 12, 6, 12, 6], "budget": 200, "seeds": [0, 1, 2], "hand_size": 7,
@@ -45,11 +44,10 @@ def main(config: Path | None, budget: int | None, seeds: tuple[int, ...], method
                            "initial_hands": sum(1 for _ in hand_distribution(dict(zip(CARDS, initial)),
                                                                             settings["hand_size"]))}))
     for seed in seeds or settings["seeds"]:
-        for algorithm in ("discrete", "leitwerk") if method == "both" else (method,):
-            objective = Objective(space, score_hand, budget or settings["budget"], settings["hand_size"])
-            result = optimize(objective, initial, algorithm, seed)
-            click.echo(json.dumps({"method": algorithm, "seed": seed, "baseline_score": objective.cache[initial],
-                                   **asdict(result)}))
+        objective = Objective(space, score_hand, budget or settings["budget"], settings["hand_size"])
+        result = optimize(objective, initial, seed=seed)
+        click.echo(json.dumps({"method": "discrete", "seed": seed, "baseline_score": objective.cache[initial],
+                               **asdict(result)}))
 
 
 if __name__ == "__main__":

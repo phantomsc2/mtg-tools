@@ -36,8 +36,7 @@ subtracted after averaging opportunities. Their scale is raw opportunities per
 turn; old penalties on normalized conditional coverage are not transferable.
 
 The evaluator uses only the standard library; batch search uses NumPy. Tests compare against physical draws
-and exhaustive mana assignments. Full repository tests require the neighboring
-leitwerk checkout on PYTHONPATH if it is not installed in the test environment.
+and exhaustive mana assignments.
 
 ## Shared search components
 
@@ -521,3 +520,27 @@ to the previous result. Nine and ten shocks retain one Island rather than the
 previous basic choices. Crossings: 8/9 at 0.007820833 and 9/10 at 0.006047422.
 Updated reports in place; independent scalar reevaluation and constraint/
 interval checks passed. Twenty-four targeted tests passed.
+
+## General availability schedules (2026-11-08)
+
+Batch opportunity grids now accept simultaneous distinct rational availability
+rates from land_availability(kind, turn). Equal-rate land counts are grouped;
+a memoized convolution adds independent lands with successes capped at the
+required mana value. Rates 0 and 1 use the same recurrence. Integer masses use
+the LCM of rate denominators, preserving exactness through limb transforms.
+Current schedules, independent land-drop approximation, and separate color
+coverage are unchanged. Schedule changes must patch both modules when testing,
+because mana_batch and mana_opportunities import land_availability directly.
+
+Isolated reference-pool benchmark (three repetitions, medians): old full table
+11.929 s / grid 2.440 s; general full table 15.238 s / grid 6.153 s. Full results
+are exactly equal. Generality costs about 28% overall on this fixture; no
+single-fractional-rate special path retained. An 85-candidate four-kind mixed
+schedule fixture took 0.0258 s full / 0.0231 s grid (five-run medians) and
+matched scalar results exactly. Local reproduction scripts are in ignored
+.cache/benchmark_availability.py and .cache/benchmark_mixed_availability.py;
+the former uses the ignored .cache/mana_batch_before.py baseline snapshot.
+
+All 16 batch/availability tests pass. The bundled .venv launcher
+references a missing user interpreter; run .python/cpython-3.12.13-windows-x86_64-none/python.exe
+with PYTHONPATH=.venv/Lib/site-packages in this sandbox.

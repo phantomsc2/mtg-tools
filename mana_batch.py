@@ -7,6 +7,7 @@ within int64, even when averaging turns creates large rational numerators.
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from fractions import Fraction
+from functools import cache
 from itertools import combinations
 from math import comb, lcm
 
@@ -30,8 +31,8 @@ def _opportunity_grid(sources: tuple[ManaSource, ...], counts: tuple[np.ndarray,
                       deck_size: int) -> tuple[np.ndarray, int]:
     """Exact draw/availability weights before transforming across mana bases.
 
-    All uncertain classes on a given turn share one rate. Group by that rate
-    signature; lookup tables depend only on total, certain, and uncertain counts.
+    Group equal rates within each turn signature and convolve independent
+    availability distributions, capping successes at the required mana value.
     Python integers hold the weighted grid, split into safe int64 limbs later.
     """
     scenarios = {}
@@ -44,29 +45,39 @@ def _opportunity_grid(sources: tuple[ManaSource, ...], counts: tuple[np.ndarray,
             if 0 <= seen - k - 1 < nonlands:
                 factors[k] += Fraction(comb(nonlands - 1, seen - k - 1),
                                        comb(deck_size, seen) * len(seen_by_turn))
-    denominator = lcm(*(factor.denominator * max((r.denominator for r in rates), default=1)**max_drawn
+    denominator = lcm(*(factor.denominator * lcm(*(r.denominator for r in rates))**max_drawn
                         for rates, factors in scenarios.items() for factor in factors))
     values = np.zeros(totals.shape, dtype=object)
     for rates, factors in scenarios.items():
-        certain = np.zeros(totals.shape, dtype=np.int64)
-        uncertain = np.zeros(totals.shape, dtype=np.int64)
-        rate = next((r for r in rates if 0 < r < 1), Fraction(1))
-        for r, drawn in zip(rates, counts):
-            if r == 1:
-                certain += drawn
-            elif r:
-                uncertain += drawn
-        # Only color-valid draws within max_drawn need lookups.
-        lookup = np.zeros((max_drawn + 1,) * 3, dtype=object)
-        for n in range(max_drawn + 1):
-            for a in range(max_drawn + 1 - n):
-                tail = sum((comb(n, j) * rate**j * (1-rate)**(n-j)
-                            for j in range(max(0, total-a), n+1)), Fraction())
-                for k in range(max(total, a+n), max_drawn + 1):
-                    weight = factors[k] * tail
-                    lookup[k, a, n] = weight.numerator * (denominator // weight.denominator)
-        values += lookup[np.minimum(totals, max_drawn), np.minimum(certain, max_drawn),
-                         np.minimum(uncertain, max_drawn)]
+        groups = {}
+        for rate, drawn in zip(rates, counts):
+            groups[rate] = groups.get(rate, 0) + drawn
+        scale = lcm(*(r.denominator for r in groups))
+        numerators = tuple(int(r * scale) for r in groups)
+
+        @cache
+        def distribution(drawn: tuple[int, ...]) -> tuple[int, ...]:
+            """Integer masses with denominator scale**sum(drawn); last bucket is >= total."""
+            if not any(drawn):
+                return (1,) + (0,) * total
+            axis = next(i for i, n in enumerate(drawn) if n)
+            masses = distribution(tuple(n - (i == axis) for i, n in enumerate(drawn)))
+            p = numerators[axis]
+            return tuple(masses[j] * (scale - p) + (masses[j-1] * p if j else 0)
+                         + (masses[j] * p if j == total else 0)
+                         for j in range(total + 1))
+
+        # Color-distinct draws often share the same availability distribution.
+        keys, inverse = np.unique(np.stack([np.broadcast_to(n, totals.shape)[valid]
+                                            for n in groups.values()], axis=1),
+                                  axis=0, return_inverse=True)
+        weights = []
+        for key in keys:
+            drawn = tuple(map(int, key))
+            k = sum(drawn)
+            weight = factors[k] * Fraction(distribution(drawn)[total], scale**k)
+            weights.append(weight.numerator * (denominator // weight.denominator))
+        values[valid] += np.asarray(weights, dtype=object)[inverse]
     values *= valid
     return values, denominator
 

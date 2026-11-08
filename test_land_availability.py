@@ -3,6 +3,7 @@ from collections import Counter
 from fractions import Fraction as F
 from itertools import combinations, product
 from math import comb, prod
+from unittest.mock import patch
 
 from mana_lands import ManaSource, land_availability
 from mana_opportunities import SpellCost, evaluate
@@ -39,6 +40,33 @@ def physical_oracle(base, spells, seen, turn):
 
 
 class AvailabilityTests(unittest.TestCase):
+    def test_arbitrary_simultaneous_rates(self):
+        def schedule(kind, turn):
+            return {"basic": F(1), "shock": F(0),
+                    "town": F(1, 2) if turn % 2 else F(2, 5),
+                    "tapped": F(2, 3) if turn % 2 else F(3, 7)}[kind]
+
+        base = {ManaSource(colors, kind): 2 for colors, kind in
+                (("U", "basic"), ("UB", "shock"), ("WUBRG", "town"), ("UB", "tapped"))}
+        spells = [SpellCost(cost, 1) for cost in ("0", "U", "2", "2U", "4U")]
+        space = ManaSpace({s: (0, n) for s, n in base.items()}, 5)
+        with patch("mana_batch.land_availability", schedule), \
+                patch("mana_opportunities.land_availability", schedule), \
+                patch(f"{__name__}.oracle_rate", schedule):
+            for position, opening in (("play", 0), ("draw", 2), ("both", 99)):
+                args = dict(turns=5, position=position, opening_hand_size=opening)
+                self.assertEqual(build_component_table(space, spells, backend="scalar", **args),
+                                 build_component_table(space, spells, backend="batch", **args))
+            # Independent physical-outcome enumeration, including repeated rates.
+            small = {s: 1 for s in base}
+            sample = [SpellCost("2U", 1)]
+            result = evaluate(small, sample, turns=3, opening_hand_size=99, position="play")
+            expected = physical_oracle(small, sample, 5, 3)
+            self.assertEqual(result.opportunities[-1].expected_copies, expected["2U"])
+            fixed = ManaSpace({s: (1, 1) for s in small}, 4)
+            self.assertEqual(build_component_table(fixed, sample, backend="scalar", turns=3),
+                             build_component_table(fixed, sample, backend="batch", turns=3))
+
     def test_class_rates_and_pool_generation(self):
         expected = {"fast": [1, 1, 1, F(3,4), F(4,5)],
                     "town": [1, 1, 1, F(3,4), F(4,5)],
