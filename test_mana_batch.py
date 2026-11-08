@@ -8,8 +8,11 @@ import numpy as np
 
 from mana_batch import binomial_transform
 from mana_lands import ManaSource
+from mana_model import heuristic_mana_model
 from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
 from mana_search import ManaSpace, build_component_table
+
+MODEL = heuristic_mana_model()
 
 
 class BatchTests(unittest.TestCase):
@@ -18,23 +21,23 @@ class BatchTests(unittest.TestCase):
         # transforms. This checks dispatch and the backend without a huge run.
         space = ManaSpace({ManaSource(c, "basic"): (0, 15) for c in "WUBRG"}, 0)
         spells = [SpellCost("2", 1)]
-        expected = build_component_table(space, spells, backend="scalar", turns=1)
+        expected = build_component_table(space, spells, model=MODEL, backend="scalar", turns=1)
         with patch("mana_search.evaluate", side_effect=AssertionError("Unexpected scalar fallback")):
-            self.assertEqual(build_component_table(space, spells, backend="auto", turns=1), expected)
-            self.assertEqual(build_component_table(space, spells, backend="batch", turns=1), expected)
+            self.assertEqual(build_component_table(space, spells, model=MODEL, backend="auto", turns=1), expected)
+            self.assertEqual(build_component_table(space, spells, model=MODEL, backend="batch", turns=1), expected)
 
     def test_separate_town_cavern_and_shock_penalties(self):
         shock = ManaSource("UB", "shock", "UB")
         town, cavern = ManaSource("WUBRG", "town"), ManaSource("WUBRG", "cavern")
         space = ManaSpace({shock: (0, 2), town: (0, 2), cavern: (0, 2)}, 3)
         spells = [SpellCost("UU", 2), SpellCost("WB", 1)]
-        scalar = build_component_table(space, spells, backend="scalar")
-        batch = build_component_table(space, spells, backend="batch")
+        scalar = build_component_table(space, spells, model=MODEL, backend="scalar")
+        batch = build_component_table(space, spells, model=MODEL, backend="batch")
         self.assertEqual(scalar, batch)
         for shock_penalty, town_penalty in ((0.1, 0.1), (0.1, 0.3), (0.2, 0)):
             ranked = batch.rank(shock_penalty=shock_penalty, town_penalty=town_penalty)
             for row in ranked:
-                result = evaluate(dict(zip(space.sources, row.counts)), spells,
+                result = evaluate(dict(zip(space.sources, row.counts)), spells, model=MODEL,
                                   shock_penalty=shock_penalty, town_penalty=town_penalty)
                 self.assertAlmostEqual(float(row.score), result.score)
             for parameter in ("shock_penalty", "town_penalty"):
@@ -58,8 +61,8 @@ class BatchTests(unittest.TestCase):
         for position in ("both", "play", "draw"):
             for opening in (0, 2, 20):
                 args = dict(position=position, opening_hand_size=opening, turns=3)
-                scalar = build_component_table(space, spells, backend="scalar", **args)
-                batch = build_component_table(space, spells, backend="batch", **args)
+                scalar = build_component_table(space, spells, model=MODEL, backend="scalar", **args)
+                batch = build_component_table(space, spells, model=MODEL, backend="batch", **args)
                 self.assertEqual(scalar, batch, (position, opening))
                 self.assertEqual(scalar.rank(shock_penalty=0.1, town_penalty=0.2),
                                  batch.rank(shock_penalty=0.1, town_penalty=0.2))
@@ -70,14 +73,14 @@ class BatchTests(unittest.TestCase):
                            ManaSource("UG", "shock", "UG"): (0, 2), ManaSource("UG", "shock"): (0, 2),
                            ManaSource("UG", "verge"): (0, 2)}, 4)
         spells = [SpellCost("GG", 3), SpellCost("UU", 2), SpellCost("1B", 1)]
-        self.assertEqual(build_component_table(space, spells, backend="scalar"),
-                         build_component_table(space, spells, backend="batch"))
+        self.assertEqual(build_component_table(space, spells, model=MODEL, backend="scalar"),
+                         build_component_table(space, spells, model=MODEL, backend="batch"))
 
     def test_integer_limbs_and_progress_without_scalar_evaluations(self):
         space = ManaSpace({ManaSource("B", "basic"): (1, 1), ManaSource("UB", "shock"): (0, 4),
                            ManaSource("WUBRG", "town"): (0, 26)}, 26)
         spells = [SpellCost("UU", 34)]
-        expected = build_component_table(space, spells, backend="scalar")
+        expected = build_component_table(space, spells, model=MODEL, backend="scalar")
         completed, rows = [], []
 
         def progress(costs):
@@ -92,7 +95,7 @@ class BatchTests(unittest.TestCase):
 
         with patch("mana_search.evaluate", side_effect=AssertionError("Per-base evaluation")):
             with patch("mana_batch.binomial_transform", wraps=binomial_transform) as transform:
-                result = build_component_table(space, spells, backend="batch", component_progress=progress,
+                result = build_component_table(space, spells, model=MODEL, backend="batch", component_progress=progress,
                                                progress=row_progress)
                 self.assertGreater(transform.call_count, 1)  # Multiple exact integer limbs.
         self.assertEqual(result, expected)
@@ -104,8 +107,8 @@ class BatchTests(unittest.TestCase):
                                    (ManaSpace({}, 0), [SpellCost("0", 2)],
                                     dict(opening_hand_size=0, turns=1, position="play")),
                                    (ManaSpace({ManaSource("U", "basic"): (1, 1)}, 1), [], {})):
-            self.assertEqual(build_component_table(space, spells, backend="scalar", **args),
-                             build_component_table(space, spells, backend="batch", **args))
+            self.assertEqual(build_component_table(space, spells, model=MODEL, backend="scalar", **args),
+                             build_component_table(space, spells, model=MODEL, backend="batch", **args))
 
 
     def test_large_integer_mass_falls_back_in_auto(self):
@@ -113,9 +116,9 @@ class BatchTests(unittest.TestCase):
         spells = [SpellCost("U", 1)]
         args = dict(opening_hand_size=68, turns=1)
         with self.assertRaises(OverflowError):
-            build_component_table(space, spells, backend="batch", **args)
-        self.assertEqual(build_component_table(space, spells, backend="auto", **args),
-                         build_component_table(space, spells, backend="scalar", **args))
+            build_component_table(space, spells, model=MODEL, backend="batch", **args)
+        self.assertEqual(build_component_table(space, spells, model=MODEL, backend="auto", **args),
+                         build_component_table(space, spells, model=MODEL, backend="scalar", **args))
 
     def test_reference_pool_and_sampled_scalar_agreement(self):
         from examples.sultai import MANA_BASE, SPELLS
@@ -129,9 +132,9 @@ class BatchTests(unittest.TestCase):
                            for s, n in reference.items()}, 26)
         self.assertEqual(space.candidate_count(), 3144)
         with patch("mana_search.evaluate", side_effect=AssertionError("Auto should batch")):
-            table = build_component_table(space, SPELLS)
+            table = build_component_table(space, SPELLS, model=MODEL)
         for row in table.rows[::173]:
-            result = evaluate(dict(zip(space.sources, row.counts)), SPELLS)
+            result = evaluate(dict(zip(space.sources, row.counts)), SPELLS, model=MODEL)
             totals = Counter()
             for opportunity in result.opportunities:
                 totals[opportunity.cost] += opportunity.expected_copies

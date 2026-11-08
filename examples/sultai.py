@@ -16,7 +16,10 @@ Run from the project root: python -m examples.sultai
 """
 
 from mana_lands import ManaSource
+from mana_model import heuristic_mana_model
 from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
+
+MANA_MODEL = heuristic_mana_model()
 
 SPELLS = (
     Spell(4, tuple(CastingMode(c) for c in ("2UB", "1UUB", "1UBB", "UUBB"))),  # Superior Spider-Man
@@ -65,7 +68,7 @@ LAND_NAMES = {
 
 
 if __name__ == "__main__":
-    result = evaluate(MANA_BASE, SPELLS)
+    result = evaluate(MANA_BASE, SPELLS, model=MANA_MODEL)
     print(f"Mean weighted opportunities: {result.raw_score:.6f}")
     print(f"Composition penalty: {result.penalty:.6f}")
     print(f"Score: {result.score:.6f}")

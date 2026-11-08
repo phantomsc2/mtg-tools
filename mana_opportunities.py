@@ -1,17 +1,16 @@
 """Draw-based casting opportunities, with independent copies and optimistic land selection.
 
-No sequencing or spells are played out: each drawn copy scores on every turn
-its cost is payable, independently of all other copies and costs. Town and
-Cavern are unrestricted rainbow sources; Cavern restrictions remain excluded.
-Every available source produces one mana. Independent land failures model tapped entry;
-payment checks colors among all seen lands and separately discounts availability.
-life costs are not simulated. Verge secondary colors
-use enabling land types anywhere among lands seen, ignoring enabler land drops.
+No sequencing or spells are played out: each drawn copy scores independently.
+An explicit model supplies independent source outcomes and the per-turn source
+limit. Realized source outcomes jointly supply mana and colors. Production
+policies and conditional-color rules live outside this evaluator.
 
 Example (run with ``python -m doctest mana_opportunities.py``)::
 
+    >>> from mana_model import heuristic_mana_model
     >>> base = {ManaSource("U", "basic"): 12, ManaSource("UB", "shock"): 12}
-    >>> result = evaluate(base, [SpellCost("UU", 20), SpellCost("1B", 16, weight=2)])
+    >>> result = evaluate(base, [SpellCost("UU", 20), SpellCost("1B", 16, weight=2)],
+    ...                   model=heuristic_mana_model())
     >>> result.score > 0
     True
 
@@ -25,12 +24,13 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from functools import lru_cache
-from math import comb, fsum, isfinite
+from math import comb, fsum, isfinite, lcm
 from numbers import Real
-from types import MappingProxyType
 from typing import Literal
 
-from mana_lands import COLORS, ManaSource, VERGE_RULES, land_availability
+from mana_lands import COLORS, ManaSource
+from mana_model import CompiledManaModel, ManaModel
+from mana_payment import PaymentScenario, payment_scenarios, requirements
 
 
 def _count(value: int, label: str) -> None:
@@ -125,165 +125,47 @@ class OpportunityResult:
 
 
 @lru_cache(maxsize=128)
-def _payable_land_weights(sources: tuple[tuple[str, int], ...], generic: int,
-                          colored: str, max_drawn: int) -> tuple[int, ...]:
-    """Binomial-weighted land draws by size, using capped Hall supply states.
+def _land_weights(capacities: tuple[int, ...], scenario: PaymentScenario,
+                  caps: tuple[int, ...], max_drawn: int) -> tuple[Fraction, ...]:
+    """Draw-weighted joint payment probabilities, with capped Hall supplies."""
+    scale = lcm(*(p.denominator for dist in scenario.distributions for _, p in dist))
+    groups = Counter()
+    allowed = 0
+    for context in scenario.contexts:
+        allowed |= context
+    for count, type_mask, distribution in zip(capacities, scenario.type_masks, scenario.distributions):
+        if count and not type_mask & ~allowed:
+            groups[type_mask, distribution] += count
 
-    Every subset of required colors must have at least as many distinct
-    available sources as required pips. Capping supplies merges equivalent
-    states; irrelevant and interchangeable sources are grouped before the DP.
-    """
-    required = Counter(colored)
-    colors = tuple(required)
-    groups = [tuple(c for i, c in enumerate(colors) if mask & (1 << i))
-              for mask in range(1, 1 << len(colors))]
-    caps = tuple(sum(required[c] for c in group) for group in groups)
-    supplies = Counter()
-    for options, count in sources:
-        supplies[tuple(int(any(c in options for c in group)) for group in groups)] += count
-
-    states = {(0, (0,) * len(caps)): 1}
-    for supply, count in supplies.items():
+    zero = (0,) * len(caps)
+    states = {(0, 0, zero): 1}
+    for (type_mask, distribution), count in groups.items():
+        outcomes = [{zero: 1}]
+        for take in range(1, min(count, max_drawn) + 1):
+            combined = defaultdict(int)
+            for covered, weight in outcomes[-1].items():
+                for supply, probability in distribution:
+                    updated = tuple(min(cap, have + n) for cap, have, n in zip(caps, covered, supply))
+                    combined[updated] += weight * int(probability * scale)
+            outcomes.append(combined)
         next_states = defaultdict(int)
-        binomials = [comb(count, take) for take in range(min(count, max_drawn) + 1)]
-        for (drawn, covered), weight in states.items():
-            for take in range(min(count, max_drawn - drawn) + 1):
-                updated = tuple(min(cap, have + take * adds) for cap, have, adds in zip(caps, covered, supply))
-                next_states[drawn + take, updated] += weight * binomials[take]
-        states = next_states
-
-    payable = [0] * (max_drawn + 1)
-    for (drawn, covered), weight in states.items():
-        if drawn >= generic + len(colored) and covered == caps:
-            payable[drawn] += weight
-    return tuple(payable)
-
-
-@lru_cache(maxsize=128)
-def _verge_land_weights(sources: tuple[tuple[ManaSource, int], ...], generic: int,
-                        colored: str, max_drawn: int) -> tuple[int, ...]:
-    """Capped-supply DP partitioned by enabling types among all lands seen.
-
-    Each draw belongs to exactly one final type mask. For that mask production
-    options are fixed, so states need only land count, observed types, and Hall
-    supplies. No drawn multisets or selected battlefields are enumerated.
-    """
-    relevant = set().union(*(set(VERGE_RULES[s.colors].requires) for s, _ in sources
-                            if s.kind == "verge" and VERGE_RULES[s.colors].secondary in colored))
-    possible = set().union(*(set(s.types) for s, _ in sources))
-    types = tuple(c for c in COLORS if c in relevant & possible)
-    if not types:
-        primary = Counter()
-        for source, count in sources:
-            primary[source.primary_colors] += count
-        return _payable_land_weights(tuple(sorted(primary.items())), generic, colored, max_drawn)
-
-    required = Counter(colored)
-    colors = tuple(required)
-    groups = [tuple(c for i, c in enumerate(colors) if mask & (1 << i))
-              for mask in range(1, 1 << len(colors))]
-    caps = tuple(sum(required[c] for c in group) for group in groups)
-    payable = [0] * (max_drawn + 1)
-    for target in range(1 << len(types)):
-        supplies = Counter()
-        reachable = 0
-        for source, count in sources:
-            type_mask = sum(1 << i for i, c in enumerate(types) if c in source.types)
-            if type_mask & ~target:
-                continue  # This scenario draws zero of this source.
-            reachable |= type_mask
-            options = source.primary_colors
-            if source.kind == "verge":
-                rule = VERGE_RULES[source.colors]
-                if any(target & (1 << i) for i, c in enumerate(types) if c in rule.requires):
-                    options += rule.secondary
-            supply = tuple(int(any(c in options for c in group)) for group in groups)
-            supplies[supply, type_mask] += count
-        if reachable != target:
-            continue
-        states = {(0, 0, (0,) * len(caps)): 1}
-        for (supply, type_mask), count in supplies.items():
-            next_states = defaultdict(int)
-            binomials = [comb(count, take) for take in range(min(count, max_drawn) + 1)]
-            for (drawn, observed, covered), weight in states.items():
-                for take in range(min(count, max_drawn - drawn) + 1):
-                    updated = tuple(min(cap, have + take * adds) for cap, have, adds in zip(caps, covered, supply))
-                    seen_types = observed | type_mask if take else observed
-                    next_states[drawn + take, seen_types, updated] += weight * binomials[take]
-            states = next_states
         for (drawn, observed, covered), weight in states.items():
-            if drawn >= generic + len(colored) and observed == target and covered == caps:
-                payable[drawn] += weight
+            for take in range(min(count, max_drawn - drawn) + 1):
+                seen = observed | type_mask if take else observed
+                choose = comb(count, take)
+                for supply, mass in outcomes[take].items():
+                    updated = tuple(min(cap, have + n) for cap, have, n in zip(caps, covered, supply))
+                    next_states[drawn + take, seen, updated] += weight * choose * mass
+        states = next_states
+    payable = [Fraction()] * (max_drawn + 1)
+    for (drawn, observed, covered), weight in states.items():
+        if observed in scenario.contexts and covered == caps:
+            payable[drawn] += Fraction(weight, scale**drawn)
     return tuple(payable)
 
 
-@lru_cache(maxsize=128)
-def _available_land_weights(sources: tuple[tuple[ManaSource, int], ...], generic: int,
-                            colored: str, max_drawn: int, rates: tuple[Fraction, ...]) -> tuple[Fraction, ...]:
-    """Separate color coverage and independent availability, weighted over draws.
-
-    All drawn sources add color coverage and enabling types. Independently,
-    successful counts must cover total mana value; colors need not come from
-    the successful sources. This is the deliberately optimistic V1 model.
-    """
-    total = generic + len(colored)
-    relevant = set().union(*(set(VERGE_RULES[s.colors].requires) for s, _ in sources
-                            if s.kind == "verge" and VERGE_RULES[s.colors].secondary in colored))
-    possible = set().union(*(set(s.types) for s, _ in sources))
-    types = tuple(c for c in COLORS if c in relevant & possible)
-    required = Counter(colored)
-    colors = tuple(required)
-    groups = [tuple(c for i, c in enumerate(colors) if mask & (1 << i))
-              for mask in range(1, 1 << len(colors))]
-    caps = tuple(sum(required[c] for c in group) for group in groups)
-    payable = [0] * (max_drawn + 1)
-    for target in range(1 << len(types)):
-        supplies = Counter()
-        reachable = 0
-        for (source, count), rate in zip(sources, rates):
-            type_mask = sum(1 << i for i, c in enumerate(types) if c in source.types)
-            if type_mask & ~target:
-                continue  # This scenario draws zero of this source.
-            reachable |= type_mask
-            options = source.primary_colors
-            if source.kind == "verge":
-                rule = VERGE_RULES[source.colors]
-                if any(target & (1 << i) for i, c in enumerate(types) if c in rule.requires):
-                    options += rule.secondary
-            supply = tuple(int(any(c in options for c in group)) for group in groups)
-            supplies[supply, type_mask, rate] += count
-        if reachable != target:
-            continue
-        states = {(0, 0, (0,) * len(caps), 0): 1}
-        denominator = 1
-        for (supply, type_mask, rate), count in supplies.items():
-            next_states = defaultdict(int)
-            p, d = rate.numerator, rate.denominator
-            denominator *= d**count
-            outcomes = []
-            for take in range(min(count, max_drawn) + 1):
-                distribution = defaultdict(int)
-                for available in range(take + 1):
-                    mass = (comb(count, take) * comb(take, available) * p**available
-                            * (d-p)**(take-available) * d**(count-take))
-                    if mass:
-                        distribution[min(total, available)] += mass
-                outcomes.append(tuple(distribution.items()))
-            for (drawn, observed, covered, available), weight in states.items():
-                for take in range(min(count, max_drawn - drawn) + 1):
-                    seen_types = observed | type_mask if take else observed
-                    for extra, mass in outcomes[take]:
-                        updated = tuple(min(cap, have + take * adds)
-                                        for cap, have, adds in zip(caps, covered, supply))
-                        next_states[drawn + take, seen_types, updated, min(total, available + extra)] += weight * mass
-            states = next_states
-        for (drawn, observed, covered, available), weight in states.items():
-            if drawn >= generic + len(colored) and observed == target and covered == caps and available == total:
-                payable[drawn] += Fraction(weight, denominator)
-    return tuple(payable)
-
-
-def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | Spell], *, turns: int = 7,
+def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | Spell], *,
+             model: ManaModel | CompiledManaModel, turns: int = 7,
              position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
              town_penalty: float = 0, shock_penalty: float = 0) -> OpportunityResult:
     """Score the full draw distribution, including hands short on lands.
@@ -306,8 +188,7 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
         if not isinstance(source, ManaSource):
             raise ValueError("Mana base keys must be ManaSource inputs")
         _count(count, "Land count")
-        if count:
-            sources[source] += count
+        sources[source] += count
         penalties.append(count * {"basic": 0, "verge": 0, "shock": shock_penalty,
                                   "town": town_penalty, "cavern": 0, "fast": 0, "slow": 0,
                                   "tapped": 0, "tri": 0}[source.kind])
@@ -319,35 +200,29 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
     max_seen = min(deck_size, max(opening_hand_size + turns - (side == "play") for side in positions))
     max_lands = min(sum(sources.values()), max(0, max_seen - 1))
     source_key = tuple(sorted(sources.items(), key=lambda item: (item[0].kind, item[0].colors, item[0].types)))
-    conditional = any(s.kind == "verge" for s in sources)
-    plain_sources = Counter()
-    for source, count in sources.items():
-        plain_sources[source.colors] += count
-    rates_by_turn = {turn: tuple(land_availability(source.kind, turn) for source, _ in source_key)
-                     for turn in range(1, turns + 1)}
+    compiled = model.compile(tuple(source for source, _ in source_key), turns)
+    capacities = tuple(count for _, count in source_key)
     rows = []
     for cost, copies in counts.items():
         generic, colored = _parse_cost(cost)
         total = generic + len(colored)
-        weights = ()
-        if copies and total <= turns:
-            if conditional:
-                weights = _verge_land_weights(source_key, generic, colored, max_lands)
-            else:
-                weights = _payable_land_weights(tuple(sorted(plain_sources.items())), generic, colored, max_lands)
+        _, caps = requirements(generic, colored)
+        scenarios = payment_scenarios(compiled, generic, colored)
         weighted_copies = float(weighted_counts[cost])
         for turn in range(1, turns + 1):
-            rates = rates_by_turn[turn]
-            turn_weights = weights
-            if copies and total and total <= turn and any(rate != 1 for rate in rates):
-                turn_weights = _available_land_weights(source_key, generic, colored, max_lands, rates)
+            limit, partitions = scenarios[turn - 1]
+            turn_weights = [Fraction()] * (max_lands + 1)
+            if copies and (limit is None or total <= limit):
+                for scenario in partitions:
+                    weights = _land_weights(capacities, scenario, caps, max_lands)
+                    turn_weights = [a + b for a, b in zip(turn_weights, weights)]
             for side in positions:
                 seen = min(deck_size, opening_hand_size + turn - (side == "play"))
                 # Mark one physical spell: choose the remaining nonlands and
                 # lands around it. Multiplying by copies counts every backup.
                 numerator = sum(land_weight * comb(nonlands - 1, seen - k - 1)
                                 for k, land_weight in enumerate(turn_weights)
-                                if 0 <= seen - k - 1 <= nonlands - 1) if total <= turn else 0
+                                if 0 <= seen - k - 1 <= nonlands - 1)
                 per_copy = Fraction(numerator, comb(deck_size, seen))
                 rows.append(Opportunity(cost, turn, side, copies * per_copy, weighted_copies * float(per_copy)))
 

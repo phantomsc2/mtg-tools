@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from time import perf_counter
 
-from examples.sultai import LAND_NAMES, MANA_BASE, SPELLS
+from examples.sultai import LAND_NAMES, MANA_BASE, MANA_MODEL, SPELLS
 from mana_lands import ManaSource, STANDARD_AS_OF
 from mana_opportunities import Spell, spell_components
 from mana_search import LocalManaEvaluator, ManaSpace, local_search
@@ -94,7 +94,8 @@ def make_report(evaluator, runs, winner, seconds, *, budgets=EVALUATION_BUDGETS,
             for spell in SPELLS
         ],
         "assumptions": [
-            "V1: seen-land color coverage and independent land availability are separate.",
+            "Independent source outcomes jointly supply mana and colors; source limit equals turn.",
+            "Verge colors use enabling types anywhere seen, including unavailable enablers.",
             "Cavern is unrestricted rainbow mana; creature and chosen-type restrictions are ignored.",
             "Incarnation modes target enters effects, omitting mixed evoke payments with no effect.",
             "Spider-Man includes colored-payment scenarios for copied incarnation effects.",
@@ -159,7 +160,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("reports/sultai_palace_optimization.json"))
     args = parser.parse_args()
-    evaluator = LocalManaEvaluator(make_space(), SPELLS, turns=TURNS, position=POSITION,
+    evaluator = LocalManaEvaluator(make_space(), SPELLS, model=MANA_MODEL, turns=TURNS, position=POSITION,
                                    opening_hand_size=OPENING_HAND_SIZE, family_maximums={"basic": 2})
     def progress(index, visits, best):
         score = f"; best {float(best.score):.9f}" if best else ""

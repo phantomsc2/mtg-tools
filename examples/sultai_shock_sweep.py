@@ -6,7 +6,7 @@ from fractions import Fraction
 from pathlib import Path
 from time import perf_counter
 
-from examples.sultai import LAND_NAMES, MANA_BASE, SPELLS
+from examples.sultai import LAND_NAMES, MANA_BASE, MANA_MODEL, SPELLS
 from examples.sultai_optimize import make_space, SHOCK_PENALTY, TOWN_PENALTY
 from mana_lands import ManaSource
 from mana_search import LocalManaEvaluator, ManaSpace, local_search
@@ -55,7 +55,7 @@ def render(report):
               'Intervals are exact for the reported representatives. Searches do not certify global optima.',
               'A one-land local optimum checks transfers preserving the shock total; coupled two-transfer moves are not checked.',
               'Restless Cottage uses the untyped tapped BG source; animation, Food, and graveyard effects are not scored.',
-              'V1 availability, unrestricted Cavern, uniform mode weights, and board scenarios remain in effect.', '',
+              'Independent joint source outcomes, unrestricted Cavern, uniform mode weights, and board scenarios are used.', '',
               f"Total runtime: {report['seconds']:.2f}s. Budget: {report['budget']} visits per shock count.", '']
     return '\n'.join(lines)
 
@@ -65,8 +65,8 @@ def main():
     bounds[ManaSource('WUBRG', 'town')] = (4, 4)
     space = ManaSpace(bounds, 26)
     current = dict(MANA_BASE)
-    projector = LocalManaEvaluator(space, SPELLS, family_maximums={"basic": 2})
-    rows, caches = [], {}
+    projector = LocalManaEvaluator(space, SPELLS, model=MANA_MODEL, family_maximums={"basic": 2})
+    rows, caches, signatures = [], {}, {}
     started = perf_counter()
     budget = 500
     path = Path('reports/sultai_shock_sweep.json')
@@ -88,7 +88,8 @@ def main():
                         candidates.append(projector.value(base))
             seed = min(candidates, key=lambda r: (-r.raw_score, r.counts))
             current = dict(zip(space.sources, seed.counts))
-        evaluator = LocalManaEvaluator(space, SPELLS, family_totals={'shock': total}, family_maximums={'basic': 2})
+        evaluator = LocalManaEvaluator(space, SPELLS, model=MANA_MODEL, family_totals={'shock': total},
+                                       family_maximums={'basic': 2})
         result = local_search(evaluator, current, evaluation_budget=budget,
                               shock_penalty=SHOCK_PENALTY, town_penalty=TOWN_PENALTY,
                               progress=lambda n, r: print(f'  {n} visits; raw {float(r.raw_score):.9f}', flush=True))
@@ -101,17 +102,20 @@ def main():
                      'evaluations': result.evaluations, 'stopped': result.stopped,
                      'seconds': result.seconds})
         caches[total] = dict(evaluator.cache)
+        signatures[total] = evaluator.cache_signature
         report = {'budget': budget, 'shock_penalty': SHOCK_PENALTY, 'town_penalty': TOWN_PENALTY,
                   'seconds': perf_counter()-started, 'results': rows, 'spell_profiles': [repr(spell) for spell in SPELLS],
                   'deck_note': 'Four Awaken, two Glarb, two Dellian Fel, no Overlord or Rapid Rescue; 34 spells, 26 lands.',
                   'initial': {LAND_NAMES[source]: n for source, n in MANA_BASE.items() if n},
+                  'mana_model': 'heuristic joint source outcomes; seen-type enabling; turn source limit',
                   'constraints': {'caverns': 4, 'towns': 4, 'cottages': 2, 'maximum_basics': 2, 'palace_cap': 2}}
         for row, interval in zip(rows, penalty_intervals(rows)):
             row['penalty_interval'] = interval
         path.write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
         Path('.cache').mkdir(exist_ok=True)
         with Path('.cache/sultai_shock_sweep.pkl').open('wb') as f:
-            pickle.dump({'bounds': bounds, 'components': caches, 'projector': dict(projector.cache)}, f)
+            pickle.dump({'bounds': bounds, 'components': caches, 'projector': dict(projector.cache),
+                         'signatures': signatures, 'projector_signature': projector.cache_signature}, f)
     path.with_suffix('.md').write_text(render(report), encoding='utf-8')
     print(render(report), flush=True)
 

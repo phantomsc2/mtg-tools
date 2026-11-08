@@ -5,9 +5,12 @@ from unittest.mock import patch
 from examples.sultai import MANA_BASE, SPELLS
 from examples.sultai_optimize import FIXED_LANDS, make_space, optimize, starting_bases
 from mana_lands import ManaSource, land_availability, sources_for_colors
+from mana_model import heuristic_mana_model
 from mana_opportunities import SpellCost, evaluate, spell_components
 from mana_search import LocalManaEvaluator, ManaSpace, build_component_table
 from test_land_availability import physical_oracle
+
+MODEL = heuristic_mana_model()
 
 
 class TriLandTests(unittest.TestCase):
@@ -36,30 +39,30 @@ class TriLandTests(unittest.TestCase):
                          [F(0), F(1, 2), F(2, 3), F(3, 4)])
         base = {ManaSource("UBG", "tri"): 1}
         for cost in ("U", "B", "G"):
-            result = evaluate(base, [SpellCost(cost, 1)], turns=2, opening_hand_size=99)
+            result = evaluate(base, [SpellCost(cost, 1)], model=MODEL, turns=2, opening_hand_size=99)
             self.assertEqual(result.opportunities[0].expected_copies, 0)
             self.assertEqual(result.opportunities[-1].expected_copies, F(1, 2))
-        result = evaluate(base, [SpellCost("UB", 1)], turns=3, opening_hand_size=99)
+        result = evaluate(base, [SpellCost("UB", 1)], model=MODEL, turns=3, opening_hand_size=99)
         self.assertTrue(all(r.expected_copies == 0 for r in result.opportunities))
 
     def test_no_verge_enabling_types(self):
         base = {ManaSource("UBG", "tri"): 1, ManaSource("UB", "verge"): 1}
-        result = evaluate(base, [SpellCost("BB", 1)], turns=2, opening_hand_size=99)
+        result = evaluate(base, [SpellCost("BB", 1)], model=MODEL, turns=2, opening_hand_size=99)
         self.assertEqual(result.opportunities[-1].expected_copies, 0)
 
     def test_physical_draw_oracle_and_backend_parity(self):
         base = {ManaSource("UBG", "tri"): 1, ManaSource("UB", "verge"): 1,
                 ManaSource("UG", "shock", "UG"): 1}
         spells = [SpellCost("BG", 1), SpellCost("UU", 1), SpellCost("G", 1)]
-        result = evaluate(base, spells, turns=3, opening_hand_size=2)
+        result = evaluate(base, spells, model=MODEL, turns=3, opening_hand_size=2)
         for row in result.opportunities:
             seen = min(6, 2+row.turn-(row.position == "play"))
             self.assertEqual(row.expected_copies,
                              physical_oracle(base, spells, seen, row.turn).get(row.cost, 0))
         space = ManaSpace({s: (0, 2) for s in base}, 3)
         args = dict(turns=3, opening_hand_size=2)
-        scalar = build_component_table(space, spells, backend="scalar", **args)
-        batch = build_component_table(space, spells, backend="batch", **args)
+        scalar = build_component_table(space, spells, model=MODEL, backend="scalar", **args)
+        batch = build_component_table(space, spells, model=MODEL, backend="batch", **args)
         self.assertEqual(scalar, batch)
         self.assertEqual(scalar.rank(), batch.rank())
 
@@ -72,7 +75,7 @@ class TriLandTests(unittest.TestCase):
             space.counts(base)
             for source, count in FIXED_LANDS.items():
                 self.assertEqual(base[source], count)
-        evaluator = LocalManaEvaluator(space, SPELLS, turns=2)
+        evaluator = LocalManaEvaluator(space, SPELLS, model=MODEL, turns=2)
         with patch.object(ManaSpace, "exhaustive", side_effect=AssertionError("global grid")):
             runs, best = optimize(evaluator, budgets=(1, 1, 1))
         self.assertEqual([r.evaluations for r in runs], [1, 1, 1])

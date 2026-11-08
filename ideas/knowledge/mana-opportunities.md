@@ -544,3 +544,51 @@ the former uses the ignored .cache/mana_batch_before.py baseline snapshot.
 All 16 batch/availability tests pass. The bundled .venv launcher
 references a missing user interpreter; run .python/cpython-3.12.13-windows-x86_64-none/python.exe
 with PYTHONPATH=.venv/Lib/site-packages in this sandbox.
+
+## Explicit joint mana model (2026-11-08)
+
+This supersedes the earlier separate color/availability model and its benchmarks.
+Every evaluate, LocalManaEvaluator, and build_component_table call now requires
+model=. The example deck explicitly chooses MANA_MODEL = heuristic_mana_model().
+Policies live in mana_model.py; neither backend imports Verge rules or availability
+heuristics. ManaContext supplies turn and the union of types among lands seen.
+Independent outcomes jointly supply mana and colors: an unavailable UB source
+plus an available R source cannot pay U. The heuristic still permits unavailable
+typed enablers to unlock Verge colors, because enabling uses lands seen.
+
+ManaOutcome(probability, options) represents alternative complete mana bundles,
+e.g. ("U", "B") means one U or B; ("",) means no mana. Only empty and single-mana
+bundles are accepted now; multiple-mana bundles need a future payment extension,
+without changing the outcome interface. Duplicate outcomes are canonicalized.
+The model also owns source_limit(turn), accepting None for no cap. Production
+callbacks are pure and compiled before evaluation. Actual land-drop choices,
+spell competition, life totals, and Cavern restrictions are not simulated by the
+provided heuristic. Existing spell-mode shares and scoring weights are unchanged.
+
+The scalar backend has one draw/observed-context/capped-Hall-coverage DP. Both
+backends project compiled outcomes into common payment constraints. Batch keeps
+integer limbs and cross-base binomial transforms, and reuses deduplicated draw
+layouts across probabilities with the same structural requirements. This avoids
+re-sorting the grid for each turn's fractional rate. No land-family dispatch is
+needed in either payment backend.
+
+Compiled signatures contain resolved outcomes, source limits, source pool, horizon,
+and a model version, rather than callback identities. Tables retain model_signature.
+Local cache_signature also includes spells, draw settings, bounds and constraints;
+restore_cache rejects incompatible signatures. Newly written shock-sweep caches
+include these signatures. Old cached results must be rebuilt; historical report
+artifacts were not regenerated and retain their old assumptions.
+
+Isolated three-run median reference fixture (3144 bases): before full table
+15.4853 s / grid 6.2982 s; after full 14.5495 s / grid 5.9657 s. Nine sampled
+cold local evaluations averaged 0.30728 s before / 0.19433 s after; cache hits
+stayed around 6 microseconds. Local setup rose from 0.00052 s to 0.00622 s for
+explicit compilation. These compare different payment semantics, not equal scores.
+A first uncached-layout implementation took 26.4 s and was replaced by structural
+layout reuse. Reproduction: .cache/benchmark_mana_model.py, model_before.json,
+and model_after.json (ignored local artifacts).
+
+Independent physical-draw/outcome/color-choice oracles cover custom categorical
+outcomes, arbitrary simultaneous fractional rates, repeated sources, and seen-type
+conditions. Both notebook setup paths were verified through the IDE notebook
+editor/kernel; the local evaluator configuration cell also executed successfully.

@@ -5,11 +5,14 @@ from itertools import combinations, product
 from math import comb
 
 from mana_lands import ManaSource, VERGE_RULES
+from mana_model import heuristic_mana_model
 from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
 from mana_search import ManaSpace, build_component_table
 
+MODEL = heuristic_mana_model()
 
-def can_pay_physical(lands, cost, turn):
+
+def can_pay_physical(lands, cost, turn, seen_types=None):
     """Physical-draw oracle with enabling types from all seen lands."""
     primary = {"WU": "W", "WB": "B", "WR": "W", "WG": "G", "UB": "U",
                "UR": "R", "UG": "U", "BR": "B", "BG": "G", "RG": "R"}
@@ -18,7 +21,7 @@ def can_pay_physical(lands, cost, turn):
     selected_count = min(turn, len(lands))
     if total > selected_count:
         return False
-    types = set("".join(s.types for s in lands))
+    types = set("".join(s.types for s in lands) if seen_types is None else seen_types)
     for battlefield in combinations(lands, selected_count):
         options = [s.colors if s.kind != "verge" or types.intersection(s.colors) else primary[s.colors]
                    for s in battlefield]
@@ -52,30 +55,30 @@ class VergeTests(unittest.TestCase):
                                          ("RG", "R", "G")):
             verge = ManaSource(pair, "verge")
             for color, expected in ((primary, 1), (secondary, 0)):
-                row = evaluate({verge: 1}, [SpellCost(color, 1)], turns=1).opportunities[-1]
+                row = evaluate({verge: 1}, [SpellCost(color, 1)], model=MODEL, turns=1).opportunities[-1]
                 self.assertEqual(row.expected_copies, expected)
             for enabling_type in pair:
                 base = {verge: 2, ManaSource(enabling_type, "basic"): 1}
-                result = evaluate(base, [SpellCost(secondary * 2, 1)], turns=3)
+                result = evaluate(base, [SpellCost(secondary * 2, 1)], model=MODEL, turns=3)
                 self.assertEqual(result.opportunities[-1].expected_copies, 1)
 
     def test_enablers_anywhere_seen_unlock_colors(self):
         verge = ManaSource("UB", "verge")
         for shock, expected in ((ManaSource("UG", "shock", "UG"), 1),
                                (ManaSource("UG", "shock"), 0)):
-            result = evaluate({verge: 2, shock: 1}, [SpellCost("BB", 1)], turns=3)
+            result = evaluate({verge: 2, shock: 1}, [SpellCost("BB", 1)], model=MODEL, turns=3)
             self.assertTrue(all(r.expected_copies == 0 for r in result.opportunities if r.turn == 1))
             self.assertTrue(all(r.expected_copies == expected for r in result.opportunities if r.turn == 2))
             self.assertEqual(result.opportunities[-1].expected_copies, expected)
         # A typed enabler may also supply mana in the same payment.
         result = evaluate({verge: 1, ManaSource("UG", "shock", "UG"): 1},
-                          [SpellCost("BU", 1)], turns=2)
+                          [SpellCost("BU", 1)], model=MODEL, turns=2)
         self.assertEqual(result.opportunities[-1].expected_copies, 1)
 
     def test_town_cavern_and_verges_do_not_enable(self):
         verge = ManaSource("UB", "verge")
         for other in (ManaSource("WUBRG", "town"), ManaSource("WUBRG", "cavern"), ManaSource("BG", "verge")):
-            result = evaluate({verge: 2, other: 1}, [SpellCost("BB", 1)], turns=3)
+            result = evaluate({verge: 2, other: 1}, [SpellCost("BB", 1)], model=MODEL, turns=3)
             self.assertEqual(result.opportunities[-1].expected_copies, 0)
 
     def test_against_physical_draws_and_assignments(self):
@@ -95,7 +98,7 @@ class VergeTests(unittest.TestCase):
             deck = [s for s, n in base.items() for _ in range(n)]
             deck += [s.cost for s in spells for _ in range(s.count)]
             for opening in (0, 2, 20):
-                result = evaluate(base, spells, turns=3, opening_hand_size=opening)
+                result = evaluate(base, spells, model=MODEL, turns=3, opening_hand_size=opening)
                 for row in result.opportunities:
                     seen = min(len(deck), opening + row.turn - (row.position == "play"))
                     successes = 0
@@ -110,11 +113,11 @@ class VergeTests(unittest.TestCase):
         base = {ManaSource("UB", "shock"): 2, ManaSource("U", "basic"): 1}
         typed = {ManaSource("UB", "shock", "UB"): 2, ManaSource("U", "basic"): 1}
         spells = [SpellCost("UU", 2), SpellCost("1B", 1)]
-        self.assertEqual(evaluate(base, spells), evaluate(typed, spells))
+        self.assertEqual(evaluate(base, spells, model=MODEL), evaluate(typed, spells, model=MODEL))
         base[ManaSource("UB", "verge")] = 0
-        self.assertEqual(evaluate(base, spells), evaluate(typed, spells))
+        self.assertEqual(evaluate(base, spells, model=MODEL), evaluate(typed, spells, model=MODEL))
         # Generic/zero costs remain valid with actual conditional sources.
-        result = evaluate({ManaSource("UB", "verge"): 2}, [SpellCost("0", 1), SpellCost("2", 1)], turns=2)
+        result = evaluate({ManaSource("UB", "verge"): 2}, [SpellCost("0", 1), SpellCost("2", 1)], model=MODEL, turns=2)
         self.assertTrue(all(r.expected_copies == 1 for r in result.opportunities if r.cost == "0"))
         self.assertEqual(result.opportunities[-1].expected_copies, 1)
 
@@ -122,9 +125,9 @@ class VergeTests(unittest.TestCase):
         v, d = ManaSource("UB", "verge"), ManaSource("UG", "shock", "UG")
         space = ManaSpace({v: (0, 3), d: (0, 3)}, 3)
         spells = [Spell(2, (CastingMode("BB"), CastingMode("UU")), weight=2)]
-        full = build_component_table(space, spells, turns=3, opening_hand_size=2)
+        full = build_component_table(space, spells, model=MODEL, turns=3, opening_hand_size=2)
         for row in full.rank(shock_penalty=0.1):
-            expected = evaluate(dict(zip(space.sources, row.counts)), spells,
+            expected = evaluate(dict(zip(space.sources, row.counts)), spells, model=MODEL,
                                 turns=3, opening_hand_size=2, shock_penalty=0.1)
             self.assertAlmostEqual(float(row.score), expected.score)
         full.crossings("BB")

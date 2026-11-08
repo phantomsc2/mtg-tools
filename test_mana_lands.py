@@ -3,8 +3,11 @@ from collections import Counter
 from itertools import combinations
 
 from mana_lands import COLORS, ManaSource, VERGE_RULES, sources_for_colors
+from mana_model import heuristic_mana_model
 from mana_opportunities import SpellCost
 from mana_search import ManaSpace, build_component_table
+
+MODEL = heuristic_mana_model()
 
 
 class LandPoolTests(unittest.TestCase):
@@ -70,8 +73,8 @@ class LandPoolTests(unittest.TestCase):
                     families={"basic": (0, 1), "shock": (0, 1), "verge": (0, 2)})
                 spells = [SpellCost(c * 2, 1) for c in colors] + [SpellCost(colors, 1)]
                 options = dict(turns=2, opening_hand_size=2)
-                scalar = build_component_table(space, spells, backend="scalar", **options)
-                batch = build_component_table(space, spells, backend="batch", **options)
+                scalar = build_component_table(space, spells, model=MODEL, backend="scalar", **options)
+                batch = build_component_table(space, spells, model=MODEL, backend="batch", **options)
                 self.assertEqual(scalar, batch)
 
     def test_standard_snapshot_filters_families_before_bounds(self):
@@ -126,8 +129,8 @@ class LandPoolTests(unittest.TestCase):
                                       fixed={swamp:1,cavern:1})
         spells = [SpellCost("BB",2),SpellCost("UU",1),SpellCost("W",1)]
         args = dict(turns=3,opening_hand_size=2)
-        scalar = build_component_table(space,spells,backend="scalar",**args)
-        self.assertEqual(scalar,build_component_table(space,spells,backend="batch",**args))
+        scalar = build_component_table(space,spells, model=MODEL,backend="scalar",**args)
+        self.assertEqual(scalar,build_component_table(space,spells, model=MODEL,backend="batch",**args))
         self.assertTrue(all(row.counts[space.sources.index(swamp)] == 1 and
                             row.counts[space.sources.index(cavern)] == 1 for row in scalar.rows))
 

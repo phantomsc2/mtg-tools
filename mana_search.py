@@ -19,6 +19,7 @@ from typing import Literal
 
 from hands import compositions
 from mana_lands import ManaSource, sources_for_colors
+from mana_model import CompiledManaModel, ManaModel
 from mana_opportunities import OpportunityResult, Spell, SpellCost, evaluate, spell_components
 
 
@@ -157,7 +158,8 @@ class LocalManaEvaluator:
     evaluation, so changing them never invalidates cached draw calculations.
     """
 
-    def __init__(self, space: ManaSpace, spells: Sequence[SpellCost | Spell], *, turns: int = 7,
+    def __init__(self, space: ManaSpace, spells: Sequence[SpellCost | Spell], *,
+                 model: ManaModel | CompiledManaModel, turns: int = 7,
                  position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
                  family_totals: Mapping[str, int] | None = None,
                  family_maximums: Mapping[str, int] | None = None):
@@ -192,11 +194,30 @@ class LocalManaEvaluator:
         self._family_totals = MappingProxyType(totals)
         self._family_maximums = MappingProxyType(maximums)
         self._turns, self._position, self._opening = turns, position, opening_hand_size
+        self._model = model.compile(space.sources, turns)
         nonlands, copies, weighted = spell_components(self._spells)
         if not nonlands + space.land_count:
             raise ValueError("Deck must contain at least one card")
         self._weights = {c: weighted[c] / n if n else Fraction() for c, n in copies.items()}
         self._cache: dict[tuple[int, ...], OpportunityResult] = {}
+
+    @property
+    def model(self) -> CompiledManaModel:
+        return self._model
+
+    @property
+    def cache_signature(self) -> tuple:
+        """Persist alongside cache entries; includes resolved policy and draw configuration."""
+        return (self._model.signature, tuple(self.space.bounds.items()), self.space.land_count,
+                self._spells, self._position, self._opening, tuple(sorted(self._family_totals.items())),
+                tuple(sorted(self._family_maximums.items())))
+
+    def restore_cache(self, signature: tuple,
+                      entries: Mapping[tuple[int, ...], OpportunityResult]) -> None:
+        """Restore a trusted persisted cache only when its full configuration matches."""
+        if signature != self.cache_signature:
+            raise ValueError("Incompatible mana evaluation cache; rebuild its components")
+        self._cache.update(entries)
 
     @property
     def space(self) -> ManaSpace:
@@ -211,7 +232,8 @@ class LocalManaEvaluator:
         if not self._eligible(counts):
             raise ValueError("Base violates family totals or maximums")
         if counts not in self._cache:
-            self._cache[counts] = evaluate(base, self._spells, turns=self._turns,
+            self._cache[counts] = evaluate(dict(zip(self.space.sources, counts)), self._spells,
+                                          model=self._model, turns=self._turns,
                                           position=self._position, opening_hand_size=self._opening)
         return self._cache[counts]
 
@@ -372,6 +394,7 @@ class ComponentTable:
     costs: tuple[str, ...]
     default_weights: tuple[Fraction, ...]
     rows: tuple[BaseComponents, ...]
+    model_signature: tuple = ()
 
     def _weights(self, overrides: Mapping[str, Real] | None) -> tuple[Fraction, ...]:
         weights = dict(zip(self.costs, self.default_weights))
@@ -535,6 +558,7 @@ class ScoredTable:
 
 
 def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell], *,
+                          model: ManaModel | CompiledManaModel,
                           turns: int = 7,
                           position: Literal["both", "play", "draw"] = "both",
                           opening_hand_size: int = 7,
@@ -559,6 +583,7 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
     nonlands, copies, weighted = spell_components(spells)
     if not space.land_count + nonlands:
         raise ValueError("Deck must contain at least one card")
+    compiled = model.compile(space.sources, turns)
     costs = tuple(sorted(copies))
     defaults = tuple(weighted[cost] / copies[cost] if copies[cost] else Fraction(1) for cost in costs)
     unweighted = tuple(Spell(s.count, s.modes) if isinstance(s, Spell) else SpellCost(s.cost, s.count)
@@ -578,7 +603,7 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
         try:
             columns = dict(component_columns(space.bounds, space.land_count, copies, candidates,
                            nonlands=nonlands, turns=turns, position=position, opening_hand_size=opening_hand_size,
-                           progress=component_progress))
+                           progress=component_progress, model=compiled))
         except OverflowError:
             if backend == "batch":
                 raise
@@ -593,7 +618,8 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
         if columns is not None:
             values = tuple(columns[cost][index] for cost in costs)
         else:
-            result = evaluate(base, unweighted, turns=turns, position=position, opening_hand_size=opening_hand_size)
+            result = evaluate(base, unweighted, model=compiled, turns=turns, position=position,
+                              opening_hand_size=opening_hand_size)
             totals = Counter()
             for opportunity in result.opportunities:
                 totals[opportunity.cost] += opportunity.expected_copies
@@ -602,4 +628,4 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
         rows.append(BaseComponents(counts, values,
                                   sum(n for s, n in base.items() if s.kind == "shock"),
                                   sum(n for s, n in base.items() if s.kind == "town")))
-    return ComponentTable(space, costs, defaults, tuple(rows))
+    return ComponentTable(space, costs, defaults, tuple(rows), compiled.signature)

@@ -2,7 +2,7 @@
 
 from time import perf_counter
 
-from examples.sultai import MANA_BASE, SPELLS
+from examples.sultai import MANA_BASE, MANA_MODEL, SPELLS
 from mana_search import ManaSpace, build_component_table
 
 
@@ -12,7 +12,7 @@ def main() -> None:
                        for source, n in MANA_BASE.items()}, land_count=26)
     print(f'Exhaustive pool: {space.candidate_count()} bases')
     start = perf_counter()
-    table = build_component_table(space, SPELLS)
+    table = build_component_table(space, SPELLS, model=MANA_MODEL)
     print(f'Table built in {perf_counter() - start:.3f}s')
     start = perf_counter()
     scored = table.score(shock_penalty=0.01, town_penalty=0.01)

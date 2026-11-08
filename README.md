@@ -9,6 +9,7 @@ Python standard library.
 ```python
 from mana_lands import ManaSource
 from mana_opportunities import SpellCost, evaluate
+from mana_model import heuristic_mana_model
 
 base = {
     ManaSource("U", "basic"): 8,
@@ -18,7 +19,8 @@ base = {
     ManaSource("WUBRG", "cavern"): 2,
 }
 spells = [SpellCost("UU", 12), SpellCost("BB", 21, weight=2), SpellCost("WWBU", 1, weight=0.05)]
-result = evaluate(base, spells, shock_penalty=0.01, town_penalty=0.01)
+model = heuristic_mana_model()
+result = evaluate(base, spells, model=model, shock_penalty=0.01, town_penalty=0.01)
 print(result.score)
 # Exact unweighted expectations and weighted contributions by cost, turn, position:
 print(result.opportunities[0])
@@ -30,9 +32,10 @@ with the same mana. The score averages T1 through T7 and play/draw equally by
 default, then subtracts the per-land shock/Town penalties. Mana shortage remains
 in the draw distribution. Zero-weight cards still occupy deck slots.
 
-This measures sustained availability with optimistic land selection. It ignores
-sequencing, previously cast spells and Cavern's creature restrictions. Tapped entry
-is approximated by independent per-land availability, described below.
+This measures sustained casting opportunities without land-drop sequencing or
+previously cast spells. An explicit model supplies production outcomes and a
+per-turn source limit. The example policy treats Cavern as unrestricted rainbow
+mana and approximates tapped entry through independent per-land availability.
 Counts describe the actual spell package; weights describe importance. Deck size
 is inferred from all land and spell counts. Only ordinary generic and WUBRG costs
 are supported. Decklist import is not wired yet.
@@ -49,12 +52,14 @@ python -m doctest mana_opportunities.py
 
 ## Land availability
 
-The default is V1: for each aggregate draw, check whether all seen lands can
-supply the spell's colors, then multiply by the independent probability that
-at least its total mana value in lands is available.
-Every land independently has a uniform assumed play turn from 1 through the
-current turn T. Earlier drops have untapped; fast/slow entry assumes one drop
-each turn.
+Every evaluation and search constructor requires `model=`. `heuristic_mana_model()`
+is an explicit policy choice: a land's output succeeds at its turn-based rate,
+otherwise it produces nothing. Each realized source must supply both its mana
+and its colors. There is no separate color-coverage discount.
+
+The heuristic assumes a uniform play turn from 1 through the current turn T.
+Earlier drops have untapped; fast/slow entry assumes one drop each turn. The
+policy allows at most T sources in a payment, without choosing a land-drop order.
 
 | Family | Availability on turn T |
 | --- | --- |
@@ -70,22 +75,50 @@ has no basic land types or extra composition penalty, and is an explicit opt-in
 in `ManaSpace.from_colors(..., families={"fast": (0, 4), ...})`.
 `mana_lands.land_availability(kind, turn)` exposes the exact per-land rate.
 
-Colors and availability are separate factors within each draw. An unavailable
-source still counts for color coverage and seen Verge-enabling types. For
-example, a tapped UB dual and a Mountain score a U opportunity on T1: the dual
-passes the color check and the Mountain passes availability. This is deliberate
-optimism, not joint payment or a real land sequence. Surplus drawn lands can
-compensate for unavailable sources. With independent per-land failures,
-four Towns on T4 give an MV4 opportunity factor of (3/4)^4 = 81/256.
-One Town and three basics instead give 3/4; two tapped duals give an MV1 factor
-of 3/4 on T2. Zero-cost spells have factor one. There is no fractional mana.
+An unavailable source supplies neither mana nor colors. A tapped UB dual and
+a Mountain cannot pay U on T1. Surplus drawn lands can compensate only when the
+successful sources can actually pay the cost. Four Towns on T4 give an MV4
+opportunity factor of (3/4)^4 = 81/256. Zero-cost spells remain payable.
 Life is assumed paid for shocks; configured shock/Town penalties still apply.
 
-Rebuild component tables after this change. Scalar and batch components remain
-exact fractions; batch calculation now needs a Python-integer weighted grid
-before safe integer-limb transforms. Grouped binomial-tail lookups average available land counts independently of
-the color-payment mask, without enumerating independent failure combinations. Unreliable sources add time and memory
-cost on large pools.
+Customize the heuristic with `availability(source, turn)` and `source_limit(turn)`
+callables. A source limit of `None` removes the turn-based cap. Availability can
+use any exact rate from zero to one, with different simultaneous rates per source.
+
+For different production rules, supply a `ManaModel` directly:
+
+```python
+from fractions import Fraction
+from mana_model import ManaModel, ManaOutcome
+
+model = ManaModel(
+    outcomes=lambda source, context: (
+        ManaOutcome(Fraction(2, 3), ("U", "B")),
+        ManaOutcome(Fraction(1, 3), ("",)),
+    ),
+    source_limit=lambda turn: turn,
+)
+```
+
+This illustrative model treats every source as a 2/3 chance of one mana chosen
+from U or B. Entries in `options` are alternative bundles, not random color
+choices: `("U", "B")` offers one mana; `("UB",)` would offer two together and
+is explicitly unsupported in this version. `("",)` produces nothing.
+Probabilities must sum to one; duplicate outcomes are merged.
+
+`context` exposes `turn` and the basic land types among lands seen (`seen_types`).
+Outcomes are independent conditional on that context. Callbacks must be pure;
+configuration is compiled before the hot loops. The evaluator contains no
+card-family production rules. Larger mana bundles will require extending payment
+calculation, but retain the same model interface.
+
+Scalar and batch results remain exact fractions. Batch evaluation groups residual
+payment requirements and identical uncertain sources before integer-limb transforms.
+Local evaluators compile the policy once and reuse their component cache.
+Persist `evaluator.cache_signature` with `dict(evaluator.cache)` and restore with
+`evaluator.restore_cache(signature, entries)`; incompatible policy/draw configurations
+are rejected. Tables also carry `model_signature`. Rebuild old tables and caches;
+historical reports retain their original scoring assumptions.
 
 ## Verge sources and land types
 
@@ -149,7 +182,7 @@ from mana_search import ManaSpace, build_component_table
 space = ManaSpace.from_colors(26, "UBG", format="standard", families={
     "shock": (0, 4), "fast": (0, 4), "verge": (0, 4), "town": (0, 4),
 }, fixed={ManaSource("WUBRG", "cavern"): 4, ManaSource("B", "basic"): 1})
-table = build_component_table(space, spells)
+table = build_component_table(space, spells, model=model)
 scored = table.score(shock_penalty=0.01, town_penalty=0.01)
 top = scored.rank(limit=10)
 winner = dict(zip(space.sources, top[0].counts))
@@ -326,7 +359,7 @@ among the three best-found representatives, not globally certified optima.
 Reports are written to `reports/sultai_shock_sweep.json` and `.md`; component
 caches are retained in `.cache/sultai_shock_sweep.pkl`.
 
-`LocalManaEvaluator(..., family_totals={"shock": 10})` enforces exact family
+`LocalManaEvaluator(..., model=model, family_totals={"shock": 10})` enforces exact family
 counts in evaluation and local neighborhoods. Only transfers preserving those
 totals are visited; coupled two-transfer moves are not included. `ManaSpace`
 continues to describe the underlying per-source bounds.
@@ -338,7 +371,7 @@ cuts and both basics. Restless Cottage is modeled as an untyped tapped BG
 source; its activation, Food, and graveyard abilities do not contribute to the
 mana score. Historical Palace reports retain their original inputs.
 
-`LocalManaEvaluator(..., family_maximums={"basic": 2})` caps the total number
+`LocalManaEvaluator(..., model=model, family_maximums={"basic": 2})` caps the total number
 of basics across all colors. It can be combined with `family_totals` for fixed
 shock counts. Eligibility checks apply to both direct evaluation and local
 neighbor generation.

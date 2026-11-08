@@ -6,7 +6,10 @@ from math import comb
 from pathlib import Path
 
 from mana_lands import ManaSource
+from mana_model import heuristic_mana_model
 from mana_opportunities import SpellCost, evaluate
+
+MODEL = heuristic_mana_model()
 
 
 def physical_expectations(base, spells, seen, turn):
@@ -44,7 +47,7 @@ class ManaOpportunityTests(unittest.TestCase):
         spells = [SpellCost("UU", 2, 1.5), SpellCost("1B", 1), SpellCost("BU", 1, 0),
                   SpellCost("2", 1), SpellCost("0", 1, 0.5)]
         for opening in (0, 2, 7, 20):
-            result = evaluate(base, spells, opening_hand_size=opening, turns=3)
+            result = evaluate(base, spells, model=MODEL, opening_hand_size=opening, turns=3)
             for row in result.opportunities:
                 seen = min(9, opening + row.turn - (row.position == "play"))
                 expected, weighted = physical_expectations(base, spells, seen, row.turn)
@@ -54,7 +57,7 @@ class ManaOpportunityTests(unittest.TestCase):
 
     def test_copies_and_incompatible_land_selections_score_independently(self):
         base = {ManaSource("U", "basic"): 2, ManaSource("B", "basic"): 2}
-        result = evaluate(base, [SpellCost("UU", 2), SpellCost("BB", 2)],
+        result = evaluate(base, [SpellCost("UU", 2), SpellCost("BB", 2)], model=MODEL,
                           turns=2, opening_hand_size=8, position="play")
         self.assertEqual([r.expected_copies for r in result.opportunities], [0, 2, 0, 2])
         self.assertEqual(result.raw_score, 2)
@@ -68,32 +71,32 @@ class ManaOpportunityTests(unittest.TestCase):
                  ({ManaSource("G", "basic"): 2}, "2", 1)]
         for base, cost, expected in cases:
             with self.subTest(base=base, cost=cost):
-                result = evaluate(base, [SpellCost(cost, 1)], turns=2, opening_hand_size=20)
+                result = evaluate(base, [SpellCost(cost, 1)], model=MODEL, turns=2, opening_hand_size=20)
                 self.assertEqual(result.opportunities[-1].expected_copies, expected)
 
     def test_shortage_and_target_draw_remain_in_denominator(self):
         base = {ManaSource("U", "basic"): 1}
-        result = evaluate(base, [SpellCost("U", 2)], turns=1, opening_hand_size=2, position="play")
+        result = evaluate(base, [SpellCost("U", 2)], model=MODEL, turns=1, opening_hand_size=2, position="play")
         self.assertEqual(result.opportunities[0].expected_copies, Fraction(2, 3))
-        result = evaluate(base, [SpellCost("UU", 2)], turns=7)
+        result = evaluate(base, [SpellCost("UU", 2)], model=MODEL, turns=7)
         self.assertEqual(result.raw_score, 0)
 
     def test_weights_do_not_change_draws(self):
         base = {ManaSource("U", "basic"): 2}
         spells = [SpellCost("U", 2), SpellCost("B", 2)]
-        unweighted = evaluate(base, spells, opening_hand_size=2)
-        scaled = evaluate(base, [SpellCost(s.cost, s.count, 3) for s in spells], opening_hand_size=2)
+        unweighted = evaluate(base, spells, model=MODEL, opening_hand_size=2)
+        scaled = evaluate(base, [SpellCost(s.cost, s.count, 3) for s in spells], model=MODEL, opening_hand_size=2)
         self.assertAlmostEqual(scaled.raw_score, 3 * unweighted.raw_score)
         self.assertEqual([r.expected_copies for r in unweighted.opportunities],
                          [r.expected_copies for r in scaled.opportunities])
-        zero_weight = evaluate(base, [SpellCost("U", 2), SpellCost("B", 2, 0)], opening_hand_size=2)
+        zero_weight = evaluate(base, [SpellCost("U", 2), SpellCost("B", 2, 0)], model=MODEL, opening_hand_size=2)
         self.assertEqual(unweighted.raw_score, zero_weight.raw_score)
-        removed = evaluate(base, [SpellCost("U", 2)], opening_hand_size=2)
+        removed = evaluate(base, [SpellCost("U", 2)], model=MODEL, opening_hand_size=2)
         self.assertGreater(removed.raw_score, zero_weight.raw_score)
 
     def test_equivalent_costs_and_weights_are_aggregated(self):
         base = {ManaSource("BU", "shock"): 2}
-        result = evaluate(base, [SpellCost("BU", 1, 2), SpellCost("UB", 2, 0.5)],
+        result = evaluate(base, [SpellCost("BU", 1, 2), SpellCost("UB", 2, 0.5)], model=MODEL,
                           turns=2, opening_hand_size=20)
         rows = [r for r in result.opportunities if r.turn == 2]
         self.assertEqual(len(rows), 2)
@@ -105,9 +108,9 @@ class ManaOpportunityTests(unittest.TestCase):
         base = {ManaSource("U", "basic"): 2, ManaSource("UB", "shock"): 2,
                 ManaSource("WUBRG", "town"): 1}
         spells = [SpellCost("U", 5)]
-        play = evaluate(base, spells, position="play")
-        draw = evaluate(base, spells, position="draw")
-        both = evaluate(base, spells, shock_penalty=0.2, town_penalty=0.7)
+        play = evaluate(base, spells, model=MODEL, position="play")
+        draw = evaluate(base, spells, model=MODEL, position="draw")
+        both = evaluate(base, spells, model=MODEL, shock_penalty=0.2, town_penalty=0.7)
         self.assertEqual(len(both.opportunities), 14)
         self.assertAlmostEqual(both.raw_score, (play.raw_score + draw.raw_score) / 2)
         self.assertAlmostEqual(both.penalty, 1.1)
@@ -117,8 +120,8 @@ class ManaOpportunityTests(unittest.TestCase):
         shock = ManaSource("UB", "shock", "UB")
         town, cavern = ManaSource("WUBRG", "town"), ManaSource("WUBRG", "cavern")
         spells = [SpellCost("UU", 2), SpellCost("WB", 1), SpellCost("4", 1)]
-        first = evaluate({shock: 1, town: 1, cavern: 2}, spells, shock_penalty=0.2, town_penalty=0.3)
-        second = evaluate({shock: 1, town: 2, cavern: 1}, spells, shock_penalty=0.2, town_penalty=0.3)
+        first = evaluate({shock: 1, town: 1, cavern: 2}, spells, model=MODEL, shock_penalty=0.2, town_penalty=0.3)
+        second = evaluate({shock: 1, town: 2, cavern: 1}, spells, model=MODEL, shock_penalty=0.2, town_penalty=0.3)
         self.assertEqual([r for r in first.opportunities if r.turn <= 3],
                          [r for r in second.opportunities if r.turn <= 3])
         self.assertGreater(first.raw_score, second.raw_score)
@@ -130,11 +133,11 @@ class ManaOpportunityTests(unittest.TestCase):
 
     def test_empty_categories_and_unavailable_costs(self):
         base = {ManaSource("U", "basic"): 2}
-        self.assertEqual(evaluate(base, []).score, 0)
-        self.assertEqual(evaluate(base, [SpellCost("U", 0)]).score, 0)
-        self.assertEqual(evaluate({}, [SpellCost("U", 2)]).score, 0)
-        self.assertEqual(evaluate({}, [SpellCost("0", 2)]).raw_score, 2)
-        result = evaluate(base, [SpellCost("8", 1)])
+        self.assertEqual(evaluate(base, [], model=MODEL).score, 0)
+        self.assertEqual(evaluate(base, [SpellCost("U", 0)], model=MODEL).score, 0)
+        self.assertEqual(evaluate({}, [SpellCost("U", 2)], model=MODEL).score, 0)
+        self.assertEqual(evaluate({}, [SpellCost("0", 2)], model=MODEL).raw_score, 2)
+        result = evaluate(base, [SpellCost("8", 1)], model=MODEL)
         self.assertEqual(result.raw_score, 0)
 
     def test_invalid_inputs(self):
@@ -149,17 +152,17 @@ class ManaOpportunityTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 SpellCost("U", count)
             with self.assertRaises(ValueError):
-                evaluate({ManaSource("U", "basic"): count}, [])
+                evaluate({ManaSource("U", "basic"): count}, [], model=MODEL)
         for weight in (-1, float("nan"), float("inf")):
             with self.assertRaises(ValueError):
                 SpellCost("U", 1, weight)
             with self.assertRaises(ValueError):
-                evaluate({}, [SpellCost("U", 1)], shock_penalty=weight)
+                evaluate({}, [SpellCost("U", 1)], model=MODEL, shock_penalty=weight)
         for options in ({"turns": 0}, {"turns": 1.5}, {"opening_hand_size": -1}, {"position": "side"}):
             with self.assertRaises(ValueError):
-                evaluate({}, [SpellCost("U", 1)], **options)
+                evaluate({}, [SpellCost("U", 1)], model=MODEL, **options)
         with self.assertRaises(ValueError):
-            evaluate({}, [])
+            evaluate({}, [], model=MODEL)
 
     def test_sultai_sample(self):
         from examples.sultai import MANA_BASE, SPELLS
@@ -170,7 +173,7 @@ class ManaOpportunityTests(unittest.TestCase):
         self.assertEqual(deck_size, 60)
         self.assertEqual(sum(s.count for s in SPELLS), 34)
         self.assertEqual(sum(MANA_BASE.values()), 26)
-        result = evaluate(MANA_BASE, SPELLS)
+        result = evaluate(MANA_BASE, SPELLS, model=MODEL)
         self.assertGreater(result.raw_score, 0)
         self.assertTrue(all(r.expected_copies == 0 for r in result.opportunities if r.cost == "7UU"))
 

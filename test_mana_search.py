@@ -4,8 +4,11 @@ from itertools import product
 from unittest.mock import patch
 
 from mana_lands import ManaSource
+from mana_model import heuristic_mana_model
 from mana_opportunities import SpellCost, evaluate
 from mana_search import BaseComponents, ComponentTable, Interval, ManaSpace, build_component_table
+
+MODEL = heuristic_mana_model()
 
 U = ManaSource("U", "basic")
 B = ManaSource("B", "basic")
@@ -31,8 +34,8 @@ class ManaSearchTests(unittest.TestCase):
                 seen.append(candidate)
                 yield candidate
 
-        wrapped = build_component_table(space, spells, progress=progress)
-        plain = build_component_table(space, spells)
+        wrapped = build_component_table(space, spells, model=MODEL, progress=progress)
+        plain = build_component_table(space, spells, model=MODEL)
         self.assertEqual(wrapped, plain)
         self.assertEqual(seen, [row.counts for row in plain.rows])
         self.assertEqual(len(seen), space.candidate_count())
@@ -40,17 +43,17 @@ class ManaSearchTests(unittest.TestCase):
     def test_components_and_rank_agree_with_evaluator(self):
         space = ManaSpace({U: (0, 2), D: (0, 2), R: (0, 1)}, 2)
         spells = [SpellCost("U", 2, 0.5), SpellCost("U", 1, 2), SpellCost("BU", 1, 3)]
-        table = build_component_table(space, spells, turns=3, opening_hand_size=2)
+        table = build_component_table(space, spells, model=MODEL, turns=3, opening_hand_size=2)
         for row in table.rank(shock_penalty=F(1, 10), town_penalty=F(1, 5)):
             base = dict(zip(space.sources, row.counts))
-            expected = evaluate(base, spells, turns=3, opening_hand_size=2,
+            expected = evaluate(base, spells, model=MODEL, turns=3, opening_hand_size=2,
                                 shock_penalty=0.1, town_penalty=0.2)
             self.assertAlmostEqual(float(row.raw_score), expected.raw_score)
             self.assertAlmostEqual(float(row.score), expected.score)
         self.assertEqual(table.default_weights[table.costs.index("U")], 1)
         for row in table.rank({"UB": 0, "U": 2}):
             expected = evaluate(dict(zip(space.sources, row.counts)),
-                                [SpellCost("U", 3, 2), SpellCost("UB", 1, 0)],
+                                [SpellCost("U", 3, 2), SpellCost("UB", 1, 0)], model=MODEL,
                                 turns=3, opening_hand_size=2)
             self.assertAlmostEqual(float(row.score), expected.score)
         self.assertTrue(all(isinstance(value, F) for row in table.rows for value in row.opportunities))
@@ -126,13 +129,13 @@ class ManaSearchTests(unittest.TestCase):
 
     def test_empty_spells_and_fixed_pool(self):
         space = ManaSpace({U: (1, 1)}, 1)
-        table = build_component_table(space, [])
+        table = build_component_table(space, [], model=MODEL)
         self.assertEqual(table.rank()[0].score, 0)
         self.assertEqual(space.candidate_count(), 1)
         self.assertIsNone(table.crossings("shock_penalty").upper)
         space = ManaSpace({}, 0)
         self.assertEqual(space.candidate_count(), 1)
-        table = build_component_table(space, [SpellCost("0", 2)])
+        table = build_component_table(space, [SpellCost("0", 2)], model=MODEL)
         self.assertEqual(table.rank()[0].score, 2)
 
     def test_transition_at_zero_and_dominated_parallel_reference(self):
@@ -161,8 +164,8 @@ class ManaSearchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 space.counts(base)
         with self.assertRaises(TypeError):
-            build_component_table(space, [SpellCost("U", 1)], mode="exhaustive")
-        table = build_component_table(space, [SpellCost("U", 1)])
+            build_component_table(space, [SpellCost("U", 1)], model=MODEL, mode="exhaustive")
+        table = build_component_table(space, [SpellCost("U", 1)], model=MODEL)
         for weights in ({"B": 1}, {"U": -1}, {"U": float("nan")}):
             with self.assertRaises(ValueError):
                 table.rank(weights)
