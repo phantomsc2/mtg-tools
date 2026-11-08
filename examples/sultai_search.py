@@ -7,7 +7,8 @@ from mana_search import ManaSpace, build_component_table
 
 
 def main() -> None:
-    space = ManaSpace({source: ((n, n) if source.kind == "basic" else (0, 4))
+    space = ManaSpace({source: ((n, n) if source.kind == "basic"
+                               else (0, 2) if source.kind == "tri" else (0, 4))
                        for source, n in MANA_BASE.items()}, land_count=26)
     print(f'Exhaustive pool: {space.candidate_count()} bases')
     start = perf_counter()

@@ -8,11 +8,16 @@ from types import MappingProxyType
 from typing import Literal
 
 COLORS = "WUBRG"
-LAND_KINDS = ("basic", "shock", "verge", "town", "cavern", "fast", "slow", "tapped")
+LAND_KINDS = ("basic", "shock", "verge", "town", "cavern", "fast", "slow", "tapped", "tri")
 
 
 # Explicit legality snapshot, not a live rotation service. See knowledge notes.
-STANDARD_AS_OF = "2026-11-03"
+STANDARD_AS_OF = "2026-11-07"
+# TDM main-set tri-lands; canonical WUBRG color order. These are untyped.
+TRI_NAMES = MappingProxyType({
+    "WUR": "Mystic Monastery", "WBR": "Nomad Outpost", "WBG": "Sandsteppe Citadel",
+    "UBG": "Opulent Palace", "URG": "Frontier Bivouac",
+})
 _PAIRS = frozenset("".join(pair) for pair in combinations(COLORS, 2))
 STANDARD_COLORS = MappingProxyType({
     "basic": frozenset(COLORS),
@@ -24,6 +29,7 @@ STANDARD_COLORS = MappingProxyType({
     "slow": frozenset(),
     # Abstract tapped duals: a legal untyped representative exists for every pair.
     "tapped": _PAIRS,
+    "tri": frozenset(TRI_NAMES),
 })
 
 
@@ -53,15 +59,16 @@ VERGE_RULES = MappingProxyType({
 @dataclass(frozen=True)
 class ManaSource:
     colors: str
-    kind: Literal["basic", "shock", "town", "cavern", "verge", "fast", "slow", "tapped"]
+    kind: Literal["basic", "shock", "town", "cavern", "verge", "fast", "slow", "tapped", "tri"]
     types: str = ""
 
     def __post_init__(self) -> None:
-        sizes = {"basic": 1, "shock": 2, "town": 5, "cavern": 5, "verge": 2, "fast": 2, "slow": 2, "tapped": 2}
+        sizes = {"basic": 1, "shock": 2, "town": 5, "cavern": 5, "verge": 2,
+                 "fast": 2, "slow": 2, "tapped": 2, "tri": 3}
         if (self.kind not in sizes or not isinstance(self.colors, str)
                 or len(self.colors) != sizes[self.kind] or len(set(self.colors)) != len(self.colors)
                 or set(self.colors) - set(COLORS)):
-            raise ValueError("Sources require one basic color, two dual colors, or five rainbow colors")
+            raise ValueError("Sources require one basic, two dual, three tri-land, or five rainbow colors")
         object.__setattr__(self, "colors", "".join(c for c in COLORS if c in self.colors))
         if (not isinstance(self.types, str) or len(set(self.types)) != len(self.types)
                 or set(self.types) - set(self.colors)):
@@ -69,7 +76,7 @@ class ManaSource:
         types = "".join(c for c in COLORS if c in self.types)
         if self.kind == "basic":
             types = types or self.colors
-        if ((self.kind in ("town", "cavern", "verge", "fast", "slow", "tapped") and types)
+        if ((self.kind in ("town", "cavern", "verge", "fast", "slow", "tapped", "tri") and types)
                 or (self.kind == "shock" and types not in ("", self.colors))):
             raise ValueError("Only basics and explicitly typed shocks carry basic land types")
         if self.kind == "verge" and self.colors not in VERGE_RULES:
@@ -94,10 +101,12 @@ def sources_for_colors(colors: str, families: Iterable[str], *,
     if families - set(LAND_KINDS):
         raise ValueError("Unknown land family")
     pairs = tuple("".join(pair) for pair in combinations(colors, 2))
+    triples = tuple("".join(triple) for triple in combinations(colors, 3))
     return tuple(
         ManaSource(pair, kind, pair if kind == "shock" else "")
         for kind in LAND_KINDS if kind in families
-        for pair in (tuple(colors) if kind == "basic" else (COLORS,) if kind in ("town", "cavern") else pairs)
+        for pair in (tuple(colors) if kind == "basic" else (COLORS,) if kind in ("town", "cavern")
+                     else triples if kind == "tri" else pairs)
         if format is None or pair in STANDARD_COLORS[kind]
     )
 
@@ -110,6 +119,6 @@ def land_availability(kind: str, turn: int) -> Fraction:
     """
     if kind not in LAND_KINDS or type(turn) is not int or turn < 1:
         raise ValueError("A known land kind and positive integer turn are required")
-    tapped_now = (kind == "tapped" or kind in ("town", "fast") and turn > 3
+    tapped_now = (kind in ("tapped", "tri") or kind in ("town", "fast") and turn > 3
                   or kind == "slow" and turn < 3)
     return Fraction(turn - int(tapped_now), turn)

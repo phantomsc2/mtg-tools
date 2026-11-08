@@ -61,7 +61,7 @@ each turn.
 | `basic`, `shock`, `verge`, `cavern` | 1 |
 | `town`, `fast` | 1 through T3, then (T-1)/T |
 | `slow` | 0 on T1, 1/2 on T2, then 1 |
-| `tapped` | (T-1)/T |
+| `tapped`, `tri` | (T-1)/T |
 
 `ManaSource("BG", "fast")` represents Blooming Marsh;
 `ManaSource("UB", "slow")` represents Shipwreck Marsh. `tapped` duals are
@@ -100,18 +100,17 @@ lands seen so far. They need not fit within the turn's land drops, an
 optimistic approximation that deliberately ignores enabler sequencing.
 Verges have no composition penalty beyond their conditional production.
 
-The command-line example's reference pool fixes one Swamp and excludes Islands/Forests.
-Each typed shock, Verge, Starting Town, and Cavern ranges from 0?4. This gives
-3,144 legal 26-land bases. Town and Cavern are separate unrestricted rainbow
-sources; Cavern restrictions remain excluded. Cavern has no composition penalty.
-The notebook starts `shock_penalty` and `town_penalty` at 0.01 each, independently
-editable. Search scans every legal composition within the bounds.
+The reduced exhaustive command-line example fixes one Swamp, excludes
+Islands/Forests, and uses the source families present in the shared reference
+base. Palace ranges from 0-2; other nonbasic sources range from 0-4.
 
-The notebook selects 26 lands in UBG, fixing four Caverns and one Swamp.
-The remaining 21 slots use 0-4 of each Standard-eligible shock, fast land,
-Verge, and Town. No baseline is defined. Candidate count and capacity-grid
-size are printed before construction: 142,740 candidates and 19,531,250 cells.
-Fixed deck counts retain draw uncertainty, so their batch axes are still needed.
+The exhaustive explorer selects 26 lands in UBG, fixing four Caverns and one
+Swamp. Its flexible pool retains shocks, fast lands, Verges, Town, and optional
+Island/Forest, without tri-lands enabled. It prints candidate and capacity-grid
+sizes before construction. The Palace optimization uses the bounded local
+notebook described below, avoiding this large grid. Fixed deck counts retain
+draw uncertainty, so their batch axes are still needed.
+
 
 
 ## Alternate casting costs
@@ -174,7 +173,7 @@ sources must satisfy the selected colors and format. A source cannot appear
 in both `fixed` and `overrides`; infeasible totals are rejected.
 
 Use `format="standard"` in `ManaSpace.from_colors(...)` to filter sources using
-the dated `mana_lands.STANDARD_AS_OF` snapshot (2026-11-03). The notebook enables
+the dated `mana_lands.STANDARD_AS_OF` snapshot (2026-11-07). The notebook enables
 this explicitly. Sultai fast lands are Blooming Marsh (BG) and Botanical Sanctum
 (UG); Darkslick Shores (UB) is excluded. Unfiltered construction remains available
 with `format=None`, the default. Unsupported format names are rejected. The
@@ -182,8 +181,8 @@ snapshot must be updated after rotations or relevant reprints; it does not query
 a card service at runtime. Abstract tapped duals represent a legal untyped dual
 for each pair, without adding card-specific abilities.
 
-All search is exhaustive within the supplied bounds. There is no search-mode
-switch or neighborhood search. `backend="auto"` attempts the NumPy batch backend
+Component-table search is exhaustive within the supplied bounds. The separate
+local-search API evaluates bounded neighborhoods without a component table. `backend="auto"` attempts the NumPy batch backend
 without size cutoffs; `backend="scalar"` evaluates all bases independently.
 Missing NumPy or an unsafe integer-transform bound can select scalar. Memory
 allocation errors propagate. Batch probability calculations are exact integer
@@ -226,6 +225,41 @@ Run `python -m examples.sultai_search` for the reduced reference-pool example an
 separate table-build/report timings.
 
 ## Generic hand experiments
+
+For the supplied Sultai deck, open [sultai_local_search.ipynb](sultai_local_search.ipynb)
+or run `python -m examples.sultai_optimize`. Both use the shared deck in
+`examples.sultai`: 34 spells and 26 lands, with four Caverns, four Towns, and two Restless Cottages fixed.
+Standard-filtered shocks, fast lands, Verges, and Town range from 0-4; Island
+and Forest are flexible, with at most two basics total; Opulent Palace ranges from 0-2. The supplied base and variants
+with zero and two Palaces use budgets of 200, 150, and 150 visited bases.
+All starts share cached exact components. No global grid is constructed.
+
+Default penalties are 0.012 per shock and 0.015 per Town. The evaluator averages
+turns 1-7 and play/draw, with opening seven. Incarnation profiles target enters
+effects, Spider-Man includes copying payoff scenarios, and Sunderflock includes
+7UU/2UU/1UU scenarios. Physical copies count once and modes share importance
+uniformly. Overlord uses impending 1B. These are opportunity assumptions;
+board presence, sequencing, and Cavern restrictions are not simulated.
+
+The command writes named land counts, OUT/IN changes, score comparisons,
+per-cost contributions, timings, and per-run stopping reasons to
+`reports/sultai_palace_optimization.json` and `.md`. Use `--output PATH.json`
+to choose another output location. Search is deterministic and bounded;
+results distinguish budget stops from fully checked one-land local optima,
+without certifying a global optimum.
+
+### Tapped tri-lands
+
+`ManaSource("UBG", "tri")` represents Opulent Palace: one mana in any of its
+three colors, no basic land types, and the same availability rule as `tapped`.
+It cannot enable Verges. Opt in with `families={"tri": (0, 2), ...}`.
+Unrestricted generation supports all ten triples; Standard filtering includes
+only Mystic Monastery, Nomad Outpost, Sandsteppe Citadel, Opulent Palace, and
+Frontier Bivouac in the November 7, 2026 snapshot. Only Palace fits UBG.
+`mana_lands.TRI_NAMES` maps those canonical triples to card names. This models
+the untyped tapped tri-lands, not typed Triomes or lands with extra abilities.
+Legality evidence: [current Standard sets](https://magic.wizards.com/en/formats/standard)
+and [TDM checklist](https://media.wizards.com/ContentResources/WPN/deck_checklists/tdm/MTGTDM_EN_DkCklst.pdf).
 
 Compute the exact expected value of your own `Counter[TCard] -> float` function over unordered hands,
 then optimize integer deck compositions. `TCard` can be any hashable type. The supplied immutable `Card`
@@ -281,3 +315,33 @@ tapped lands, sideboards, and playouts.
 The notebook report shows the optimum first, then the top ten candidates with
 separate OUT/IN columns, casting-cost weight sensitivities for every cost, and
 finally shock/Town penalty sensitivities. All use the same score snapshot.
+
+
+## Sultai shock-count comparison
+
+Run `python -m examples.sultai_shock_sweep` to compare bases with exactly
+8, 9, and 10 shocklands. Four Towns, four Caverns, and two Restless Cottages stay
+fixed; Palace is capped at two, and basics together are capped at two. Each count uses a 500-visit local-search budget,
+starting from the shared 26-land base and choosing the best one-land conversion
+when changing the shock count. Searches maximize raw opportunities within each count:
+shock/Town penalties are constant there. Exact penalty crossings are calculated
+among the three best-found representatives, not globally certified optima.
+Reports are written to `reports/sultai_shock_sweep.json` and `.md`; component
+caches are retained in `.cache/sultai_shock_sweep.pkl`.
+
+`LocalManaEvaluator(..., family_totals={"shock": 10})` enforces exact family
+counts in evaluation and local neighborhoods. Only transfers preserving those
+totals are visited; coupled two-transfer moves are not included. `ManaSpace`
+continues to describe the underlying per-source bounds.
+
+The current shared deck has two Dellian Fels and two Overlords, without Rapid
+Rescue. The supplied list had 28 lands; the shared 26-land starting base cuts
+one Gloomlake Verge and one Wastewood Verge. The optimizer may change these
+cuts and both basics. Restless Cottage is modeled as an untyped tapped BG
+source; its activation, Food, and graveyard abilities do not contribute to the
+mana score. Historical Palace reports retain their original inputs.
+
+`LocalManaEvaluator(..., family_maximums={"basic": 2})` caps the total number
+of basics across all colors. It can be combined with `family_totals` for fixed
+shock counts. Eligibility checks apply to both direct evaluation and local
+neighbor generation.
