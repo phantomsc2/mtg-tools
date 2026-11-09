@@ -1,0 +1,87 @@
+{
+  "settings": {
+    "shock_penalty": 0.012,
+    "town_penalty": 0.015,
+    "turns": 7,
+    "position": "both",
+    "fixed": "4 Cavern, 4 Town",
+    "basic_cap": 2,
+    "overlord_modes": [
+      "1B",
+      "3BB"
+    ],
+    "esper_modes": [
+      "1G",
+      "3G"
+    ]
+  },
+  "initial": {
+    "Overgrown Tomb": 1,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Swamp": 1,
+    "Island": 1,
+    "Cavern of Souls": 4,
+    "Starting Town": 4,
+    "Gloomlake Verge": 3,
+    "Wastewood Verge": 2,
+    "Willowrush Verge": 1
+  },
+  "comparisons": {
+    "no_fast": {
+      "score": 3.0292933833467344,
+      "raw": 3.1852933833467345,
+      "baseline_score": 3.0249729172204725,
+      "delta": 0.004320466126261887,
+      "lands": {
+        "Swamp": 1,
+        "Island": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 1,
+        "Watery Grave": 3,
+        "Breeding Pool": 4,
+        "Starting Town": 4,
+        "Wastewood Verge": 3,
+        "Gloomlake Verge": 3,
+        "Willowrush Verge": 1
+      },
+      "runs": [
+        {
+          "visits": 62,
+          "stop": "one-land local optimum",
+          "seconds": 24.203282300033607
+        }
+      ]
+    },
+    "fast": {
+      "score": 3.0292933833467344,
+      "raw": 3.1852933833467345,
+      "baseline_score": 3.0249729172204725,
+      "delta": 0.004320466126261887,
+      "lands": {
+        "Swamp": 1,
+        "Island": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 1,
+        "Watery Grave": 3,
+        "Breeding Pool": 4,
+        "Starting Town": 4,
+        "Wastewood Verge": 3,
+        "Gloomlake Verge": 3,
+        "Willowrush Verge": 1
+      },
+      "runs": [
+        {
+          "visits": 92,
+          "stop": "one-land local optimum",
+          "seconds": 44.282129500003066
+        },
+        {
+          "visits": 332,
+          "stop": "one-land local optimum",
+          "seconds": 239.25999450002564
+        }
+      ]
+    }
+  }
+}
