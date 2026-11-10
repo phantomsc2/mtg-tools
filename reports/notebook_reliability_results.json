@@ -1,7 +1,6 @@
 {
   "inputs": {
-    "sultai-inputs": "SPELLS = (\n    Spell(4, tuple(CastingMode(c) for c in (\"2UB\", \"1UUB\", \"1UBB\", \"UUBB\"))),  # Superior Spider-Man\n    Spell(4, tuple(CastingMode(c) for c in (\"UU\", \"BB\", \"4UU\", \"4BB\", \"2UUBB\"))),  # Deceit\n    Spell(3, tuple(CastingMode(c) for c in (\"WW\", \"BB\", \"4WW\", \"4BB\", \"2WWBB\"))),  # Emptiness\n    Spell(4, tuple(CastingMode(c) for c in (\"UU\", \"GG\", \"3UU\", \"3GG\", \"1UUGG\"))),  # Wistfulness\n    SpellCost(\"2G\", 4),   # Formidable Speaker\n    SpellCost(\"1B\", 4),   # Bitter Triumph, Overlord of the Balemurk\n    SpellCost(\"B\", 4),    # Moonshadow\n    SpellCost(\"7UU\", 4),  # Sunderflock\n    SpellCost(\"BGU\", 3),  # Awaken the Honored Dead\n)\n\n# Complete bounded search: explicit land count, colors, and per-source family bounds.\nLAND_COUNT = 26\nCOLORS = \"UBG\"\nFORMAT = \"standard\"\nLAND_FAMILIES = {\n    \"shock\": (0, 4),\n    \"fast\": (0, 4),\n    \"verge\": (0, 4),\n    \"town\": (0, 4),\n    \"cavern\": (0, 4),\n}\n",
-    "sultai-5": "shock_penalty = 0.014\ntown_penalty = 0.01  # Independent control; initially equal to shock_penalty.\n"
+    "sultai-inputs": "SPELLS = (\n    Spell(4, tuple(CastingMode(c) for c in (\"2UB\", \"1UUB\", \"1UBB\", \"UUBB\"))),  # Superior Spider-Man\n    Spell(4, tuple(CastingMode(c) for c in (\"UU\", \"BB\", \"4UU\", \"4BB\", \"2UUBB\"))),  # Deceit\n    Spell(3, tuple(CastingMode(c) for c in (\"WW\", \"BB\", \"4WW\", \"4BB\", \"2WWBB\"))),  # Emptiness\n    Spell(4, tuple(CastingMode(c) for c in (\"UU\", \"GG\", \"3UU\", \"3GG\", \"1UUGG\"))),  # Wistfulness\n    SpellCost(\"2G\", 4),   # Formidable Speaker\n    SpellCost(\"1B\", 4),   # Bitter Triumph, Overlord of the Balemurk\n    SpellCost(\"B\", 4),    # Moonshadow\n    SpellCost(\"7UU\", 4),  # Sunderflock\n    SpellCost(\"BGU\", 3),  # Awaken the Honored Dead\n)\n\n# Complete bounded search: explicit land count, colors, and per-source family bounds.\nLAND_COUNT = 26\nCOLORS = \"UBG\"\nFORMAT = \"standard\"\nLAND_FAMILIES = {\n    \"shock\": (0, 4),\n    \"fast\": (0, 4),\n    \"verge\": (0, 4),\n    \"town\": (0, 4),\n    \"cavern\": (0, 4),\n}\n"
   },
   "runs": [
     {
@@ -63,5 +62,6 @@
     "mana_batch.py": "8172b31e5c317f0ff369fc620d2d27657b581cbaf55212131c46ec95959bf76e",
     ".cache/mana_batch_separate.py": "a2f6029d00032c3521046aaa9543d27b0b2e81f11be334cddf3ce78576e1185b",
     "mana_lands.py": "5791d82553ff50392c02feb728f40bcde79de7ca6cbedaa7bffcd8867e61f2bb"
-  }
+  },
+  "measurement_note": "Historical build measurements. An unused post-build ranking control was removed from input metadata; measured inputs, runs and backend hashes are unchanged."
 }

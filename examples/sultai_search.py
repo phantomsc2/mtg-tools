@@ -15,12 +15,12 @@ def main() -> None:
     table = build_component_table(space, SPELLS, model=MANA_MODEL)
     print(f'Table built in {perf_counter() - start:.3f}s')
     start = perf_counter()
-    scored = table.score(shock_penalty=0.01, town_penalty=0.01)
+    scored = table.score()
     ranked = scored.rank(limit=5, baseline=MANA_BASE)
     winner = dict(zip(space.sources, ranked[0].counts))
     print(f'Best score: {float(ranked[0].score):.6f}')
     print('Best base:', {f'{s.kind}:{s.colors}': n for s, n in winner.items() if n})
-    for parameter in ('shock_penalty', 'town_penalty'):
+    for parameter in table.costs:
         sensitivity = scored.crossings(parameter, baseline=winner)
         print(parameter, sensitivity.optimal_interval)
         for transition in (sensitivity.lower, sensitivity.upper):

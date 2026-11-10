@@ -7,287 +7,40 @@
     "turns": 7,
     "position": "both",
     "opening_hand_size": 7,
-    "shock_penalty": 0.012,
-    "town_penalty": 0.015,
     "budgets": [
       200,
       150,
       150
     ],
-    "palace_limit": 2
+    "palace_limit": 2,
+    "half_life": null
   },
-  "assumptions": [
-    "V1: seen-land color coverage and independent land availability are separate.",
-    "Cavern is unrestricted rainbow mana; creature and chosen-type restrictions are ignored.",
-    "Incarnation modes target enters effects, omitting mixed evoke payments with no effect.",
-    "Spider-Man includes colored-payment scenarios for copied incarnation effects.",
-    "Sunderflock scenarios: 7UU, 2UU, 1UU; board presence is not simulated.",
-    "Mode shares and spell importance are uniform; Overlord uses impending 1B only.",
-    "No sequencing, mulligans, life simulation, or global-optimum guarantee."
-  ],
-  "pool_candidates": 2050095,
-  "initial": {
-    "Swamp": 1,
-    "Watery Grave": 4,
-    "Breeding Pool": 3,
-    "Overgrown Tomb": 3,
-    "Starting Town": 4,
-    "Cavern of Souls": 4,
-    "Gloomlake Verge": 4,
-    "Wastewood Verge": 2,
-    "Opulent Palace": 1
-  },
-  "lands": {
-    "Swamp": 1,
-    "Island": 1,
-    "Cavern of Souls": 4,
-    "Overgrown Tomb": 1,
-    "Watery Grave": 3,
-    "Breeding Pool": 4,
-    "Starting Town": 4,
-    "Wastewood Verge": 3,
-    "Gloomlake Verge": 4,
-    "Willowrush Verge": 1
-  },
-  "out": {
-    "Overgrown Tomb": 2,
-    "Watery Grave": 1,
-    "Opulent Palace": 1
-  },
-  "in": {
-    "Island": 1,
-    "Breeding Pool": 1,
-    "Wastewood Verge": 1,
-    "Willowrush Verge": 1
-  },
-  "baseline_score": 3.0687919464118196,
-  "score": 3.0831637038443755,
-  "exact_baseline_score": "276968355212155727981873809943/90253220175450661165200000000",
-  "exact_score": "71450046185813917804235423/23174262883519077330000000",
-  "raw_opportunities": 3.2391637038443757,
-  "penalty": 0.156,
-  "delta": 0.014371757432556123,
-  "seconds": 217.8549878000049,
-  "unique_evaluations": 366,
-  "runs": [
-    {
-      "initial_palaces": 1,
-      "budget": 200,
-      "evaluations": 200,
-      "seconds": 134.22337049999624,
-      "stopped": "evaluation budget",
-      "score": 3.0831637038443755,
-      "counts": [
-        1,
-        0,
-        1,
-        4,
-        0,
-        0,
-        1,
-        3,
-        4,
-        4,
-        0,
-        3,
-        4,
-        1
-      ]
-    },
-    {
-      "initial_palaces": 0,
-      "budget": 150,
-      "evaluations": 150,
-      "seconds": 49.839153300010366,
-      "stopped": "evaluation budget",
-      "score": 3.0823013515265365,
-      "counts": [
-        1,
-        0,
-        1,
-        4,
-        0,
-        0,
-        2,
-        3,
-        3,
-        4,
-        0,
-        3,
-        4,
-        1
-      ]
-    },
-    {
-      "initial_palaces": 2,
-      "budget": 150,
-      "evaluations": 150,
-      "seconds": 33.792134599993005,
-      "stopped": "evaluation budget",
-      "score": 3.0823013515265365,
-      "counts": [
-        1,
-        0,
-        1,
-        4,
-        0,
-        0,
-        2,
-        3,
-        3,
-        4,
-        0,
-        3,
-        4,
-        1
-      ]
-    }
-  ],
-  "source_order": [
-    "Swamp",
-    "Forest",
-    "Island",
-    "Cavern of Souls",
-    "Blooming Marsh",
-    "Botanical Sanctum",
-    "Overgrown Tomb",
-    "Watery Grave",
-    "Breeding Pool",
-    "Starting Town",
-    "Opulent Palace",
-    "Wastewood Verge",
-    "Gloomlake Verge",
-    "Willowrush Verge"
-  ],
-  "weighted_opportunities_by_cost": {
-    "2UB": {
-      "initial": 0.08873293189958044,
-      "result": 0.089381634814743,
-      "delta": 0.0006487029151625578
-    },
-    "1UUB": {
-      "initial": 0.08785823139326361,
-      "result": 0.08863549951275886,
-      "delta": 0.0007772681194952447
-    },
-    "1UBB": {
-      "initial": 0.08831817732821576,
-      "result": 0.08739498380534287,
-      "delta": -0.0009231935228728866
-    },
-    "UUBB": {
-      "initial": 0.0868690445704825,
-      "result": 0.0856131518198894,
-      "delta": -0.0012558927505930961
-    },
-    "UU": {
-      "initial": 0.22902123880974026,
-      "result": 0.23324643337590903,
-      "delta": 0.004225194566168766
-    },
-    "BB": {
-      "initial": 0.23124835526829926,
-      "result": 0.21668584833172194,
-      "delta": -0.014562506936577319
-    },
-    "4UU": {
-      "initial": 0.02014055707076548,
-      "result": 0.020531997097749895,
-      "delta": 0.00039144002698441455
-    },
-    "4BB": {
-      "initial": 0.04028771742935081,
-      "result": 0.04100533577875054,
-      "delta": 0.0007176183493997276
-    },
-    "2UUBB": {
-      "initial": 0.02013802997733366,
-      "result": 0.02049094498051614,
-      "delta": 0.00035291500318248084
-    },
-    "WW": {
-      "initial": 0.05307650608436919,
-      "result": 0.05308287311186199,
-      "delta": 6.3670274927998816e-06
-    },
-    "4WW": {
-      "initial": 0.013778126823484348,
-      "result": 0.013982395356345137,
-      "delta": 0.00020426853286078898
-    },
-    "2WWBB": {
-      "initial": 0.013663907330413172,
-      "result": 0.013261233999193593,
-      "delta": -0.00040267333121957877
-    },
-    "GG": {
-      "initial": 0.10659084705459032,
-      "result": 0.10572825835476157,
-      "delta": -0.000862588699828748
-    },
-    "3UU": {
-      "initial": 0.04294902231892175,
-      "result": 0.04359665769312768,
-      "delta": 0.0006476353742059307
-    },
-    "3GG": {
-      "initial": 0.042287335902010184,
-      "result": 0.04283932664967582,
-      "delta": 0.000551990747665633
-    },
-    "1UUGG": {
-      "initial": 0.04219995899912309,
-      "result": 0.04281023173159811,
-      "delta": 0.0006102727324750201
-    },
-    "2G": {
-      "initial": 0.4918270459600474,
-      "result": 0.4938672584210572,
-      "delta": 0.002040212461009827
-    },
-    "1B": {
-      "initial": 0.606696130350511,
-      "result": 0.6003954114509161,
-      "delta": -0.006300718899594826
-    },
-    "7UU": {
-      "initial": 0.0,
-      "result": 0.0,
-      "delta": 0.0
-    },
-    "2UU": {
-      "initial": 0.11731612053390325,
-      "result": 0.11891740775921214,
-      "delta": 0.0016012872253088895
-    },
-    "1UU": {
-      "initial": 0.16066110448240373,
-      "result": 0.16316375625076238,
-      "delta": 0.002502651768358649
-    },
-    "UBG": {
-      "initial": 0.4882660886598121,
-      "result": 0.4865690574813074,
-      "delta": -0.001697031178504671
-    },
-    "2BG": {
-      "initial": 0.17686546816519808,
-      "result": 0.17796400606717483,
-      "delta": 0.0010985379019767538
-    }
+  "family_bounds": {
+    "basic": [
+      0,
+      2
+    ],
+    "shock": [
+      0,
+      12
+    ],
+    "town": [
+      4,
+      4
+    ]
   },
   "source_bounds": {
     "Swamp": [
-      1,
-      1
+      0,
+      2
     ],
     "Forest": [
       0,
-      1
+      2
     ],
     "Island": [
       0,
-      1
+      2
     ],
     "Cavern of Souls": [
       4,
@@ -313,8 +66,12 @@
       0,
       4
     ],
+    "Restless Cottage": [
+      2,
+      2
+    ],
     "Starting Town": [
-      0,
+      4,
       4
     ],
     "Opulent Palace": [
@@ -456,16 +213,6 @@
       ]
     },
     {
-      "count": 2,
-      "weight": 1,
-      "modes": [
-        {
-          "cost": "1B",
-          "weight": 1
-        }
-      ]
-    },
-    {
       "count": 4,
       "weight": 1,
       "modes": [
@@ -484,7 +231,7 @@
       ]
     },
     {
-      "count": 3,
+      "count": 4,
       "weight": 1,
       "modes": [
         {
@@ -494,7 +241,7 @@
       ]
     },
     {
-      "count": 1,
+      "count": 2,
       "weight": 1,
       "modes": [
         {
@@ -513,5 +260,267 @@
         }
       ]
     }
-  ]
+  ],
+  "assumptions": [
+    "Independent source outcomes jointly supply mana and colors; source limit equals turn.",
+    "Verge colors use enabling types anywhere seen, including unavailable enablers.",
+    "Cavern is unrestricted rainbow mana; creature and chosen-type restrictions are ignored.",
+    "Incarnation modes target enters effects, omitting mixed evoke payments with no effect.",
+    "Spider-Man includes colored-payment scenarios for copied incarnation effects.",
+    "Sunderflock scenarios: 7UU, 2UU, 1UU; board presence is not simulated.",
+    "Mode shares and spell importance are uniform; four Awaken and two Glarb, no Overlord.",
+    "No sequencing, mulligans, life simulation, or global-optimum guarantee."
+  ],
+  "pool_candidates": 934725,
+  "initial": {
+    "Swamp": 1,
+    "Island": 1,
+    "Restless Cottage": 2,
+    "Watery Grave": 3,
+    "Breeding Pool": 4,
+    "Overgrown Tomb": 2,
+    "Starting Town": 4,
+    "Cavern of Souls": 4,
+    "Gloomlake Verge": 3,
+    "Wastewood Verge": 1,
+    "Willowrush Verge": 1
+  },
+  "lands": {
+    "Cavern of Souls": 4,
+    "Overgrown Tomb": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Restless Cottage": 2,
+    "Starting Town": 4,
+    "Gloomlake Verge": 3,
+    "Willowrush Verge": 1
+  },
+  "out": {
+    "Swamp": 1,
+    "Island": 1,
+    "Wastewood Verge": 1
+  },
+  "in": {
+    "Overgrown Tomb": 2,
+    "Watery Grave": 1
+  },
+  "baseline_score": 3.147665551781968,
+  "score": 3.1677695390410476,
+  "exact_baseline_score": "10499853749012049629337904955419687/3335759017684656436665792000000000",
+  "exact_score": "2641728951450735496665516005653309/833939754421164109166448000000000",
+  "delta": 0.020103987259079643,
+  "seconds": 171.96003600000404,
+  "unique_evaluations": 297,
+  "runs": [
+    {
+      "initial_palaces": 0,
+      "budget": 200,
+      "evaluations": 200,
+      "seconds": 96.73038149997592,
+      "stopped": "evaluation budget",
+      "score": 3.1677695390410476,
+      "counts": [
+        0,
+        0,
+        0,
+        4,
+        0,
+        0,
+        4,
+        4,
+        4,
+        2,
+        4,
+        0,
+        0,
+        3,
+        1
+      ]
+    },
+    {
+      "initial_palaces": 1,
+      "budget": 150,
+      "evaluations": 150,
+      "seconds": 39.40708360000281,
+      "stopped": "evaluation budget",
+      "score": 3.163741892485392,
+      "counts": [
+        0,
+        0,
+        0,
+        4,
+        0,
+        0,
+        3,
+        4,
+        4,
+        2,
+        4,
+        0,
+        1,
+        3,
+        1
+      ]
+    },
+    {
+      "initial_palaces": 2,
+      "budget": 150,
+      "evaluations": 150,
+      "seconds": 35.82222080003703,
+      "stopped": "evaluation budget",
+      "score": 3.156562171376354,
+      "counts": [
+        0,
+        0,
+        1,
+        4,
+        0,
+        0,
+        2,
+        4,
+        4,
+        2,
+        4,
+        0,
+        1,
+        3,
+        1
+      ]
+    }
+  ],
+  "source_order": [
+    "Swamp",
+    "Forest",
+    "Island",
+    "Cavern of Souls",
+    "Blooming Marsh",
+    "Botanical Sanctum",
+    "Overgrown Tomb",
+    "Watery Grave",
+    "Breeding Pool",
+    "Restless Cottage",
+    "Starting Town",
+    "Opulent Palace",
+    "Wastewood Verge",
+    "Gloomlake Verge",
+    "Willowrush Verge"
+  ],
+  "weighted_opportunities_by_cost": {
+    "2UB": {
+      "initial": 0.0879103574006843,
+      "result": 0.08794432857345663,
+      "delta": 3.397117277233186e-05
+    },
+    "1UUB": {
+      "initial": 0.08713497908387575,
+      "result": 0.08716895025664809,
+      "delta": 3.397117277233186e-05
+    },
+    "1UBB": {
+      "initial": 0.08669277194505318,
+      "result": 0.08737949226618592,
+      "delta": 0.0006867203211327472
+    },
+    "UUBB": {
+      "initial": 0.085335840636399,
+      "result": 0.08660411394937738,
+      "delta": 0.0012682733129783796
+    },
+    "UU": {
+      "initial": 0.22771359720106202,
+      "result": 0.22771359720106202,
+      "delta": 0.0
+    },
+    "BB": {
+      "initial": 0.2187192295836985,
+      "result": 0.22572889202066293,
+      "delta": 0.007009662436964437
+    },
+    "4UU": {
+      "initial": 0.019756891990224842,
+      "result": 0.019756891990224842,
+      "delta": 0.0
+    },
+    "4BB": {
+      "initial": 0.0395090300169728,
+      "result": 0.03952163466083176,
+      "delta": 1.2604643858958597e-05
+    },
+    "2UUBB": {
+      "initial": 0.01974942214087972,
+      "result": 0.019755724462809196,
+      "delta": 6.302321929475829e-06
+    },
+    "WW": {
+      "initial": 0.04806736122015537,
+      "result": 0.04806736122015537,
+      "delta": 0.0
+    },
+    "4WW": {
+      "initial": 0.013039277681853208,
+      "result": 0.013039277681853208,
+      "delta": 0.0
+    },
+    "2WWBB": {
+      "initial": 0.012521558937095015,
+      "result": 0.01279333801575526,
+      "delta": 0.00027177907866024476
+    },
+    "GG": {
+      "initial": 0.10565252729114083,
+      "result": 0.10904616960742569,
+      "delta": 0.0033936423162848617
+    },
+    "3UU": {
+      "initial": 0.042363174055307776,
+      "result": 0.042363174055307776,
+      "delta": 0.0
+    },
+    "3GG": {
+      "initial": 0.041927656222342055,
+      "result": 0.042190748962871824,
+      "delta": 0.00026309274052976894
+    },
+    "1UUGG": {
+      "initial": 0.04184614506244122,
+      "result": 0.042109237802971,
+      "delta": 0.0002630927405297828
+    },
+    "2G": {
+      "initial": 0.4897787189463188,
+      "result": 0.4912746414097698,
+      "delta": 0.0014959224634509827
+    },
+    "1B": {
+      "initial": 0.3009707742268087,
+      "result": 0.3025120255306411,
+      "delta": 0.001541251303832425
+    },
+    "7UU": {
+      "initial": 0.0,
+      "result": 0.0,
+      "delta": 0.0
+    },
+    "2UU": {
+      "initial": 0.11624349200314313,
+      "result": 0.11624349200314313,
+      "delta": 0.0
+    },
+    "1UU": {
+      "initial": 0.15968744442436303,
+      "result": 0.15968744442436303,
+      "delta": 0.0
+    },
+    "UBG": {
+      "initial": 0.7277208317607605,
+      "result": 0.731266583728103,
+      "delta": 0.0035457519673425253
+    },
+    "2BG": {
+      "initial": 0.17532446995138817,
+      "result": 0.1756024192174286,
+      "delta": 0.00027794926604043924
+    }
+  },
+  "schema_version": 2
 }

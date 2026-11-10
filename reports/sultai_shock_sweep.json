@@ -1,14 +1,12 @@
 {
+  "schema_version": 2,
   "budget": 500,
-  "shock_penalty": 0.012,
-  "town_penalty": 0.015,
-  "seconds": 90.52877500001341,
+  "seconds": 573.8533372999518,
   "results": [
     {
       "shocks": 8,
-      "raw": 3.163460128507353,
-      "exact_raw": "23983046933532419751881737473787/7581270494737855537876800000000",
-      "score": 3.007460128507353,
+      "score": 3.140236861276895,
+      "exact_score": "952279402515469425382533337627861/303250819789514221515072000000000",
       "lands": {
         "Swamp": 1,
         "Island": 1,
@@ -22,21 +20,30 @@
         "Gloomlake Verge": 3,
         "Willowrush Verge": 1
       },
-      "evaluations": 36,
-      "stopped": "one-land local optimum",
-      "seconds": 25.443162699986715,
-      "penalty_interval": {
-        "lower": "3035580947711141789/388140363566329374000",
-        "upper": null
-      }
+      "family_bounds": {
+        "basic": [
+          0,
+          2
+        ],
+        "shock": [
+          8,
+          8
+        ],
+        "town": [
+          4,
+          4
+        ]
+      },
+      "evaluations": 395,
+      "stopped": "two-land local optimum",
+      "seconds": 273.65091490000486
     },
     {
       "shocks": 9,
-      "raw": 3.171280961465357,
-      "exact_raw": "264465726620493284182003065011657/83393975442116410916644800000000",
-      "score": 3.003280961465357,
+      "score": 3.149555367401949,
+      "exact_score": "350205257283605452369028938330511/111191967256155214555526400000000",
       "lands": {
-        "Island": 1,
+        "Swamp": 1,
         "Cavern of Souls": 4,
         "Overgrown Tomb": 1,
         "Watery Grave": 4,
@@ -47,71 +54,56 @@
         "Gloomlake Verge": 3,
         "Willowrush Verge": 1
       },
-      "evaluations": 35,
-      "stopped": "one-land local optimum",
-      "seconds": 23.022132799960673,
-      "penalty_interval": {
-        "lower": "94541952800441410021/15633431310310488675000",
-        "upper": "3035580947711141789/388140363566329374000"
-      }
+      "family_bounds": {
+        "basic": [
+          0,
+          2
+        ],
+        "shock": [
+          9,
+          9
+        ],
+        "town": [
+          4,
+          4
+        ]
+      },
+      "evaluations": 308,
+      "stopped": "two-land local optimum",
+      "seconds": 172.66088079998735
     },
     {
       "shocks": 10,
-      "raw": 3.177328383232457,
-      "exact_raw": "264970045162826979611368846067657/83393975442116410916644800000000",
-      "score": 2.9973283832324573,
+      "score": 3.157366631264147,
+      "exact_score": "1755369035396000648247807170011391/555959836280776072777632000000000",
       "lands": {
-        "Island": 1,
         "Cavern of Souls": 4,
         "Overgrown Tomb": 2,
         "Watery Grave": 4,
         "Breeding Pool": 4,
         "Restless Cottage": 2,
         "Starting Town": 4,
-        "Wastewood Verge": 1,
+        "Wastewood Verge": 2,
         "Gloomlake Verge": 3,
         "Willowrush Verge": 1
       },
-      "evaluations": 35,
-      "stopped": "one-land local optimum",
-      "seconds": 18.072294000012334,
-      "penalty_interval": {
-        "lower": "0",
-        "upper": "94541952800441410021/15633431310310488675000"
-      }
+      "family_bounds": {
+        "basic": [
+          0,
+          2
+        ],
+        "shock": [
+          10,
+          10
+        ],
+        "town": [
+          4,
+          4
+        ]
+      },
+      "evaluations": 232,
+      "stopped": "two-land local optimum",
+      "seconds": 105.23981040000217
     }
-  ],
-  "spell_profiles": [
-    "Spell(count=4, modes=(CastingMode(cost='2UB', weight=1), CastingMode(cost='1UUB', weight=1), CastingMode(cost='1UBB', weight=1), CastingMode(cost='UUBB', weight=1)), weight=1)",
-    "Spell(count=4, modes=(CastingMode(cost='UU', weight=1), CastingMode(cost='BB', weight=1), CastingMode(cost='4UU', weight=1), CastingMode(cost='4BB', weight=1), CastingMode(cost='2UUBB', weight=1)), weight=1)",
-    "Spell(count=4, modes=(CastingMode(cost='WW', weight=1), CastingMode(cost='BB', weight=1), CastingMode(cost='4WW', weight=1), CastingMode(cost='4BB', weight=1), CastingMode(cost='2WWBB', weight=1)), weight=1)",
-    "Spell(count=4, modes=(CastingMode(cost='UU', weight=1), CastingMode(cost='GG', weight=1), CastingMode(cost='3UU', weight=1), CastingMode(cost='3GG', weight=1), CastingMode(cost='1UUGG', weight=1)), weight=1)",
-    "SpellCost(cost='2G', count=4, weight=1)",
-    "SpellCost(cost='1B', count=2, weight=1)",
-    "Spell(count=4, modes=(CastingMode(cost='7UU', weight=1), CastingMode(cost='2UU', weight=1), CastingMode(cost='1UU', weight=1)), weight=1)",
-    "SpellCost(cost='UBG', count=4, weight=1)",
-    "SpellCost(cost='UBG', count=2, weight=1)",
-    "SpellCost(cost='2BG', count=2, weight=1)"
-  ],
-  "deck_note": "Four Awaken, two Glarb, two Dellian Fel, no Overlord or Rapid Rescue; 34 spells, 26 lands.",
-  "initial": {
-    "Swamp": 1,
-    "Island": 1,
-    "Restless Cottage": 2,
-    "Watery Grave": 3,
-    "Breeding Pool": 4,
-    "Overgrown Tomb": 2,
-    "Starting Town": 4,
-    "Cavern of Souls": 4,
-    "Gloomlake Verge": 3,
-    "Wastewood Verge": 1,
-    "Willowrush Verge": 1
-  },
-  "constraints": {
-    "caverns": 4,
-    "towns": 4,
-    "cottages": 2,
-    "maximum_basics": 2,
-    "palace_cap": 2
-  }
+  ]
 }

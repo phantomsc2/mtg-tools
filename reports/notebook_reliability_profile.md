@@ -1,5 +1,7 @@
 # Notebook reliability comparison
 
+Historical measurements for the documented frozen workload; this report is not a current optimization recommendation.
+
 ## Exact workload
 
 Inputs were read from the current notebook and frozen before starting. The input
@@ -13,8 +15,8 @@ source and raw measurements are saved in [notebook_reliability_results.json](not
   Fast lands are Blooming Marsh and Botanical Sanctum; Darkslick Shores is excluded.
 - 10 source axes, 363,165 legal candidate compositions, 9,765,625 capacity-grid cells.
 - Seven turns, both play/draw, opening hand seven; exact batch construction.
-  Construction takes no baseline. Notebook penalties 0.014 shock / 0.01 Town
-  are applied only at scoring time and do not affect this build benchmark.
+  Construction takes no baseline. This is a historical construction benchmark;
+  post-build ranking settings did not affect its measurements.
 
 ## Full exhaustive builds
 

@@ -11,11 +11,11 @@ Deck
 1 Glarb, Calamity's Augur
 1 Overlord of the Balemurk
 4 Moonshadow
-1 Swamp
 4 Cavern of Souls
+4 Overgrown Tomb
 4 Watery Grave
-4 Deathcap Glade
-4 Shipwreck Marsh
-4 Dreamroot Cascade
+4 Breeding Pool
+1 Deathcap Glade
+2 Shipwreck Marsh
 4 Starting Town
-1 Willowrush Verge
+3 Gloomlake Verge

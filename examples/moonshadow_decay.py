@@ -1,7 +1,8 @@
-"""Moonshadow half-life comparison: python -m examples.moonshadow_decay [--half-life 1|2|3]."""
+"""Full-profile Moonshadow searches with raw scores and explicit space limits."""
 import argparse
 from fractions import Fraction
 import json
+from math import fsum
 from pathlib import Path
 import pickle
 from time import perf_counter
@@ -23,127 +24,95 @@ SPELL_COUNTS = {'Superior Spider-Man': 4, 'Deceit': 4, 'Wistfulness': 4,
 INITIAL = {'Overgrown Tomb': 2, 'Watery Grave': 4, 'Breeding Pool': 4,
            'Swamp': 1, 'Island': 1, 'Cavern of Souls': 4, 'Starting Town': 4,
            'Gloomlake Verge': 3, 'Wastewood Verge': 2, 'Willowrush Verge': 1}
-SHOCK, TOWN = .008, .015
 
 
-def make_space():
+def make_space(shocks=(0, 12)):
     original = ManaSpace.from_colors(26, 'UBG', format='standard',
         families={'basic': (0, 2), 'shock': (0, 4), 'verge': (0, 4), 'fast': (0, 4)},
         fixed={S('WUBRG', 'cavern'): 4, S('WUBRG', 'town'): 4})
-    return ManaSpace({**original.bounds, **{S(pair, 'slow'): (0, 4) for pair in ('UB', 'BG', 'UG')}}, 26)
+    return ManaSpace({**original.bounds, **{S(pair, 'slow'): (0, 4) for pair in ('UB', 'BG', 'UG')}}, 26,
+                     family_bounds={'basic': (0, 2), 'shock': shocks, 'town': (4, 4)})
 
 
 def named(base):
     return {NAMES[s]: n for s, n in base.items() if n}
 
 
-def run(h, shock_penalty=SHOCK):
+def complete_search(evaluator, base, progress=None, budget=2000):
+    attempts = []
+    while True:
+        result = local_search(evaluator, base, evaluation_budget=budget, progress=progress)
+        attempts.append({'budget': budget, 'visits': result.evaluations,
+                         'seconds': result.seconds, 'stop': result.stopped})
+        if result.stopped == 'two-land local optimum':
+            return result, attempts
+        base = dict(zip(evaluator.space.sources, result.best.counts))
+        budget *= 2
+
+
+def write_deck(path, lands):
+    assert sum(lands.values()) == 26 and sum(SPELL_COUNTS.values()) == 34
+    Path(path).write_text('Deck\n'+'\n'.join(f'{n} {name}' for name,n in {**SPELL_COUNTS,**lands}.items())+'\n')
+
+
+def run(h):
     started = perf_counter()
     space = make_space()
-    ev = LocalManaEvaluator(space, PROFILES, model=MANA_MODEL, half_life=h,
-                            family_maximums={'basic': 2})
-    assert spell_components(PROFILES)[0] == sum(SPELL_COUNTS.values()) == 34
-    assert tuple(m.cost for m in PROFILES[6].modes) == ('7UU', '2UU', '1UU')
-    cache_path = Path(f'.cache/moonshadow_decay_h{h}.pkl')
+    ev = LocalManaEvaluator(space, PROFILES, model=MANA_MODEL, half_life=h)
+    cache_path = Path(f'.cache/raw_moonshadow_h{h}.pkl')
     if cache_path.exists():
-        with cache_path.open('rb') as stream:
-            signature, entries = pickle.load(stream)
+        with cache_path.open('rb') as f: signature, entries = pickle.load(f)
         ev.restore_cache(signature, entries)
-    starts = [('supplied', INITIAL),
-              ('eight_shocks', json.loads(Path('reports/moonshadow_four_turn_penalty_sweep.json').read_text())['rows'][-1]['lands']),
-              ('twelve_slowlands', json.loads(Path('reports/moonshadow_slow_search.json').read_text())['lands'])]
-    if h == 1 and shock_penalty != SHOCK:
-        starts.append(('previous_h1', json.loads(Path('reports/moonshadow_decay_h1.json').read_text())['lands']))
-    report = {'half_life': h, 'horizon': ev.timing.horizon, 'tail_tolerance': .05,
-              'omitted_mass': ev.timing.omitted_mass,
-              'normalized_weights': [str(w) for w in ev.timing.weights],
-              'shock_penalty': shock_penalty, 'town_penalty': TOWN,
-              'position': 'both', 'opening_hand_size': 7, 'basic_cap': 2,
-              'fixed': {'Cavern of Souls': 4, 'Starting Town': 4},
-              'source_bounds': {NAMES[s]: list(b) for s, b in space.bounds.items()},
-              'spell_profiles': [{'count': s.count, 'modes': [m.cost for m in s.modes]
-                                 if isinstance(s, Spell) else [s.cost]} for s in PROFILES],
-              'runs': [], 'baselines': {},
-              'assumptions': ['Full original casting-mode shares; physical copies count once.',
-                              'Uniform mode importance; no board state, sequencing or mulligans.',
-                              'Cavern is unrestricted rainbow mana; slowlands explicitly added outside Standard filter.',
-                              'Best found two-land local optimum; no global-optimum guarantee.',
-                              'Tail threshold bounds omitted weight, not score or ranking error.']}
+    eight = {'Cavern of Souls':4,'Starting Town':4,'Overgrown Tomb':4,'Watery Grave':4,
+             'Deathcap Glade':1,'Shipwreck Marsh':4,'Dreamroot Cascade':3,'Willowrush Verge':2}
+    twelve = {'Cavern of Souls':4,'Starting Town':4,'Overgrown Tomb':4,'Watery Grave':4,
+              'Breeding Pool':4,'Shipwreck Marsh':2,'Wastewood Verge':1,'Gloomlake Verge':3}
+    starts = [('supplied',INITIAL),('eight_shocks',eight),('twelve_shocks',twelve)]
+    # Starting from the strongest previously evaluated base avoids losing cached discoveries.
+    if ev.cache:
+        strongest = max(ev.cache, key=lambda c: ev.value(dict(zip(space.sources,c))).score)
+        starts.append(('strongest_cached',named(dict(zip(space.sources,strongest)))))
+    report = {'schema_version':2,'half_life':h,'horizon':ev.timing.horizon,'omitted_mass':ev.timing.omitted_mass,
+              'tail_tolerance':.05,'normalized_weights':[str(w) for w in ev.timing.weights],
+              'family_bounds':dict(space.family_bounds),'source_bounds':{NAMES[s]:list(b) for s,b in space.bounds.items()},
+              'spell_profiles':[{'count':s.count,'modes':[m.cost for m in s.modes] if isinstance(s,Spell) else [s.cost]} for s in PROFILES],
+              'runs':[],'baselines':{},'assumptions':['Full original casting profiles; uniform mode shares.',
+              'No sequencing, mulligans or life totals; Cavern is unrestricted rainbow mana.',
+              'Sultai slowlands are explicitly added outside the Standard snapshot.',
+              'Best found two-land local optimum; no global-optimum guarantee.']}
     winner = None
-    for label, lands in starts:
-        base = {s: lands.get(NAMES[s], 0) for s in space.sources}
-        space.counts(base)
-        baseline = ev.value(base, shock_penalty=shock_penalty, town_penalty=TOWN)
-        report['baselines'][label] = {'score': float(baseline.score), 'raw': float(baseline.raw_score), 'lands': named(base)}
-        budget, attempts = 2000, []
-        while True:
-            def progress(n, best):
-                print(f'h={h} start={label} budget={budget} visits={n} score={float(best.score):.9f}', flush=True)
-            result = local_search(ev, base, evaluation_budget=budget,
-                                  shock_penalty=shock_penalty, town_penalty=TOWN, progress=progress)
-            attempts.append({'budget': budget, 'visits': result.evaluations,
-                             'seconds': result.seconds, 'stop': result.stopped})
-            base = dict(zip(space.sources, result.best.counts))
-            cache_path.parent.mkdir(exist_ok=True)
-            with cache_path.open('wb') as stream:
-                pickle.dump((ev.cache_signature, dict(ev.cache)), stream)
-            if result.stopped == 'two-land local optimum':
-                break
-            budget *= 2
-        if winner is None or result.best.score > winner.score:
-            winner = result.best
-        report['runs'].append({'start': label, 'attempts': attempts,
-                               'score': float(result.best.score), 'lands': named(base)})
-    base = dict(zip(space.sources, winner.counts))
-    assert sum(base.values()) == 26
-    assert sum(n for s, n in base.items() if s.kind == 'basic') <= 2
-    assert all(space.bounds[s][0] <= n <= space.bounds[s][1] for s, n in base.items())
-    initial = {s: INITIAL.get(NAMES[s], 0) for s in space.sources}
-    # Every turn's contribution to the final normalized, discounted raw score.
-    _, copies, weighted = spell_components(PROFILES)
-    cost_weights = {cost: weighted[cost]/n for cost, n in copies.items()}
-    contributions = {}
-    for row in ev.components(base).opportunities:
-        contributions[row.turn] = contributions.get(row.turn, Fraction()) + (
-            row.expected_copies * cost_weights[row.cost] * ev.timing.weights[row.turn-1] / 2)
-    report.update({'lands': named(base), 'score': float(winner.score), 'exact_score': str(winner.score),
-                   'raw': float(winner.raw_score), 'penalty': float(winner.penalty),
-                   'family_counts': {kind: sum(n for s, n in base.items() if s.kind == kind)
-                                     for kind in ('shock', 'fast', 'slow', 'basic', 'verge')},
-                   'out': {NAMES[s]: initial[s]-n for s, n in base.items() if initial[s] > n},
-                   'in': {NAMES[s]: n-initial[s] for s, n in base.items() if n > initial[s]},
-                   'weighted_contributions_by_turn': {t: float(v) for t, v in contributions.items()},
-                   'unique_evaluations': len(ev.cache), 'seconds': perf_counter()-started})
-    assert sum(contributions.values()) == winner.raw_score
-    suffix = '' if shock_penalty == SHOCK else f'_shock{shock_penalty:g}'
-    target = Path(f'reports/moonshadow_decay_h{h}{suffix}')
-    target.with_suffix('.json').write_text(json.dumps(report, indent=2)+'\n')
-    deck = 'Deck\n' + '\n'.join(f'{n} {name}' for name, n in {**SPELL_COUNTS, **named(base)}.items()) + '\n'
-    target.with_suffix('.txt').write_text(deck)
-    lines = [f'# Moonshadow: half-life {h}', '',
-             f'Horizon: {ev.timing.horizon}; omitted weight: {ev.timing.omitted_mass:.4%}.',
-             f'Score: {float(winner.score):.9f}; shocks {report["family_counts"]["shock"]}, '
-             f'fast lands {report["family_counts"]["fast"]}, slowlands {report["family_counts"]["slow"]}.', '',
-             f'Shock penalty: {shock_penalty:g}; Town penalty: {TOWN:g}. Full casting profiles.', '',
-             '## Baselines under this weighting', '', '| Base | Score |', '| --- | ---: |']
-    lines += [f'| {label} | {v["score"]:.9f} |' for label, v in report['baselines'].items()]
-    lines += ['', '## Changes from supplied list', '', f'OUT: {report["out"]}', '', f'IN: {report["in"]}', '',
-              '## Decklist', '', '```text', deck.rstrip(), '```', '', '## Assumptions', '']
-    lines += [f'- {a}' for a in report['assumptions']]
-    target.with_suffix('.md').write_text('\n'.join(lines)+'\n')
-    print(json.dumps({k: report[k] for k in ('half_life', 'horizon', 'score', 'lands', 'seconds')}), flush=True)
+    for label,lands in starts:
+        base={s:lands.get(NAMES[s],0) for s in space.sources}
+        report['baselines'][label]={'score':float(ev.value(base).score),'lands':named(base)}
+        result,attempts=complete_search(ev,base,progress=lambda n,b:print(f'h={h} {label} visits={n} score={float(b.score):.9f}',flush=True))
+        base=dict(zip(space.sources,result.best.counts))
+        report['runs'].append({'start':label,'attempts':attempts,'score':float(result.best.score),'lands':named(base)})
+        if winner is None or result.best.score>winner.score:winner=result.best
+        cache_path.parent.mkdir(exist_ok=True)
+        with cache_path.open('wb') as f:pickle.dump((ev.cache_signature,dict(ev.cache)),f)
+    base=dict(zip(space.sources,winner.counts))
+    report.update({'score':float(winner.score),'exact_score':str(winner.score),'lands':named(base),
+                   'family_counts':{kind:sum(n for s,n in base.items() if s.kind==kind) for kind in ('shock','slow','fast','basic','verge')},
+                   'seconds':perf_counter()-started,'unique_evaluations':len(ev.cache)})
+    path=Path(f'reports/moonshadow_decay_h{h}')
+    path.with_suffix('.json').write_text(json.dumps(report,indent=2)+'\n')
+    write_deck(path.with_suffix('.txt'), report['lands'])
+    lines=[f'# Moonshadow half-life {h}: raw-score optimization','',
+           f'Horizon {ev.timing.horizon}; omitted weight {ev.timing.omitted_mass:.4%}.',
+           f'Score: {float(winner.score):.12f}. Explicit family bounds: {dict(space.family_bounds)}.', '',
+           '| Land | Count |','| --- | ---: |']
+    lines += [f'| {name} | {n} |' for name,n in report['lands'].items()]
+    lines += ['', '## Baselines under this weighting','', '| Base | Score |','| --- | ---: |']
+    lines += [f'| {label} | {r["score"]:.12f} |' for label,r in report['baselines'].items()]
+    lines += ['', '## Assumptions','']+[f'- {a}' for a in report['assumptions']]
+    path.with_suffix('.md').write_text('\n'.join(lines)+'\n')
+    print(json.dumps({k:report[k] for k in ('half_life','score','lands')}),flush=True)
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--half-life', type=int, choices=(1, 2, 3))
-    parser.add_argument('--shock-penalty', type=float, default=SHOCK)
-    args = parser.parse_args()
-    if not 0 <= args.shock_penalty < float('inf'):
-        parser.error('--shock-penalty must be finite and nonnegative')
-    for h in (args.half_life,) if args.half_life else (2, 3):
-        run(h, shock_penalty=args.shock_penalty)
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--half-life',type=int,choices=(1,2,3))
+    args=parser.parse_args()
+    for h in (args.half_life,) if args.half_life else (2,3):run(h)
 
-
-if __name__ == '__main__':
-    main()
+if __name__=='__main__':main()

@@ -14,8 +14,7 @@ Example (run with ``python -m doctest mana_opportunities.py``)::
     >>> result.score > 0
     True
 
-The raw score is mean weighted opportunities per turn, not a probability.
-Penalties are charged per land in the base, after averaging turns/positions.
+The score is mean weighted opportunities per turn, not a probability.
 """
 
 from mana_timing import resolve_timing
@@ -121,9 +120,13 @@ class Opportunity:
 @dataclass(frozen=True)
 class OpportunityResult:
     opportunities: tuple[Opportunity, ...]
-    raw_score: float
-    penalty: float
     score: float
+
+    def __setstate__(self, state):
+        if set(state) != {'opportunities', 'score'}:
+            raise ValueError("Incompatible scoring result; rebuild the cache")
+        for name, value in state.items():
+            object.__setattr__(self, name, value)
 
 
 @lru_cache(maxsize=128)
@@ -169,8 +172,7 @@ def _land_weights(capacities: tuple[int, ...], scenario: PaymentScenario,
 def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | Spell], *,
              model: ManaModel | CompiledManaModel, turns: int | None = None, half_life: Real | None = None,
              tail_tolerance: Real = 0.05,
-             position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
-             town_penalty: float = 0, shock_penalty: float = 0) -> OpportunityResult:
+             position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7) -> OpportunityResult:
     """Score the full draw distribution, including hands short on lands.
 
     Deck size is inferred. On turn T see opening_hand_size + T - 1 cards on
@@ -188,19 +190,13 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
     _count(opening_hand_size, "Opening hand size")
     if not turns or position not in ("both", "play", "draw"):
         raise ValueError("Turn limit must be positive and position must be both, play, or draw")
-    town_penalty = _weight(town_penalty, "Town penalty")
-    shock_penalty = _weight(shock_penalty, "Shock penalty")
 
     sources = Counter()
-    penalties = []
     for source, count in mana_base.items():
         if not isinstance(source, ManaSource):
             raise ValueError("Mana base keys must be ManaSource inputs")
         _count(count, "Land count")
         sources[source] += count
-        penalties.append(count * {"basic": 0, "verge": 0, "shock": shock_penalty,
-                                  "town": town_penalty, "cavern": 0, "fast": 0, "slow": 0,
-                                  "tapped": 0, "tri": 0}[source.kind])
     nonlands, counts, weighted_counts = spell_components(spells)
     deck_size = sum(sources.values()) + nonlands
     if not deck_size:
@@ -236,9 +232,8 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
                 rows.append(Opportunity(cost, turn, side, copies * per_copy, weighted_copies * float(per_copy)))
 
     if timing.half_life is None:
-        raw_score = fsum(row.weighted_contribution for row in rows) / (turns * len(positions))
+        score = fsum(row.weighted_contribution for row in rows) / (turns * len(positions))
     else:
-        raw_score = fsum(row.weighted_contribution * float(timing.weights[row.turn - 1])
+        score = fsum(row.weighted_contribution * float(timing.weights[row.turn - 1])
                          for row in rows) / len(positions)
-    penalty = fsum(penalties)
-    return OpportunityResult(tuple(rows), raw_score, penalty, raw_score - penalty)
+    return OpportunityResult(tuple(rows), score)

@@ -1,5 +1,7 @@
 # Runtime cost of land reliability
 
+Historical measurements for the documented frozen workload; this report is not a current optimization recommendation.
+
 ## Reference and method
 
 The batch component-table build uses `examples.sultai` with the existing reduced

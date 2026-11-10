@@ -1,8 +1,8 @@
 {
   "half_life": 1,
   "horizon": 5,
-  "tail_tolerance": 0.05,
   "omitted_mass": 0.03125,
+  "tail_tolerance": 0.05,
   "normalized_weights": [
     "16/31",
     "8/31",
@@ -10,14 +10,19 @@
     "2/31",
     "1/31"
   ],
-  "shock_penalty": 0.008,
-  "town_penalty": 0.015,
-  "position": "both",
-  "opening_hand_size": 7,
-  "basic_cap": 2,
-  "fixed": {
-    "Cavern of Souls": 4,
-    "Starting Town": 4
+  "family_bounds": {
+    "basic": [
+      0,
+      2
+    ],
+    "shock": [
+      0,
+      12
+    ],
+    "town": [
+      4,
+      4
+    ]
   },
   "source_bounds": {
     "Swamp": [
@@ -183,21 +188,21 @@
       "attempts": [
         {
           "budget": 2000,
-          "visits": 993,
-          "seconds": 216.96483790001366,
-          "stop": "one-land local optimum"
+          "visits": 1240,
+          "seconds": 129.27045499999076,
+          "stop": "two-land local optimum"
         }
       ],
-      "score": 1.1749168804941572,
+      "score": 1.2969161331436097,
       "lands": {
-        "Swamp": 2,
+        "Swamp": 1,
         "Cavern of Souls": 4,
-        "Blooming Marsh": 4,
+        "Blooming Marsh": 2,
+        "Overgrown Tomb": 4,
         "Watery Grave": 4,
-        "Shipwreck Marsh": 3,
-        "Dreamroot Cascade": 3,
+        "Breeding Pool": 4,
         "Starting Town": 4,
-        "Willowrush Verge": 2
+        "Gloomlake Verge": 3
       }
     },
     {
@@ -205,50 +210,71 @@
       "attempts": [
         {
           "budget": 2000,
-          "visits": 451,
-          "seconds": 66.54676270001801,
-          "stop": "one-land local optimum"
+          "visits": 1624,
+          "seconds": 1.2476902999915183,
+          "stop": "two-land local optimum"
         }
       ],
-      "score": 1.1749168804941572,
+      "score": 1.2969161331436097,
       "lands": {
-        "Swamp": 2,
+        "Swamp": 1,
         "Cavern of Souls": 4,
-        "Blooming Marsh": 4,
+        "Blooming Marsh": 2,
+        "Overgrown Tomb": 4,
         "Watery Grave": 4,
-        "Shipwreck Marsh": 3,
-        "Dreamroot Cascade": 3,
+        "Breeding Pool": 4,
         "Starting Town": 4,
-        "Willowrush Verge": 2
+        "Gloomlake Verge": 3
       }
     },
     {
-      "start": "twelve_slowlands",
+      "start": "twelve_shocks",
       "attempts": [
         {
           "budget": 2000,
-          "visits": 401,
-          "seconds": 55.2800076000276,
-          "stop": "one-land local optimum"
+          "visits": 1187,
+          "seconds": 13.518012000015005,
+          "stop": "two-land local optimum"
         }
       ],
-      "score": 1.1749168804941572,
+      "score": 1.2969161331436097,
       "lands": {
-        "Swamp": 2,
+        "Swamp": 1,
         "Cavern of Souls": 4,
-        "Blooming Marsh": 4,
+        "Blooming Marsh": 2,
+        "Overgrown Tomb": 4,
         "Watery Grave": 4,
-        "Shipwreck Marsh": 3,
-        "Dreamroot Cascade": 3,
+        "Breeding Pool": 4,
         "Starting Town": 4,
-        "Willowrush Verge": 2
+        "Gloomlake Verge": 3
+      }
+    },
+    {
+      "start": "strongest_cached",
+      "attempts": [
+        {
+          "budget": 2000,
+          "visits": 1096,
+          "seconds": 1.2014057000051253,
+          "stop": "two-land local optimum"
+        }
+      ],
+      "score": 1.2969161331436097,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Blooming Marsh": 2,
+        "Overgrown Tomb": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Starting Town": 4,
+        "Gloomlake Verge": 3
       }
     }
   ],
   "baselines": {
     "supplied": {
-      "score": 1.1377204780350645,
-      "raw": 1.2777204780350644,
+      "score": 1.2777204780350644,
       "lands": {
         "Swamp": 1,
         "Island": 1,
@@ -263,8 +289,7 @@
       }
     },
     "eight_shocks": {
-      "score": 1.147321562632929,
-      "raw": 1.271321562632929,
+      "score": 1.271321562632929,
       "lands": {
         "Cavern of Souls": 4,
         "Overgrown Tomb": 4,
@@ -276,70 +301,59 @@
         "Willowrush Verge": 2
       }
     },
-    "twelve_slowlands": {
-      "score": 1.140182716783034,
-      "raw": 1.224182716783034,
+    "twelve_shocks": {
+      "score": 1.2902836771630608,
+      "lands": {
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Shipwreck Marsh": 2,
+        "Starting Town": 4,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 3
+      }
+    },
+    "strongest_cached": {
+      "score": 1.2969161331436097,
       "lands": {
         "Swamp": 1,
         "Cavern of Souls": 4,
-        "Watery Grave": 3,
-        "Deathcap Glade": 4,
-        "Shipwreck Marsh": 4,
-        "Dreamroot Cascade": 4,
+        "Blooming Marsh": 2,
+        "Overgrown Tomb": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
         "Starting Town": 4,
-        "Willowrush Verge": 2
+        "Gloomlake Verge": 3
       }
     }
   },
   "assumptions": [
-    "Full original casting-mode shares; physical copies count once.",
-    "Uniform mode importance; no board state, sequencing or mulligans.",
-    "Cavern is unrestricted rainbow mana; slowlands explicitly added outside Standard filter.",
-    "Best found one-land local optimum; no global-optimum guarantee.",
-    "Tail threshold bounds omitted weight, not score or ranking error."
+    "Full original casting profiles; uniform mode shares.",
+    "No sequencing, mulligans or life totals; Cavern is unrestricted rainbow mana.",
+    "Sultai slowlands are explicitly added outside the Standard snapshot.",
+    "Best found two-land local optimum; no global-optimum guarantee."
   ],
+  "score": 1.2969161331436097,
+  "exact_score": "7129315724289433199007389/5497129337892192000000000",
   "lands": {
-    "Swamp": 2,
+    "Swamp": 1,
     "Cavern of Souls": 4,
-    "Blooming Marsh": 4,
+    "Blooming Marsh": 2,
+    "Overgrown Tomb": 4,
     "Watery Grave": 4,
-    "Shipwreck Marsh": 3,
-    "Dreamroot Cascade": 3,
-    "Starting Town": 4,
-    "Willowrush Verge": 2
-  },
-  "score": 1.1749168804941572,
-  "exact_score": "516693604267936532641687243/439770347031375360000000000",
-  "raw": 1.2669168804941573,
-  "penalty": 0.092,
-  "family_counts": {
-    "shock": 4,
-    "fast": 4,
-    "slow": 6,
-    "basic": 2,
-    "verge": 2
-  },
-  "out": {
-    "Island": 1,
-    "Overgrown Tomb": 2,
     "Breeding Pool": 4,
-    "Wastewood Verge": 2,
+    "Starting Town": 4,
     "Gloomlake Verge": 3
   },
-  "in": {
-    "Swamp": 1,
-    "Blooming Marsh": 4,
-    "Shipwreck Marsh": 3,
-    "Dreamroot Cascade": 3,
-    "Willowrush Verge": 1
+  "family_counts": {
+    "shock": 12,
+    "slow": 0,
+    "fast": 2,
+    "basic": 1,
+    "verge": 3
   },
-  "weighted_contributions_by_turn": {
-    "1": 0.23697633649294397,
-    "2": 0.3238449474129873,
-    "3": 0.33476025930778813,
-    "4": 0.22833348965607783,
-    "5": 0.14300184762436008
-  },
-  "unique_evaluations": 1705,
-  "seconds": 342.27523599995766
+  "seconds": 166.00762160000158,
+  "unique_evaluations": 5115,
+  "schema_version": 2
 }

@@ -1,6 +1,6 @@
 {
-  "raw": 2.432178342599869,
-  "exact_raw": "2300854521175725052617082990296936776299/946005677657763573644245624403911680000",
+  "score": 2.432178342599869,
+  "exact_score": "2300854521175725052617082990296936776299/946005677657763573644245624403911680000",
   "lands": {
     "Cavern of Souls": 4,
     "Overgrown Tomb": 4,
@@ -23,8 +23,8 @@
         "Starting Town": 4,
         "Willowrush Verge": 2
       },
-      "single_raw": 2.432178342599869,
-      "raw": 2.432178342599869,
+      "single_score": 2.432178342599869,
+      "score": 2.432178342599869,
       "lands": {
         "Cavern of Souls": 4,
         "Overgrown Tomb": 4,
@@ -138,8 +138,8 @@
         "Gloomlake Verge": 3,
         "Willowrush Verge": 1
       },
-      "single_raw": 2.42209699405062,
-      "raw": 2.432178342599869,
+      "single_score": 2.42209699405062,
+      "score": 2.432178342599869,
       "lands": {
         "Cavern of Souls": 4,
         "Overgrown Tomb": 4,
@@ -623,8 +623,8 @@
         "Gloomlake Verge": 2,
         "Willowrush Verge": 1
       },
-      "single_raw": 2.432178342599869,
-      "raw": 2.432178342599869,
+      "single_score": 2.432178342599869,
+      "score": 2.432178342599869,
       "lands": {
         "Cavern of Souls": 4,
         "Overgrown Tomb": 4,
@@ -971,5 +971,20 @@
       "double_visits": 499
     }
   ],
-  "stop": "complete radius-2 local optimum"
+  "stop": "complete radius-2 local optimum",
+  "family_bounds": {
+    "shock": [
+      8,
+      8
+    ],
+    "town": [
+      4,
+      4
+    ],
+    "basic": [
+      0,
+      2
+    ]
+  },
+  "provenance": "Retained raw results from three starts and complete two-land descent in the previous fixed-count analysis. Physical probabilities and raw scoring are unchanged; no winner was relabeled from adjusted scoring."
 }

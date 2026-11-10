@@ -19,8 +19,6 @@ LAND_FAMILIES = {
 }
 FIXED_LANDS = {ManaSource("WUBRG", "cavern"): 4, ManaSource("WUBRG", "town"): 4,
                ManaSource("BG", "tapped"): 2}
-SHOCK_PENALTY = 0.012
-TOWN_PENALTY = 0.015
 TURNS = 7
 POSITION = "both"
 OPENING_HAND_SIZE = 7
@@ -29,7 +27,8 @@ EVALUATION_BUDGETS = (200, 150, 150)
 
 def make_space():
     return ManaSpace.from_colors(LAND_COUNT, COLORS, format=FORMAT,
-                                 families=LAND_FAMILIES, fixed=FIXED_LANDS)
+                                 families=LAND_FAMILIES, fixed=FIXED_LANDS,
+                                 family_bounds={'basic': (0, 2), 'shock': (0, 12), 'town': (4, 4)})
 
 
 def starting_bases():
@@ -43,8 +42,7 @@ def starting_bases():
     return tuple(bases)
 
 
-def optimize(evaluator, *, budgets=EVALUATION_BUDGETS,
-             shock_penalty=SHOCK_PENALTY, town_penalty=TOWN_PENALTY, progress=None):
+def optimize(evaluator, *, budgets=EVALUATION_BUDGETS, progress=None):
     """Share component caches across three starts; budgets count visits per run."""
     if len(budgets) != 3:
         raise ValueError("Supply one evaluation budget for each of the three starts")
@@ -54,19 +52,17 @@ def optimize(evaluator, *, budgets=EVALUATION_BUDGETS,
             progress(index, 0, None)
         runs.append(local_search(
             evaluator, base, evaluation_budget=budget,
-            shock_penalty=shock_penalty, town_penalty=town_penalty,
             progress=(lambda n, best, i=index: progress(i, n, best)) if progress else None,
         ))
     winner = min((r.best for r in runs), key=lambda row: (-row.score, row.counts))
     return tuple(runs), winner
 
 
-def make_report(evaluator, runs, winner, seconds, *, budgets=EVALUATION_BUDGETS,
-                shock_penalty=SHOCK_PENALTY, town_penalty=TOWN_PENALTY):
+def make_report(evaluator, runs, winner, seconds, *, budgets=EVALUATION_BUDGETS):
     space = evaluator.space
-    baseline = evaluator.value(MANA_BASE, shock_penalty=shock_penalty, town_penalty=town_penalty)
+    baseline = evaluator.value(MANA_BASE)
     base = dict(zip(space.sources, winner.counts))
-    divisor = TURNS * 2
+    positions = 2 if POSITION == "both" else 1
     before, after = evaluator.components(MANA_BASE), evaluator.components(base)
     assert spell_components(SPELLS)[0] + sum(MANA_BASE.values()) == 60
     assert winner.score >= baseline.score
@@ -77,15 +73,16 @@ def make_report(evaluator, runs, winner, seconds, *, budgets=EVALUATION_BUDGETS,
     for column, result in zip(("initial", "result"), (before, after)):
         for row in result.opportunities:
             values = by_cost.setdefault(row.cost, {"initial": 0.0, "result": 0.0})
-            values[column] += row.weighted_contribution / divisor
+            values[column] += row.weighted_contribution * float(evaluator.timing.weights[row.turn - 1]) / positions
     for values in by_cost.values():
         values["delta"] = values["result"] - values["initial"]
     return {
+        "schema_version": 2,
         "standard_as_of": STANDARD_AS_OF,
         "settings": {"land_count": LAND_COUNT, "colors": COLORS, "format": FORMAT,
-                     "turns": TURNS, "position": POSITION, "opening_hand_size": OPENING_HAND_SIZE,
-                     "shock_penalty": shock_penalty, "town_penalty": town_penalty,
+                     "turns": evaluator.timing.horizon, "half_life": evaluator.timing.half_life, "position": POSITION, "opening_hand_size": OPENING_HAND_SIZE,
                      "budgets": list(budgets), "palace_limit": 2},
+        "family_bounds": dict(space.family_bounds),
         "source_bounds": {LAND_NAMES[s]: list(bounds) for s, bounds in space.bounds.items()},
         "spell_profiles": [
             {"count": spell.count, "weight": spell.weight,
@@ -110,7 +107,6 @@ def make_report(evaluator, runs, winner, seconds, *, budgets=EVALUATION_BUDGETS,
         "in": {LAND_NAMES[s]: n-MANA_BASE.get(s, 0) for s, n in base.items() if n>MANA_BASE.get(s, 0)},
         "baseline_score": float(baseline.score), "score": float(winner.score),
         "exact_baseline_score": str(baseline.score), "exact_score": str(winner.score),
-        "raw_opportunities": float(winner.raw_score), "penalty": float(winner.penalty),
         "delta": float(winner.score-baseline.score),
         "seconds": seconds, "unique_evaluations": len(evaluator.cache),
         "runs": [{"initial_palaces": base.get(ManaSource("UBG", "tri"), 0),
@@ -161,7 +157,7 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("reports/sultai_palace_optimization.json"))
     args = parser.parse_args()
     evaluator = LocalManaEvaluator(make_space(), SPELLS, model=MANA_MODEL, turns=TURNS, position=POSITION,
-                                   opening_hand_size=OPENING_HAND_SIZE, family_maximums={"basic": 2})
+                                   opening_hand_size=OPENING_HAND_SIZE)
     def progress(index, visits, best):
         score = f"; best {float(best.score):.9f}" if best else ""
         print(f"Start {index+1}: {visits} bases visited{score}", flush=True)

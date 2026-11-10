@@ -20,7 +20,7 @@ base = {
 }
 spells = [SpellCost("UU", 12), SpellCost("BB", 21, weight=2), SpellCost("WWBU", 1, weight=0.05)]
 model = heuristic_mana_model()
-result = evaluate(base, spells, model=model, shock_penalty=0.01, town_penalty=0.01)
+result = evaluate(base, spells, model=model)
 print(result.score)
 # Exact unweighted expectations and weighted contributions by cost, turn, position:
 print(result.opportunities[0])
@@ -29,7 +29,7 @@ print(result.opportunities[0])
 Each drawn physical copy contributes its weight whenever its cost is payable.
 Copies and different costs score independently, even when they cannot all be cast
 with the same mana. The score averages T1 through T7 and play/draw equally by
-default, then subtracts the per-land shock/Town penalties. Mana shortage remains
+default. Composition constraints are supplied separately as search-space bounds. Mana shortage remains
 in the draw distribution. Zero-weight cards still occupy deck slots.
 
 This measures sustained casting opportunities without land-drop sequencing or
@@ -109,7 +109,7 @@ policy allows at most T sources in a payment, without choosing a land-drop order
 `ManaSource("BG", "fast")` represents Blooming Marsh;
 `ManaSource("UB", "slow")` represents Shipwreck Marsh. `tapped` duals are
 identified only by their two colors. Each new family supports all ten pairs,
-has no basic land types or extra composition penalty, and is an explicit opt-in
+has no basic land types or extra composition cost, and is an explicit opt-in
 in `ManaSpace.from_colors(..., families={"fast": (0, 4), ...})`.
 `mana_lands.land_availability(kind, turn)` exposes the exact per-land rate.
 
@@ -117,7 +117,7 @@ An unavailable source supplies neither mana nor colors. A tapped UB dual and
 a Mountain cannot pay U on T1. Surplus drawn lands can compensate only when the
 successful sources can actually pay the cost. Four Towns on T4 give an MV4
 opportunity factor of (3/4)^4 = 81/256. Zero-cost spells remain payable.
-Life is assumed paid for shocks; configured shock/Town penalties still apply.
+Life is assumed paid for shocks; life totals are not simulated.
 
 Customize the heuristic with `availability(source, turn)` and `source_limit(turn)`
 callables. A source limit of `None` removes the turn-based cap. Availability can
@@ -169,7 +169,7 @@ for example `ManaSource("UG", "shock", types="UG")` for a Forest/Island shock.
 Town, Cavern, and Verges carry no basic land types. Enablers must be among the
 lands seen so far. They need not fit within the turn's land drops, an
 optimistic approximation that deliberately ignores enabler sequencing.
-Verges have no composition penalty beyond their conditional production.
+Verge conditional production is modeled directly.
 
 The reduced exhaustive command-line example fixes one Swamp, excludes
 Islands/Forests, and uses the source families present in the shared reference
@@ -219,7 +219,7 @@ same weights. Play and draw remain equally weighted.
 Raw exponential weights are rounded to integer multiples of 1e-9, then
 normalized as exact fractions over the retained horizon. Payment probabilities
 remain exact; the exponential weighting is a numerical approximation. Scores
-are normalized weighted means, with shock/Town penalties subtracted afterward.
+are normalized weighted means of casting opportunities.
 Per-turn opportunity rows remain unweighted; consumers aggregating these rows
 must use the timing weights rather than divide by the number of turns.
 `resolve_timing` in `mana_timing` exposes the resolved horizon, weights, omitted
@@ -233,10 +233,10 @@ casting-mode importance. Keep full casting profiles when replacing a hard
 cutoff: dropping expensive modes redistributes importance toward cheap ones.
 
 Run `python -m examples.moonshadow_decay` for full-profile h=2 and h=3 local
-searches at shock penalty 0.008 and Town penalty 0.015. This preserves the exact
+searches with raw scoring and explicit composition bounds. This preserves the exact
 34-spell/26-land Moonshadow list, fixes four Caverns and four Towns, caps basics
 at two, and explicitly adds Sultai slowlands to the previous Standard-filtered
-pool. Three starts share a cache for each half-life. Budget-limited searches
+pool. Three supplied starts and the strongest cached base share components for each half-life. Budget-limited searches
 resume with doubled budgets until a complete two-land neighborhood is checked.
 Reports and importable 60-card decklists are saved as
 `reports/moonshadow_decay_h2.*` and `reports/moonshadow_decay_h3.*`.
@@ -247,7 +247,7 @@ and land sequencing remain unmodeled. These are local, not global optima.
 
 Open [sultai_explorer.ipynb](sultai_explorer.ipynb) in PyCharm or Jupyter. Definitions
 and bounds are notebook-local. Build the full component table once, then edit
-shock/Town penalties and rerun the report. The notebook needs IPython and tqdm;
+casting-cost importance weights and rerun the report. The notebook needs IPython and tqdm;
 NumPy accelerates table construction. The scalar evaluator remains a reference.
 Set `TURNS` in the notebook's build cell to choose the horizon (default 7).
 Changing it requires rebuilding: table components already average turns 1 through `TURNS`.
@@ -258,13 +258,13 @@ from mana_search import ManaSpace, build_component_table
 
 space = ManaSpace.from_colors(26, "UBG", format="standard", families={
     "shock": (0, 4), "fast": (0, 4), "verge": (0, 4), "town": (0, 4),
-}, fixed={ManaSource("WUBRG", "cavern"): 4, ManaSource("B", "basic"): 1})
+}, fixed={ManaSource("WUBRG", "cavern"): 4, ManaSource("B", "basic"): 1},
+   family_bounds={"shock": (8, 12), "town": (0, 4), "basic": (1, 1)})
 table = build_component_table(space, spells, model=model)
-scored = table.score(shock_penalty=0.01, town_penalty=0.01)
+scored = table.score()
 top = scored.rank(limit=10)
 winner = dict(zip(space.sources, top[0].counts))
-shock_change = scored.crossings("shock_penalty", baseline=winner)
-town_change = scored.crossings("town_penalty", baseline=winner)
+cost_change = scored.crossings(table.costs[0], baseline=winner)
 ```
 
 Families are explicit opt-ins. Basics use the selected colors; shocks and Verges
@@ -276,7 +276,7 @@ for individual selected sources; direct `ManaSpace(bounds, land_count)` remains
 available for custom pools. Land definitions live in `mana_lands`.
 
 `fixed={source: count}` adds eligible sources even when their families are absent
-from the flexible pool, or replaces their family bounds with exact counts.
+from the flexible pool, or replaces their individual source bounds with exact counts; aggregate family bounds still apply.
 These counts occupy slots within `land_count`; they are not extra lands.
 Zero fixes a source at zero. Counts must be nonnegative integers, and fixed
 sources must satisfy the selected colors and format. A source cannot appear
@@ -302,8 +302,7 @@ binomial transforms; no float approximation is introduced.
 `component_progress=` wraps expensive cost-column transforms in batch. The
 notebook supplies tqdm; library code has no UI dependency.
 
-A component table holds mean opportunities per cost, separate shock/Town counts,
-and default importance weights. Canonical-equivalent costs share a column;
+A component table holds mean opportunities per cost and default importance weights. Canonical-equivalent costs share a column;
 mode-copy shares and importance reproduce the scalar evaluator. Override cost
 importance using `table.score(weights={"UU": 2}, ...)`.
 
@@ -314,8 +313,7 @@ selects ten winners without sorting the full pool or constructing unused swap
 records. The optional limit changes displayed results only; every candidate is
 scored and participates in crossings. Omit it for a complete ranking.
 
-`scored.crossings("UU")`, `scored.crossings("shock_penalty")`, and
-`scored.crossings("town_penalty")` vary one absolute nonnegative parameter.
+`scored.crossings("UU")` varies that absolute nonnegative casting-cost weight.
 Parallel lines are reduced to the best representative for each exact slope;
 this preserves the global envelope. Integer inequalities produce exact closed
 optimality intervals and immediate successors. At simultaneous crossings, the
@@ -355,7 +353,7 @@ deduplicated eligible compositions without scoring. `value_and_swap_deltas`
 accepts the same keyword, defaulting to one-land moves for direct callers.
 Two-land generation checks constraints on the final composition, allowing
 coupled moves that preserve an exact family total despite individually illegal
-transfers. Source bounds, fixed lands, family totals and family maximums apply
+transfers. Source bounds, fixed lands and aggregate family bounds apply
 in both phases. The landscape experiment uses this shared generator.
 
 ## Generic hand experiments
@@ -368,7 +366,7 @@ and Forest are flexible, with at most two basics total; Opulent Palace ranges fr
 with zero and two Palaces use budgets of 200, 150, and 150 visited bases.
 All starts share cached exact components. No global grid is constructed.
 
-Default penalties are 0.012 per shock and 0.015 per Town. The evaluator averages
+The evaluator averages
 turns 1-7 and play/draw, with opening seven. Incarnation profiles target enters
 effects, Spider-Man includes copying payoff scenarios, and Sunderflock includes
 7UU/2UU/1UU scenarios. Physical copies count once and modes share importance
@@ -444,35 +442,47 @@ types; the example prints its initial feasible-hand count. This iteration exclud
 tapped lands, sideboards, and playouts.
 
 The notebook report shows the optimum first, then the top ten candidates with
-separate OUT/IN columns, casting-cost weight sensitivities for every cost, and
-finally shock/Town penalty sensitivities. All use the same score snapshot.
+separate OUT/IN columns and casting-cost weight sensitivities for every cost,
+all using the same score snapshot.
 
 
-## Sultai shock-count comparison
+## Fixed shock-count comparisons
 
-Run `python -m examples.sultai_shock_sweep` to compare bases with exactly
-8, 9, and 10 shocklands. Four Towns, four Caverns, and two Restless Cottages stay
-fixed; Palace is capped at two, and basics together are capped at two. Each count uses a 500-visit local-search budget,
-starting from the shared 26-land base and choosing the best one-land conversion
-when changing the shock count. Searches maximize raw opportunities within each count:
-shock/Town penalties are constant there. Exact penalty crossings are calculated
-among the three best-found representatives, not globally certified optima.
-Reports are written to `reports/sultai_shock_sweep.json` and `.md`; component
-caches are retained in `.cache/sultai_shock_sweep.pkl`.
+Run `python -m examples.sultai_shock_sweep` to optimize exactly 8, 9 and 10 shocks
+independently with the shared Sultai deck. Four Towns, four Caverns and two Cottages
+remain fixed; basics total at most two and Palace at most two. Each run has a
+500-visit budget. The report distinguishes completed checks from budget stops.
 
-`LocalManaEvaluator(..., model=model, family_totals={"shock": 10})` enforces exact family
-counts in evaluation and local neighborhoods. Only transfers preserving those
-totals are visited, including coupled two-land replacements in the final check. `ManaSpace`
-continues to describe the underlying per-source bounds.
+`python -m examples.moonshadow_fixed_landscape` performs the h=2 Moonshadow
+comparison at exactly 8 through 12 shocks. Use `--count 10` for one count and
+`--merge` to render existing per-count results without rerunning searches.
+Reports contain directly comparable scores, marginal gains, constraints,
+stopping reasons and full decklists. Existing fixed-count raw results retain
+their original search provenance because their objective has not changed.
 
-The current shared deck has four Awaken, two Glarb and two Dellian Fels,
-without Overlords or Rapid Rescue. The supplied list had 28 lands; the shared 26-land starting base cuts
-one Gloomlake Verge and one Wastewood Verge. The optimizer may change these
-cuts and both basics. Restless Cottage is modeled as an untyped tapped BG
-source; its activation, Food, and graveyard abilities do not contribute to the
-mana score. Historical Palace reports retain their original inputs.
+## Aggregate composition constraints and score schema
 
-`LocalManaEvaluator(..., model=model, family_maximums={"basic": 2})` caps the total number
-of basics across all colors. It can be combined with `family_totals` for fixed
-shock counts. Eligibility checks apply to both direct evaluation and local
-neighbor generation.
+Every score is a normalized weighted casting-opportunity score. There are no
+composition deductions, and life loss is not simulated. Constraints restrict
+eligibility without changing a base's score. Compare scores only when the spell
+profiles, importance weights, timing and mana model are the same.
+
+Use `ManaSpace(bounds, land_count, family_bounds=...)` or pass `family_bounds`
+to `ManaSpace.from_colors`. For example, `{'shock': (8, 12), 'town': (4, 4),
+'basic': (0, 2)}` allows eight through twelve shocks, exactly four Towns and at
+most two basics across all colors. A fixed count is `(n, n)`. These bounds are
+aggregate; the existing `families` argument assigns bounds to each individual
+source. Both apply, along with `fixed` and per-source overrides.
+
+Direct validation, exact candidate counting, exhaustive enumeration, scalar and
+batch tables, and both local-search phases use the same space. Family bounds
+are immutable, must name a selected family and must be jointly feasible with
+source bounds and the total land count. Omitted bounds leave a family unrestricted
+within its source capacities. Aggregate bounds reduce candidate counts but do
+not necessarily reduce the batch capacity grid.
+
+Evaluation and ranking results expose only `score`. Local/table scores are exact
+fractions; standalone evaluation returns a float. Casting-cost weight overrides
+and their sensitivity intervals remain available. Old result/table pickle schemas
+and old local-cache signatures are rejected explicitly; regenerate them. The
+removal inventory is in [ANALYSIS_MIGRATION.md](ANALYSIS_MIGRATION.md).

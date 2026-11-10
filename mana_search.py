@@ -1,7 +1,7 @@
 """Reusable opportunity components, local/exhaustive search, and exact sensitivity.
 
-Tables hold exact mean opportunities, independent of importance and penalties.
-Crossings vary one absolute cost weight or penalty over the nonnegative domain.
+Tables hold exact mean opportunities, independent of spell importance.
+Crossings vary one absolute casting-cost weight over the nonnegative domain.
 All guarantees refer only to the candidates in the table.
 """
 
@@ -9,7 +9,7 @@ from mana_timing import resolve_timing
 
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fractions import Fraction
 from functools import cached_property
 from heapq import nsmallest
@@ -28,7 +28,7 @@ from mana_opportunities import OpportunityResult, Spell, SpellCost, evaluate, sp
 
 def _fraction(value: Real) -> Fraction:
     if isinstance(value, bool) or not isinstance(value, Real) or not isfinite(value) or value < 0:
-        raise ValueError("Weights and penalties must be finite nonnegative numbers")
+        raise ValueError("Weights must be finite nonnegative numbers")
     return value if isinstance(value, Fraction) else Fraction(str(value))
 
 
@@ -36,14 +36,20 @@ def _fraction(value: Real) -> Fraction:
 class ManaSpace:
     bounds: Mapping[ManaSource, tuple[int, int]]
     land_count: int
+    family_bounds: Mapping[str, tuple[int, int]] = field(default_factory=dict)
 
     @classmethod
     def from_colors(cls, land_count: int, colors: str, *,
                     families: Mapping[str, tuple[int, int]],
                     format: Literal["standard"] | None = None,
                     fixed: Mapping[ManaSource, int] | None = None,
-                    overrides: Mapping[ManaSource, tuple[int, int]] | None = None) -> "ManaSpace":
+                    overrides: Mapping[ManaSource, tuple[int, int]] | None = None,
+                    family_bounds: Mapping[str, tuple[int, int]] | None = None) -> "ManaSpace":
         """Derive source bounds from explicit colors and opt-in family bounds.
+
+        families assigns bounds per source; family_bounds limits summed copies
+        within each selected family. Exact totals use (n, n). Fixed sources count
+        toward these aggregate limits.
 
         Overrides replace bounds for selected sources. Colors constrain eligible
         lands, not the colors every candidate must produce. Optional format filtering
@@ -55,7 +61,7 @@ class ManaSpace:
         for limits in families.values():
             if (len(limits) != 2 or any(type(n) is not int for n in limits)
                     or not 0 <= limits[0] <= limits[1]):
-                raise ValueError("Supply a (minimum, maximum) integer pair per family")
+                raise ValueError("Supply a (minimum, maximum) integer pair per generated source")
         bounds = {source: families[source.kind] for source in sources}
         if fixed is not None and overrides is not None and set(fixed).intersection(overrides):
             raise ValueError("A source cannot have both fixed counts and overrides")
@@ -69,7 +75,7 @@ class ManaSpace:
             if source not in sources_for_colors(colors, (source.kind,), format=format):
                 raise ValueError("Fixed source is outside the selected colors or format")
             bounds[source] = (count, count)
-        return cls(bounds, land_count)
+        return cls(bounds, land_count, {} if family_bounds is None else family_bounds)
 
     def __post_init__(self) -> None:
         if type(self.land_count) is not int or self.land_count < 0:
@@ -81,7 +87,33 @@ class ManaSpace:
         bounds = dict(sorted(self.bounds.items(), key=lambda item: (item[0].kind, item[0].colors, item[0].types)))
         if not sum(lo for lo, _ in bounds.values()) <= self.land_count <= sum(hi for _, hi in bounds.values()):
             raise ValueError("Land count is infeasible within the bounds")
-        object.__setattr__(self, "bounds", MappingProxyType(bounds))
+        object.__setattr__(self, "bounds", MappingProxyType({source: tuple(limits) for source, limits in bounds.items()}))
+        families = dict(self.family_bounds)
+        kinds = {source.kind for source in bounds}
+        for kind, limits in families.items():
+            if (kind not in kinds or not isinstance(limits, (tuple, list)) or len(limits) != 2
+                    or any(type(n) is not int for n in limits) or not 0 <= limits[0] <= limits[1]):
+                raise ValueError("Family bounds require selected families and nonnegative integer (minimum, maximum) pairs")
+        object.__setattr__(self, "family_bounds", MappingProxyType({kind: tuple(limits) for kind, limits in sorted(families.items())}))
+        if any(low > high for _, low, high in self._groups) or not (
+                sum(low for _, low, _ in self._groups) <= self.land_count <=
+                sum(high for _, _, high in self._groups)):
+            raise ValueError("Family bounds are infeasible with source bounds and land count")
+
+    @cached_property
+    def _groups(self):
+        groups = []
+        for kind in sorted({source.kind for source in self.sources}):
+            indices = tuple(i for i, source in enumerate(self.sources) if source.kind == kind)
+            low = sum(self.bounds[self.sources[i]][0] for i in indices)
+            high = sum(self.bounds[self.sources[i]][1] for i in indices)
+            minimum, maximum = self.family_bounds.get(kind, (low, high))
+            groups.append((indices, max(low, minimum), min(high, maximum)))
+        return tuple(groups)
+
+    def _eligible(self, counts):
+        return all(low <= sum(counts[i] for i in indices) <= high for indices, low, high in self._groups)
+
 
     @property
     def sources(self) -> tuple[ManaSource, ...]:
@@ -92,23 +124,49 @@ class ManaSpace:
             raise ValueError("Base contains sources outside the pool")
         counts = tuple(base.get(source, 0) for source in self.sources)
         if (any(type(n) is not int or not lo <= n <= hi
-                for n, (lo, hi) in zip(counts, self.bounds.values())) or sum(counts) != self.land_count):
-            raise ValueError("Base is outside the land count or source bounds")
+                for n, (lo, hi) in zip(counts, self.bounds.values())) or sum(counts) != self.land_count or not self._eligible(counts)):
+            raise ValueError("Base is outside the land count, source bounds or family bounds")
         return counts
 
     def candidate_count(self) -> int:
         """Count legal bases without enumerating or evaluating them."""
         ways = [1] + [0] * self.land_count
-        for low, high in self.bounds.values():
-            ways = [sum(ways[total - n] for n in range(low, min(high, total) + 1))
-                    for total in range(self.land_count + 1)]
+        for indices, minimum, maximum in self._groups:
+            group = [1] + [0] * self.land_count
+            for i in indices:
+                low, high = self.bounds[self.sources[i]]
+                group = [sum(group[t-n] for n in range(low, min(high, t)+1))
+                         for t in range(self.land_count+1)]
+            ways = [sum(ways[t-n] * group[n] for n in range(minimum, min(maximum, t)+1))
+                    for t in range(self.land_count+1)]
         return ways[self.land_count]
 
     def exhaustive(self) -> Iterator[tuple[int, ...]]:
-        lower = tuple(lo for lo, _ in self.bounds.values())
-        capacities = tuple(hi - lo for lo, hi in self.bounds.values())
-        for extra in compositions(capacities, self.land_count - sum(lower)):
-            yield tuple(lo + n for lo, n in zip(lower, extra))
+        if not self.family_bounds:
+            lower = tuple(lo for lo, _ in self.bounds.values())
+            capacities = tuple(hi-lo for lo, hi in self.bounds.values())
+            for extra in compositions(capacities, self.land_count-sum(lower)):
+                yield tuple(lo+n for lo,n in zip(lower,extra))
+            return
+        groups = self._groups
+        counts = [0] * len(self.sources)
+
+        def visit(index, remaining):
+            if index == len(groups):
+                if remaining == 0:
+                    yield tuple(counts)
+                return
+            indices, minimum, maximum = groups[index]
+            tail_low = sum(lo for _,lo,_ in groups[index+1:])
+            tail_high = sum(hi for _,_,hi in groups[index+1:])
+            lower = tuple(self.bounds[self.sources[i]][0] for i in indices)
+            capacities = tuple(self.bounds[self.sources[i]][1]-n for i,n in zip(indices,lower))
+            for total in range(max(minimum,remaining-tail_high), min(maximum,remaining-tail_low)+1):
+                for extra in compositions(capacities,total-sum(lower)):
+                    for i,n,lo in zip(indices,extra,lower):
+                        counts[i] = lo+n
+                    yield from visit(index+1,remaining-total)
+        yield from visit(0,self.land_count)
 
 
 
@@ -116,8 +174,12 @@ class ManaSpace:
 class BaseComponents:
     counts: tuple[int, ...]
     opportunities: tuple[Fraction, ...]
-    shock_count: int
-    town_count: int
+
+    def __setstate__(self, state):
+        if set(state) != {'counts', 'opportunities'}:
+            raise ValueError("Incompatible component row; rebuild the table")
+        for name, value in state.items():
+            object.__setattr__(self, name, value)
 
 
 @dataclass(frozen=True)
@@ -130,11 +192,15 @@ class LandSwap:
 @dataclass(frozen=True)
 class RankedBase:
     counts: tuple[int, ...]
-    raw_score: Fraction
-    penalty: Fraction
     score: Fraction
     delta: Fraction | None
     swap: LandSwap | None
+
+    def __setstate__(self, state):
+        if set(state) != set(self.__dataclass_fields__):
+            raise ValueError("Incompatible ranked result; rebuild it")
+        for name, value in state.items():
+            object.__setattr__(self, name, value)
 
 
 @dataclass(frozen=True)
@@ -158,48 +224,20 @@ class LocalManaEvaluator:
     """Exact, lazy per-base evaluation; configuration is immutable, cache is reusable.
 
     Optional half_life derives a horizon and normalized weights from tail_tolerance.
-    Opportunities retain cost/turn/position axes. Penalties are applied after
-    evaluation, so changing them never invalidates cached draw calculations.
+    Opportunities retain cost/turn/position axes. All composition constraints
+    belong to the supplied ManaSpace; scores measure only casting opportunities.
     """
 
     def __init__(self, space: ManaSpace, spells: Sequence[SpellCost | Spell], *,
                  model: ManaModel | CompiledManaModel, turns: int | None = None,
                  half_life: Real | None = None, tail_tolerance: Real = 0.05,
-                 position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
-                 family_totals: Mapping[str, int] | None = None,
-                 family_maximums: Mapping[str, int] | None = None):
+                 position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7):
         self._timing = resolve_timing(turns=turns, half_life=half_life, tail_tolerance=tail_tolerance)
         turns = self.timing.horizon
         if (type(turns) is not int or turns < 1 or type(opening_hand_size) is not int
                 or opening_hand_size < 0 or position not in ("both", "play", "draw")):
             raise ValueError("Positive turns, nonnegative opening size, and valid position required")
         self._space, self._spells = space, tuple(spells)
-        totals = dict(family_totals or {})
-        for kind, n in totals.items():
-            limits = [bounds for source, bounds in space.bounds.items() if source.kind == kind]
-            if (not limits or type(n) is not int
-                    or not sum(lo for lo, _ in limits) <= n <= sum(hi for _, hi in limits)):
-                raise ValueError("Family totals require feasible integer counts for selected families")
-        if not (sum(totals.values()) + sum(lo for s, (lo, _) in space.bounds.items() if s.kind not in totals)
-                <= space.land_count <=
-                sum(totals.values()) + sum(hi for s, (_, hi) in space.bounds.items() if s.kind not in totals)):
-            raise ValueError("Family totals are incompatible with the land count")
-        maximums = dict(family_maximums or {})
-        for kind, n in maximums.items():
-            limits = [bounds for source, bounds in space.bounds.items() if source.kind == kind]
-            if (not limits or type(n) is not int or n < sum(lo for lo, _ in limits)
-                    or totals.get(kind, 0) > n):
-                raise ValueError("Family maximums require feasible nonnegative integer caps")
-        capacities = {kind: sum(hi for source, (_, hi) in space.bounds.items() if source.kind == kind)
-                      for kind in {source.kind for source in space.sources}}
-        for kind, cap in maximums.items():
-            capacities[kind] = min(capacities[kind], cap)
-        capacities.update(totals)
-        capacity = sum(capacities.values())
-        if capacity < space.land_count:
-            raise ValueError("Family maximums are incompatible with the land count")
-        self._family_totals = MappingProxyType(totals)
-        self._family_maximums = MappingProxyType(maximums)
         self._turns, self._position, self._opening = turns, position, opening_hand_size
         self._model = model.compile(space.sources, turns)
         nonlands, copies, weighted = spell_components(self._spells)
@@ -220,9 +258,8 @@ class LocalManaEvaluator:
     @property
     def cache_signature(self) -> tuple:
         """Persist alongside cache entries; includes resolved policy and draw configuration."""
-        return (self.timing.signature, self._model.signature, tuple(self.space.bounds.items()), self.space.land_count,
-                self._spells, self._position, self._opening, tuple(sorted(self._family_totals.items())),
-                tuple(sorted(self._family_maximums.items())))
+        return ("raw-score-v2", self.timing.signature, self._model.signature, tuple(self.space.bounds.items()), self.space.land_count,
+                self._spells, self._position, self._opening, tuple(self.space.family_bounds.items()))
 
     def restore_cache(self, signature: tuple,
                       entries: Mapping[tuple[int, ...], OpportunityResult]) -> None:
@@ -241,8 +278,6 @@ class LocalManaEvaluator:
 
     def components(self, base: Mapping[ManaSource, int]) -> OpportunityResult:
         counts = self.space.counts(base)
-        if not self._eligible(counts):
-            raise ValueError("Base violates family totals or maximums")
         if counts not in self._cache:
             self._cache[counts] = evaluate(dict(zip(self.space.sources, counts)), self._spells,
                                           model=self._model,
@@ -252,28 +287,18 @@ class LocalManaEvaluator:
                                           position=self._position, opening_hand_size=self._opening)
         return self._cache[counts]
 
-    def _eligible(self, counts: tuple[int, ...]) -> bool:
-        return all(sum(n for s, n in zip(self.space.sources, counts) if s.kind == kind) == total
-                   for kind, total in self._family_totals.items()) and all(
-                       sum(n for s, n in zip(self.space.sources, counts) if s.kind == kind) <= cap
-                       for kind, cap in self._family_maximums.items())
-
-    def value(self, base: Mapping[ManaSource, int], *, shock_penalty: Real = 0,
-              town_penalty: Real = 0) -> RankedBase:
-        shock, town = _fraction(shock_penalty), _fraction(town_penalty)
+    def value(self, base: Mapping[ManaSource, int]) -> RankedBase:
         counts = self.space.counts(base)
         components = self.components(base)
         divisor = 2 if self._position == "both" else 1
-        raw = sum((row.expected_copies * self._weights[row.cost] * self.timing.weights[row.turn - 1]
-                   for row in components.opportunities), Fraction()) / divisor
-        penalty = sum(n * (shock if s.kind == "shock" else town if s.kind == "town" else 0)
-                      for s, n in zip(self.space.sources, counts))
-        return RankedBase(counts, raw, penalty, raw - penalty, None, None)
+        score = sum((row.expected_copies * self._weights[row.cost] * self.timing.weights[row.turn-1]
+                     for row in components.opportunities), Fraction()) / divisor
+        return RankedBase(counts, score, None, None)
 
     def _relative(self, reference: RankedBase, value: RankedBase) -> RankedBase:
         out = tuple((s, a-b) for s, a, b in zip(self.space.sources, reference.counts, value.counts) if a > b)
         incoming = tuple((s, b-a) for s, a, b in zip(self.space.sources, reference.counts, value.counts) if b > a)
-        return RankedBase(value.counts, value.raw_score, value.penalty, value.score,
+        return RankedBase(value.counts, value.score,
                           value.score - reference.score, LandSwap(out, incoming, sum(n for _, n in out)))
 
     def neighbor_counts(self, base: Mapping[ManaSource, int], *,
@@ -287,8 +312,6 @@ class LocalManaEvaluator:
         if type(max_replacements) is not int or max_replacements not in (1, 2):
             raise ValueError("Maximum replacements must be 1 or 2")
         counts = self.space.counts(base)
-        if not self._eligible(counts):
-            raise ValueError("Base violates family totals or maximums")
         limits = tuple(self.space.bounds.values())
         candidates = set()
         for size in range(1, max_replacements + 1):
@@ -305,12 +328,11 @@ class LocalManaEvaluator:
                     if any(n > hi for n, (_, hi) in zip(candidate, limits)):
                         continue
                     candidate = tuple(candidate)
-                    if candidate != counts and self._eligible(candidate):
+                    if candidate != counts and self.space._eligible(candidate):
                         candidates.add(candidate)
         return tuple(sorted(candidates))
 
-    def value_and_swap_deltas(self, base: Mapping[ManaSource, int], *, shock_penalty: Real = 0,
-                              town_penalty: Real = 0, evaluation_budget: int | None = None,
+    def value_and_swap_deltas(self, base: Mapping[ManaSource, int], *, evaluation_budget: int | None = None,
                               max_replacements: int = 1,
                               _visited: set[tuple[int, ...]] | None = None) -> LocalNeighborhood:
         """Score a one- or two-land neighborhood in canonical order.
@@ -323,7 +345,7 @@ class LocalManaEvaluator:
         visited = set() if _visited is None else _visited
         counts = self.space.counts(base)
         candidates = self.neighbor_counts(base, max_replacements=max_replacements)
-        current = self.value(base, shock_penalty=shock_penalty, town_penalty=town_penalty)
+        current = self.value(base)
         visited.add(counts)
         neighbors = []
         complete = True
@@ -331,15 +353,14 @@ class LocalManaEvaluator:
             if candidate not in visited and evaluation_budget is not None and len(visited) >= evaluation_budget:
                 complete = False
                 break
-            value = self.value(dict(zip(self.space.sources, candidate)),
-                               shock_penalty=shock_penalty, town_penalty=town_penalty)
+            value = self.value(dict(zip(self.space.sources, candidate)))
             visited.add(candidate)
             neighbors.append(self._relative(current, value))
         return LocalNeighborhood(current, tuple(neighbors), complete)
 
 
 def local_search(evaluator: LocalManaEvaluator, initial: Mapping[ManaSource, int], *,
-                 shock_penalty: Real = 0, town_penalty: Real = 0, evaluation_budget: int = 500,
+                 evaluation_budget: int = 500,
                  max_replacements: int = 2,
                  progress: Callable[[int, RankedBase], None] | None = None) -> LocalSearchResult:
     """One-land descent, followed by a two-land completion check by default.
@@ -357,15 +378,14 @@ def local_search(evaluator: LocalManaEvaluator, initial: Mapping[ManaSource, int
     if type(max_replacements) is not int or max_replacements not in (1, 2):
         raise ValueError("Maximum replacements must be 1 or 2")
     started = perf_counter()
-    baseline = evaluator.value(initial, shock_penalty=shock_penalty, town_penalty=town_penalty)
+    baseline = evaluator.value(initial)
     current = baseline
     visited: set[tuple[int, ...]] = set()
     moves = []
     radius = 1
     while True:
         neighborhood = evaluator.value_and_swap_deltas(
-            dict(zip(evaluator.space.sources, current.counts)), shock_penalty=shock_penalty,
-            town_penalty=town_penalty, evaluation_budget=evaluation_budget,
+            dict(zip(evaluator.space.sources, current.counts)), evaluation_budget=evaluation_budget,
             max_replacements=radius, _visited=visited)
         best = min((current, *neighborhood.neighbors), key=lambda row: (-row.score, row.counts))
         improved = best.score > current.score
@@ -449,6 +469,14 @@ class ComponentTable:
     rows: tuple[BaseComponents, ...]
     model_signature: tuple = ()
     timing_signature: tuple = ()
+    schema_version: int = 2
+
+    def __setstate__(self, state):
+        if (state.get('schema_version') != 2 or not set(self.__dataclass_fields__) <= set(state)
+                or set(state) - set(self.__dataclass_fields__) - {'_indices', '_integer_columns'}):
+            raise ValueError("Incompatible component table; rebuild it")
+        for name, value in state.items():
+            object.__setattr__(self, name, value)
 
     def _weights(self, overrides: Mapping[str, Real] | None) -> tuple[Fraction, ...]:
         weights = dict(zip(self.costs, self.default_weights))
@@ -482,36 +510,26 @@ class ComponentTable:
             columns.append(IntegerColumn(numbers, denominator))
         return tuple(columns)
 
-    def score(self, weights: Mapping[str, Real] | None = None, *, shock_penalty: Real = 0,
-              town_penalty: Real = 0) -> "ScoredTable":
-        """Score once with integer dot products; reuse for rankings and crossings."""
+    def score(self, weights: Mapping[str, Real] | None = None) -> "ScoredTable":
+        """Score casting opportunities once with exact integer dot products."""
         weights = self._weights(weights)
-        shock, town = _fraction(shock_penalty), _fraction(town_penalty)
         columns = self._integer_columns
-        denominator = lcm(shock.denominator, town.denominator,
-                          *(col.denominator * w.denominator for col, w in zip(columns, weights)))
-        raw = [0] * len(self.rows)
+        denominator = lcm(*(col.denominator*w.denominator for col,w in zip(columns,weights)))
+        scores = [0] * len(self.rows)
         for column, weight in zip(columns, weights):
-            factor = weight.numerator * (denominator // (column.denominator * weight.denominator))
+            factor = weight.numerator * (denominator // (column.denominator*weight.denominator))
             if factor:
-                raw = [a + n * factor for a, n in zip(raw, column.numbers)]
-        shock_factor = shock.numerator * (denominator // shock.denominator)
-        town_factor = town.numerator * (denominator // town.denominator)
-        scores = tuple(a - shock_factor * row.shock_count - town_factor * row.town_count
-                       for a, row in zip(raw, self.rows))
+                scores = [a+n*factor for a,n in zip(scores,column.numbers)]
         winner = min(range(len(scores)), key=lambda i: (-scores[i], self.rows[i].counts))
-        return ScoredTable(self, weights, shock, town, denominator, tuple(raw), scores, winner)
+        return ScoredTable(self, weights, denominator, tuple(scores), winner)
 
-    def rank(self, weights: Mapping[str, Real] | None = None, *, shock_penalty: Real = 0,
-             town_penalty: Real = 0, limit: int | None = None,
+    def rank(self, weights: Mapping[str, Real] | None = None, *, limit: int | None = None,
              baseline: Mapping[ManaSource, int] | None = None) -> tuple[RankedBase, ...]:
-        return self.score(weights, shock_penalty=shock_penalty, town_penalty=town_penalty).rank(limit=limit, baseline=baseline)
+        return self.score(weights).rank(limit=limit, baseline=baseline)
 
     def crossings(self, parameter: str, *, baseline: Mapping[ManaSource, int] | None = None,
-                  weights: Mapping[str, Real] | None = None, shock_penalty: Real = 0,
-                  town_penalty: Real = 0) -> Sensitivity:
-        return self.score(weights, shock_penalty=shock_penalty, town_penalty=town_penalty).crossings(
-            parameter, baseline=baseline)
+                  weights: Mapping[str, Real] | None = None) -> Sensitivity:
+        return self.score(weights).crossings(parameter, baseline=baseline)
 
 
 @dataclass(frozen=True)
@@ -519,12 +537,15 @@ class ScoredTable:
     """Reusable score snapshot. All scans cover the complete candidate pool."""
     table: ComponentTable
     weights: tuple[Fraction, ...]
-    shock_penalty: Fraction
-    town_penalty: Fraction
     denominator: int
-    raw_numbers: tuple[int, ...]
     score_numbers: tuple[int, ...]
     winner_index: int
+
+    def __setstate__(self, state):
+        if set(state) != set(self.__dataclass_fields__):
+            raise ValueError("Incompatible score snapshot; rebuild it")
+        for name, value in state.items():
+            object.__setattr__(self, name, value)
 
     def rank(self, *, limit: int | None = None,
              baseline: Mapping[ManaSource, int] | None = None) -> tuple[RankedBase, ...]:
@@ -540,27 +561,21 @@ class ScoredTable:
         reference = None if reference_counts is None else self.score_numbers[table._indices[reference_counts]]
         result = []
         for i in indices:
-            row, raw, score = table.rows[i], self.raw_numbers[i], self.score_numbers[i]
-            result.append(RankedBase(row.counts, Fraction(raw, self.denominator),
-                          Fraction(raw - score, self.denominator), Fraction(score, self.denominator),
+            row, score = table.rows[i], self.score_numbers[i]
+            result.append(RankedBase(row.counts, Fraction(score, self.denominator),
                           None if reference is None else Fraction(score - reference, self.denominator),
                           None if reference_counts is None else table._swap(reference_counts, row.counts)))
         return tuple(result)
 
     def crossings(self, parameter: str, *, baseline: Mapping[ManaSource, int] | None = None) -> Sensitivity:
         table = self.table
-        if parameter in ("shock_penalty", "town_penalty"):
-            current = getattr(self, parameter)
-            slopes = tuple(-getattr(row, parameter.replace("penalty", "count")) for row in table.rows)
-            slope_denominator = 1
-        else:
-            parameter = SpellCost(parameter, 0).cost
-            if parameter not in table.costs:
-                raise ValueError("Parameter must be a table cost or a shock/town penalty")
-            j = table.costs.index(parameter)
-            current = self.weights[j]
-            column = table._integer_columns[j]
-            slopes, slope_denominator = column.numbers, column.denominator
+        parameter = SpellCost(parameter, 0).cost
+        if parameter not in table.costs:
+            raise ValueError("Parameter must be a table casting cost")
+        j = table.costs.index(parameter)
+        current = self.weights[j]
+        column = table._integer_columns[j]
+        slopes, slope_denominator = column.numbers, column.denominator
         reference = (table.space.counts(baseline) if baseline is not None else
                      table.rows[self.winner_index].counts)
         if reference not in table._indices:
@@ -571,9 +586,7 @@ class ScoredTable:
             counts = table.rows[i].counts
             return sum(abs(a - b) for a, b in zip(reference, counts)), counts
 
-        # Parallel lines can never overtake their group's highest line. Penalty
-        # slopes are land counts, reducing hundreds of thousands of lines to
-        # a few dozen without dropping any possible winner or crossing.
+        # Parallel lines cannot overtake their group's highest line.
         groups = {}
         for i, slope in enumerate(slopes):
             previous = groups.get(slope)
@@ -682,7 +695,5 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
                 totals[opportunity.cost] += opportunity.expected_copies * timing.weights[opportunity.turn - 1]
             divisor = 2 if position == "both" else 1
             values = tuple(totals[cost] / divisor for cost in costs)
-        rows.append(BaseComponents(counts, values,
-                                  sum(n for s, n in base.items() if s.kind == "shock"),
-                                  sum(n for s, n in base.items() if s.kind == "town")))
+        rows.append(BaseComponents(counts, values))
     return ComponentTable(space, costs, defaults, tuple(rows), compiled.signature, timing.signature)

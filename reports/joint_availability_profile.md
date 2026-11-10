@@ -1,5 +1,7 @@
 # Joint independent-availability profile
 
+Historical measurements for the documented frozen workload; this report is not a current optimization recommendation.
+
 Reference: `examples.sultai` spells and reference-pool bounds; 26 lands,
 3,144 candidates, 9 source axes, 18 canonical costs, turns 1-7, both play/draw,
 opening hand 7. Grid size: 781,250 cells (fixed-basic axis still has capacity 1).

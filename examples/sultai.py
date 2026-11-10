@@ -69,6 +69,4 @@ LAND_NAMES = {
 
 if __name__ == "__main__":
     result = evaluate(MANA_BASE, SPELLS, model=MANA_MODEL)
-    print(f"Mean weighted opportunities: {result.raw_score:.6f}")
-    print(f"Composition penalty: {result.penalty:.6f}")
     print(f"Score: {result.score:.6f}")

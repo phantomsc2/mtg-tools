@@ -1,14 +1,14 @@
-# h=2 fixed-shock landscape
+# h=2 fixed-shock raw-score comparison
 
-Envelope among best-found 8..12-shock representatives; not a global optimum certificate.
+Best-found fixed-count raw results, not a global optimum certificate.
 
-| Shocks | Raw opportunities | Marginal gain | Above 8-12 chord | Winning shock penalties |
-| ---: | ---: | ---: | ---: | --- |
-| 8 | 2.432178342600 | - | +0.000000000000 | 0.003059363366 to infinity |
-| 9 | 2.434528038988 | 0.002349696389 | -0.000709666978 | Never |
-| 10 | 2.436753141380 | 0.002225102391 | -0.001543927953 | Never |
-| 11 | 2.440236555965 | 0.003483414585 | -0.001119876734 | Never |
-| 12 | 2.444415796065 | 0.004179240100 | +0.000000000000 | 0.000000000000 to 0.003059363366 |
+| Shocks | Score | Marginal gain |
+| ---: | ---: | ---: |
+| 8 | 2.432178342600 | - |
+| 9 | 2.434528038988 | 0.002349696389 |
+| 10 | 2.436753141380 | 0.002225102391 |
+| 11 | 2.440236555965 | 0.003483414585 |
+| 12 | 2.444415796065 | 0.004179240100 |
 
 ## Land counts
 
@@ -26,24 +26,33 @@ Envelope among best-found 8..12-shock representatives; not a global optimum cert
 | Watery Grave | 4 | 4 | 4 | 4 | 4 |
 | Willowrush Verge | 2 | 2 | 2 | 1 | 0 |
 
-## Method
+## Method and provenance
 
-Three diverse cached starts per count; exact shock count enforced in candidate generation.
-Each run uses one-land descent followed by complete two-land descent, including coupled moves.
-All bounds and the two-basic cap are enforced. Four Caverns and four Towns remain fixed.
-Full original casting profiles; half-life 2, horizon 9; penalties are compared after optimizing raw opportunities.
-The fixed Town deduction is 0.06 for every base, so it does not affect crossings.
+Shock count is enforced directly by ManaSpace.family_bounds. Each count is optimized independently.
+Four Caverns and four Towns are fixed; at most two basics. Full casting profiles, half-life two, horizon nine.
+Raw scores are directly comparable across these counts. They measure mana opportunities, not life loss or win rate.
 
-## Decklists
+### 8 shocks
 
-- [8 shocks](moonshadow_h2_fixed_8shocks.txt)
-- [9 shocks](moonshadow_h2_fixed_9shocks.txt)
-- [10 shocks](moonshadow_h2_fixed_10shocks.txt)
-- [11 shocks](moonshadow_h2_fixed_11shocks.txt)
-- [12 shocks](moonshadow_h2_fixed_12shocks.txt)
+Retained raw results from three starts and complete two-land descent in the previous fixed-count analysis. Physical probabilities and raw scoring are unchanged; no winner was relabeled from adjusted scoring.
+[Full decklist](moonshadow_h2_fixed_8shocks.txt)
 
-## Penalty interpretation
+### 9 shocks
 
-The endpoint crossing is 0.003059363366. Among these representatives, twelve shocks wins below it and eight wins above it; both tie at the crossing.
-Nine, ten and eleven shocks lie strictly below the 8-to-12 chord and never win at a nonnegative linear shock penalty.
-This reproduces a direct jump among best-found bases. Complete two-land local optimality and multi-start convergence do not certify a global optimum.
+Retained raw results from three starts and complete two-land descent in the previous fixed-count analysis. Physical probabilities and raw scoring are unchanged; no winner was relabeled from adjusted scoring.
+[Full decklist](moonshadow_h2_fixed_9shocks.txt)
+
+### 10 shocks
+
+Retained raw results from three starts and complete two-land descent in the previous fixed-count analysis. Physical probabilities and raw scoring are unchanged; no winner was relabeled from adjusted scoring.
+[Full decklist](moonshadow_h2_fixed_10shocks.txt)
+
+### 11 shocks
+
+Retained raw results from three starts and complete two-land descent in the previous fixed-count analysis. Physical probabilities and raw scoring are unchanged; no winner was relabeled from adjusted scoring.
+[Full decklist](moonshadow_h2_fixed_11shocks.txt)
+
+### 12 shocks
+
+Retained raw results from three starts and complete two-land descent in the previous fixed-count analysis. Physical probabilities and raw scoring are unchanged; no winner was relabeled from adjusted scoring.
+[Full decklist](moonshadow_h2_fixed_12shocks.txt)
