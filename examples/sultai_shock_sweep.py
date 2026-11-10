@@ -53,7 +53,7 @@ def render(report):
               '```', '',
               'Town penalty is 0.015. Because Town count is fixed, it does not affect shock-count crossings.',
               'Intervals are exact for the reported representatives. Searches do not certify global optima.',
-              'A one-land local optimum checks transfers preserving the shock total; coupled two-transfer moves are not checked.',
+              'A two-land local optimum checks all legal one- and two-land replacements preserving the shock total.',
               'Restless Cottage uses the untyped tapped BG source; animation, Food, and graveyard effects are not scored.',
               'Independent joint source outcomes, unrestricted Cavern, uniform mode weights, and board scenarios are used.', '',
               f"Total runtime: {report['seconds']:.2f}s. Budget: {report['budget']} visits per shock count.", '']

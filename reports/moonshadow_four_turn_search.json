@@ -1,0 +1,168 @@
+{
+  "settings": {
+    "shock_penalty": 0.012,
+    "town_penalty": 0.015,
+    "turns": 4,
+    "position": "both",
+    "fixed": "4 Cavern, 4 Town",
+    "basic_cap": 2,
+    "overlord_modes": [
+      "1B"
+    ],
+    "moonshadow": "B"
+  },
+  "initial": {
+    "Overgrown Tomb": 2,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Swamp": 1,
+    "Island": 1,
+    "Cavern of Souls": 4,
+    "Starting Town": 4,
+    "Gloomlake Verge": 3,
+    "Wastewood Verge": 2,
+    "Willowrush Verge": 1
+  },
+  "comparisons": {},
+  "seven_turn_winner_rescored": 2.550086936021834,
+  "spell_profiles": [
+    {
+      "count": 4,
+      "modes": [
+        "2UB",
+        "1UUB",
+        "1UBB",
+        "UUBB"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "UU",
+        "BB"
+      ]
+    },
+    {
+      "count": 3,
+      "modes": [
+        "WW",
+        "BB"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "UU",
+        "GG"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "2G"
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        "1B"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "2UU",
+        "1UU"
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        "UBG"
+      ]
+    },
+    {
+      "count": 1,
+      "modes": [
+        "UBG"
+      ]
+    },
+    {
+      "count": 1,
+      "modes": [
+        "2BG"
+      ]
+    },
+    {
+      "count": 1,
+      "modes": [
+        "1B"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "B"
+      ]
+    }
+  ],
+  "previous_score": 2.51540001151553,
+  "score": 2.5611230804699017,
+  "lands": {
+    "Cavern of Souls": 4,
+    "Blooming Marsh": 3,
+    "Watery Grave": 4,
+    "Deathcap Glade": 2,
+    "Shipwreck Marsh": 4,
+    "Dreamroot Cascade": 4,
+    "Starting Town": 4,
+    "Willowrush Verge": 1
+  },
+  "runs": [
+    {
+      "visits": 1004,
+      "stop": "one-land local optimum",
+      "score": 2.5611230804699017,
+      "lands": {
+        "Cavern of Souls": 4,
+        "Blooming Marsh": 3,
+        "Watery Grave": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 4,
+        "Starting Town": 4,
+        "Willowrush Verge": 1
+      }
+    },
+    {
+      "visits": 745,
+      "stop": "one-land local optimum",
+      "score": 2.5611230804699017,
+      "lands": {
+        "Cavern of Souls": 4,
+        "Blooming Marsh": 3,
+        "Watery Grave": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 4,
+        "Starting Town": 4,
+        "Willowrush Verge": 1
+      }
+    },
+    {
+      "visits": 249,
+      "stop": "one-land local optimum",
+      "score": 2.5611230804699017,
+      "lands": {
+        "Cavern of Souls": 4,
+        "Blooming Marsh": 3,
+        "Watery Grave": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 4,
+        "Starting Town": 4,
+        "Willowrush Verge": 1
+      }
+    }
+  ]
+}

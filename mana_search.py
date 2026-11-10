@@ -5,12 +5,15 @@ Crossings vary one absolute cost weight or penalty over the nonnegative domain.
 All guarantees refer only to the candidates in the table.
 """
 
+from mana_timing import resolve_timing
+
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from functools import cached_property
 from heapq import nsmallest
+from itertools import combinations_with_replacement
 from math import isfinite, lcm
 from numbers import Real
 from time import perf_counter
@@ -154,15 +157,19 @@ class LocalSearchResult:
 class LocalManaEvaluator:
     """Exact, lazy per-base evaluation; configuration is immutable, cache is reusable.
 
+    Optional half_life derives a horizon and normalized weights from tail_tolerance.
     Opportunities retain cost/turn/position axes. Penalties are applied after
     evaluation, so changing them never invalidates cached draw calculations.
     """
 
     def __init__(self, space: ManaSpace, spells: Sequence[SpellCost | Spell], *,
-                 model: ManaModel | CompiledManaModel, turns: int = 7,
+                 model: ManaModel | CompiledManaModel, turns: int | None = None,
+                 half_life: Real | None = None, tail_tolerance: Real = 0.05,
                  position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
                  family_totals: Mapping[str, int] | None = None,
                  family_maximums: Mapping[str, int] | None = None):
+        self._timing = resolve_timing(turns=turns, half_life=half_life, tail_tolerance=tail_tolerance)
+        turns = self.timing.horizon
         if (type(turns) is not int or turns < 1 or type(opening_hand_size) is not int
                 or opening_hand_size < 0 or position not in ("both", "play", "draw")):
             raise ValueError("Positive turns, nonnegative opening size, and valid position required")
@@ -202,13 +209,18 @@ class LocalManaEvaluator:
         self._cache: dict[tuple[int, ...], OpportunityResult] = {}
 
     @property
+    def timing(self):
+        """Resolved, immutable turn horizon and normalized weights."""
+        return self._timing
+
+    @property
     def model(self) -> CompiledManaModel:
         return self._model
 
     @property
     def cache_signature(self) -> tuple:
         """Persist alongside cache entries; includes resolved policy and draw configuration."""
-        return (self._model.signature, tuple(self.space.bounds.items()), self.space.land_count,
+        return (self.timing.signature, self._model.signature, tuple(self.space.bounds.items()), self.space.land_count,
                 self._spells, self._position, self._opening, tuple(sorted(self._family_totals.items())),
                 tuple(sorted(self._family_maximums.items())))
 
@@ -233,7 +245,10 @@ class LocalManaEvaluator:
             raise ValueError("Base violates family totals or maximums")
         if counts not in self._cache:
             self._cache[counts] = evaluate(dict(zip(self.space.sources, counts)), self._spells,
-                                          model=self._model, turns=self._turns,
+                                          model=self._model,
+                                          turns=self._turns if self.timing.half_life is None else None,
+                                          half_life=self.timing.half_life,
+                                          tail_tolerance=self.timing.tail_tolerance or 0.05,
                                           position=self._position, opening_hand_size=self._opening)
         return self._cache[counts]
 
@@ -248,8 +263,8 @@ class LocalManaEvaluator:
         shock, town = _fraction(shock_penalty), _fraction(town_penalty)
         counts = self.space.counts(base)
         components = self.components(base)
-        divisor = self._turns * (2 if self._position == "both" else 1)
-        raw = sum((row.expected_copies * self._weights[row.cost]
+        divisor = 2 if self._position == "both" else 1
+        raw = sum((row.expected_copies * self._weights[row.cost] * self.timing.weights[row.turn - 1]
                    for row in components.opportunities), Fraction()) / divisor
         penalty = sum(n * (shock if s.kind == "shock" else town if s.kind == "town" else 0)
                       for s, n in zip(self.space.sources, counts))
@@ -261,10 +276,44 @@ class LocalManaEvaluator:
         return RankedBase(value.counts, value.raw_score, value.penalty, value.score,
                           value.score - reference.score, LandSwap(out, incoming, sum(n for _, n in out)))
 
+    def neighbor_counts(self, base: Mapping[ManaSource, int], *,
+                        max_replacements: int = 1) -> tuple[tuple[int, ...], ...]:
+        """Legal bases within one or two land replacements, deduplicated and sorted.
+
+        Only final compositions must satisfy family totals/maximums. This permits
+        coupled moves whose individual transfers would violate an exact total.
+        No probabilities or exhaustive composition grid are evaluated here.
+        """
+        if type(max_replacements) is not int or max_replacements not in (1, 2):
+            raise ValueError("Maximum replacements must be 1 or 2")
+        counts = self.space.counts(base)
+        if not self._eligible(counts):
+            raise ValueError("Base violates family totals or maximums")
+        limits = tuple(self.space.bounds.values())
+        candidates = set()
+        for size in range(1, max_replacements + 1):
+            for remove in combinations_with_replacement(range(len(counts)), size):
+                residual = list(counts)
+                for i in remove:
+                    residual[i] -= 1
+                if any(n < lo for n, (lo, _) in zip(residual, limits)):
+                    continue
+                for add in combinations_with_replacement(range(len(counts)), size):
+                    candidate = residual.copy()
+                    for i in add:
+                        candidate[i] += 1
+                    if any(n > hi for n, (_, hi) in zip(candidate, limits)):
+                        continue
+                    candidate = tuple(candidate)
+                    if candidate != counts and self._eligible(candidate):
+                        candidates.add(candidate)
+        return tuple(sorted(candidates))
+
     def value_and_swap_deltas(self, base: Mapping[ManaSource, int], *, shock_penalty: Real = 0,
                               town_penalty: Real = 0, evaluation_budget: int | None = None,
+                              max_replacements: int = 1,
                               _visited: set[tuple[int, ...]] | None = None) -> LocalNeighborhood:
-        """Score legal transfers in canonical order, with exact structured cache rows.
+        """Score a one- or two-land neighborhood in canonical order.
 
         Budget counts distinct bases considered, including cached ones and the
         reference. The search shares its visited set between neighborhoods.
@@ -273,21 +322,12 @@ class LocalManaEvaluator:
             raise ValueError("Evaluation budget must be a positive integer or None")
         visited = set() if _visited is None else _visited
         counts = self.space.counts(base)
+        candidates = self.neighbor_counts(base, max_replacements=max_replacements)
         current = self.value(base, shock_penalty=shock_penalty, town_penalty=town_penalty)
         visited.add(counts)
-        candidates = set()
-        limits = tuple(self.space.bounds.values())
-        for i, n in enumerate(counts):
-            for j, m in enumerate(counts):
-                if i != j and n > limits[i][0] and m < limits[j][1]:
-                    candidate = list(counts)
-                    candidate[i] -= 1
-                    candidate[j] += 1
-                    if self._eligible(tuple(candidate)):
-                        candidates.add(tuple(candidate))
         neighbors = []
         complete = True
-        for candidate in sorted(candidates):
+        for candidate in candidates:
             if candidate not in visited and evaluation_budget is not None and len(visited) >= evaluation_budget:
                 complete = False
                 break
@@ -300,8 +340,13 @@ class LocalManaEvaluator:
 
 def local_search(evaluator: LocalManaEvaluator, initial: Mapping[ManaSource, int], *,
                  shock_penalty: Real = 0, town_penalty: Real = 0, evaluation_budget: int = 500,
+                 max_replacements: int = 2,
                  progress: Callable[[int, RankedBase], None] | None = None) -> LocalSearchResult:
-    """Deterministic best-improvement transfers, without grids or restarts.
+    """One-land descent, followed by a two-land completion check by default.
+
+    An improving completion move resumes one-land descent before checking again.
+    Set max_replacements=1 for the cheaper one-land-only search. A certificate
+    requires a complete final neighborhood; budget exhaustion never certifies it.
 
     evaluations counts unique bases visited this run (cache hits included).
     A partial final neighborhood returns the best evaluated base, without a
@@ -309,15 +354,19 @@ def local_search(evaluator: LocalManaEvaluator, initial: Mapping[ManaSource, int
     """
     if type(evaluation_budget) is not int or evaluation_budget < 1:
         raise ValueError("Evaluation budget must be a positive integer")
+    if type(max_replacements) is not int or max_replacements not in (1, 2):
+        raise ValueError("Maximum replacements must be 1 or 2")
     started = perf_counter()
     baseline = evaluator.value(initial, shock_penalty=shock_penalty, town_penalty=town_penalty)
     current = baseline
     visited: set[tuple[int, ...]] = set()
     moves = []
+    radius = 1
     while True:
         neighborhood = evaluator.value_and_swap_deltas(
             dict(zip(evaluator.space.sources, current.counts)), shock_penalty=shock_penalty,
-            town_penalty=town_penalty, evaluation_budget=evaluation_budget, _visited=visited)
+            town_penalty=town_penalty, evaluation_budget=evaluation_budget,
+            max_replacements=radius, _visited=visited)
         best = min((current, *neighborhood.neighbors), key=lambda row: (-row.score, row.counts))
         improved = best.score > current.score
         if improved:
@@ -328,8 +377,12 @@ def local_search(evaluator: LocalManaEvaluator, initial: Mapping[ManaSource, int
         if not neighborhood.complete:
             stopped = "evaluation budget"
             break
-        if not improved:
-            stopped = "one-land local optimum"
+        if improved:
+            radius = 1
+        elif radius < max_replacements:
+            radius = max_replacements
+        else:
+            stopped = "two-land local optimum" if radius == 2 else "one-land local optimum"
             break
     return LocalSearchResult(baseline, evaluator._relative(baseline, current), tuple(moves),
                              len(visited), perf_counter() - started, stopped)
@@ -395,6 +448,7 @@ class ComponentTable:
     default_weights: tuple[Fraction, ...]
     rows: tuple[BaseComponents, ...]
     model_signature: tuple = ()
+    timing_signature: tuple = ()
 
     def _weights(self, overrides: Mapping[str, Real] | None) -> tuple[Fraction, ...]:
         weights = dict(zip(self.costs, self.default_weights))
@@ -559,7 +613,8 @@ class ScoredTable:
 
 def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell], *,
                           model: ManaModel | CompiledManaModel,
-                          turns: int = 7,
+                          turns: int | None = None,
+                          half_life: Real | None = None, tail_tolerance: Real = 0.05,
                           position: Literal["both", "play", "draw"] = "both",
                           opening_hand_size: int = 7,
                           progress: Callable[[Iterable[tuple[int, ...]]], Iterable[tuple[int, ...]]] | None = None,
@@ -575,6 +630,8 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
     Batch work is reported by component_progress;
     progress wraps final candidate-row assembly. Scalar remains the reference.
     """
+    timing = resolve_timing(turns=turns, half_life=half_life, tail_tolerance=tail_tolerance)
+    turns = timing.horizon
     if backend not in ("auto", "scalar", "batch"):
         raise ValueError("Backend must be auto, scalar, or batch")
     if (type(turns) is not int or turns < 1 or type(opening_hand_size) is not int or opening_hand_size < 0
@@ -603,7 +660,7 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
         try:
             columns = dict(component_columns(space.bounds, space.land_count, copies, candidates,
                            nonlands=nonlands, turns=turns, position=position, opening_hand_size=opening_hand_size,
-                           progress=component_progress, model=compiled))
+                           progress=component_progress, model=compiled, turn_weights=timing.weights))
         except OverflowError:
             if backend == "batch":
                 raise
@@ -622,10 +679,10 @@ def build_component_table(space: ManaSpace, spells: Sequence[SpellCost | Spell],
                               opening_hand_size=opening_hand_size)
             totals = Counter()
             for opportunity in result.opportunities:
-                totals[opportunity.cost] += opportunity.expected_copies
-            divisor = turns * (2 if position == "both" else 1)
+                totals[opportunity.cost] += opportunity.expected_copies * timing.weights[opportunity.turn - 1]
+            divisor = 2 if position == "both" else 1
             values = tuple(totals[cost] / divisor for cost in costs)
         rows.append(BaseComponents(counts, values,
                                   sum(n for s, n in base.items() if s.kind == "shock"),
                                   sum(n for s, n in base.items() if s.kind == "town")))
-    return ComponentTable(space, costs, defaults, tuple(rows), compiled.signature)
+    return ComponentTable(space, costs, defaults, tuple(rows), compiled.signature, timing.signature)

@@ -111,10 +111,14 @@ def _opportunity_grid(counts: tuple[np.ndarray, ...], totals: np.ndarray,
 def component_columns(bounds: Mapping[ManaSource, tuple[int, int]], land_count: int,
                       copies: Mapping[str, Fraction], candidates: tuple[tuple[int, ...], ...], *,
                       nonlands: int, turns: int, position: str, opening_hand_size: int,
-                      model: CompiledManaModel,
+                      model: CompiledManaModel, turn_weights: tuple[Fraction, ...] | None = None,
                       progress: Callable[[Iterable[str]], Iterable[str]] | None = None
                       ) -> Iterator[tuple[str, tuple[Fraction, ...]]]:
     """Return exact mean mode-copy opportunities per cost for all candidates."""
+    if turn_weights is None:
+        turn_weights = (Fraction(1, turns),) * turns
+    if len(turn_weights) != turns or sum(turn_weights) != 1 or any(w < 0 for w in turn_weights):
+        raise ValueError("Turn weights must be normalized and match the horizon")
     sources = tuple(bounds)
     capacities = tuple(hi for _, hi in bounds.values())
     shape = tuple(n + 1 for n in capacities)
@@ -152,7 +156,7 @@ def component_columns(bounds: Mapping[ManaSource, tuple[int, int]], land_count: 
                 for k in range(caps[0], max_drawn + 1):
                     if 0 <= seen - k - 1 < nonlands:
                         factors[k] += Fraction(comb(nonlands - 1, seen - k - 1),
-                                               comb(deck_size, seen) * len(seen_by_turn))
+                                               comb(deck_size, seen) * len(sides)) * turn_weights[turn - 1]
         if not scenarios:
             yield cost, (Fraction(),) * len(candidates)
             continue

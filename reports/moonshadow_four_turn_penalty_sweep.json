@@ -1,0 +1,94 @@
+{
+  "settings": {
+    "shock_penalty": 0.012,
+    "town_penalty": 0.015,
+    "turns": 4,
+    "position": "both",
+    "fixed": "4 Cavern, 4 Town",
+    "basic_cap": 2,
+    "overlord_modes": [
+      "1B"
+    ],
+    "moonshadow": "B"
+  },
+  "rows": [
+    {
+      "shock_penalty": 0.012,
+      "shocks": 4,
+      "score": 2.5611230804699017,
+      "raw": 2.6691230804699018,
+      "lands": {
+        "Cavern of Souls": 4,
+        "Blooming Marsh": 3,
+        "Watery Grave": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 4,
+        "Starting Town": 4,
+        "Willowrush Verge": 1
+      },
+      "runs": [
+        {
+          "visits": 64,
+          "stop": "one-land local optimum"
+        },
+        {
+          "visits": 1048,
+          "stop": "one-land local optimum"
+        }
+      ]
+    },
+    {
+      "shock_penalty": 0.01,
+      "shocks": 4,
+      "score": 2.5691230804699017,
+      "raw": 2.6691230804699018,
+      "lands": {
+        "Cavern of Souls": 4,
+        "Blooming Marsh": 3,
+        "Watery Grave": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 4,
+        "Starting Town": 4,
+        "Willowrush Verge": 1
+      },
+      "runs": [
+        {
+          "visits": 64,
+          "stop": "one-land local optimum"
+        },
+        {
+          "visits": 1106,
+          "stop": "one-land local optimum"
+        }
+      ]
+    },
+    {
+      "shock_penalty": 0.008,
+      "shocks": 8,
+      "score": 2.5798051936012762,
+      "raw": 2.7038051936012764,
+      "lands": {
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 4,
+        "Watery Grave": 4,
+        "Deathcap Glade": 1,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 3,
+        "Starting Town": 4,
+        "Willowrush Verge": 2
+      },
+      "runs": [
+        {
+          "visits": 346,
+          "stop": "one-land local optimum"
+        },
+        {
+          "visits": 801,
+          "stop": "one-land local optimum"
+        }
+      ]
+    }
+  ]
+}

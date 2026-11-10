@@ -204,6 +204,45 @@ have multiple modes. Search tables retain these normalized shares per cost;
 default cost weights reproduce profile importance, and overrides replace the
 importance for that cost's shares. Rebuild a table to change mode shares.
 
+## Half-life turn weighting
+
+`evaluate`, `LocalManaEvaluator`, and `build_component_table` accept
+`half_life=h` and `tail_tolerance=0.05`. Omit `turns` when using decay.
+Without decay, `turns` still selects a uniform horizon and defaults to seven.
+
+On turn n the raw weight is `2**(-(n-1)/h)`. The horizon H is the smallest
+positive integer for which `2**(-H/h) < tail_tolerance`. Thus h=2 uses nine
+turns (4.42% omitted weight), and h=3 uses thirteen (4.96%). A strict inequality
+applies even at exact tail boundaries. The scalar and batch backends use the
+same weights. Play and draw remain equally weighted.
+
+Raw exponential weights are rounded to integer multiples of 1e-9, then
+normalized as exact fractions over the retained horizon. Payment probabilities
+remain exact; the exponential weighting is a numerical approximation. Scores
+are normalized weighted means, with shock/Town penalties subtracted afterward.
+Per-turn opportunity rows remain unweighted; consumers aggregating these rows
+must use the timing weights rather than divide by the number of turns.
+`resolve_timing` in `mana_timing` exposes the resolved horizon, weights, omitted
+mass and signature; local evaluators expose this as `.timing`. Table metadata
+includes `timing_signature`. Cache signatures include timing configuration;
+old caches must be rebuilt.
+
+The tail threshold bounds omitted weight, not relative score error or changes
+to the winning base. Decay does not change land sequencing assumptions or
+casting-mode importance. Keep full casting profiles when replacing a hard
+cutoff: dropping expensive modes redistributes importance toward cheap ones.
+
+Run `python -m examples.moonshadow_decay` for full-profile h=2 and h=3 local
+searches at shock penalty 0.008 and Town penalty 0.015. This preserves the exact
+34-spell/26-land Moonshadow list, fixes four Caverns and four Towns, caps basics
+at two, and explicitly adds Sultai slowlands to the previous Standard-filtered
+pool. Three starts share a cache for each half-life. Budget-limited searches
+resume with doubled budgets until a complete two-land neighborhood is checked.
+Reports and importable 60-card decklists are saved as
+`reports/moonshadow_decay_h2.*` and `reports/moonshadow_decay_h3.*`.
+Slowland legality is outside the pool's Standard snapshot; Cavern restrictions
+and land sequencing remain unmodeled. These are local, not global optima.
+
 ## Mana-base search and crossings
 
 Open [sultai_explorer.ipynb](sultai_explorer.ipynb) in PyCharm or Jupyter. Definitions
@@ -295,6 +334,30 @@ queries another evaluated candidate without changing the table. Results cover th
 Run `python -m examples.sultai_search` for the reduced reference-pool example and
 separate table-build/report timings.
 
+### Local search completion checks
+
+`local_search` defaults to `max_replacements=2`. It first takes improving
+one-land moves until none remain. It then checks every legal one- or two-land
+replacement. An improving two-land move resumes one-land descent, followed by
+another completion check. It does not check two-land moves at every descent step.
+
+A complete final check returns `stopped="two-land local optimum"`; this is not a
+global optimum certificate. Set `max_replacements=1` for the former cheaper
+behavior and `stopped="one-land local optimum"`. The default 500-visit budget is
+unchanged. Both phases share the budget and component cache, and repeated bases
+count only once within a run (cache hits from earlier runs still count as visits).
+If the completion check or subsequent descent runs out of budget, the best base
+found is returned with `stopped="evaluation budget"`, without a certificate.
+Larger neighborhoods can therefore require a larger budget to finish.
+
+`LocalManaEvaluator.neighbor_counts(base, max_replacements=1)` exposes the sorted,
+deduplicated eligible compositions without scoring. `value_and_swap_deltas`
+accepts the same keyword, defaulting to one-land moves for direct callers.
+Two-land generation checks constraints on the final composition, allowing
+coupled moves that preserve an exact family total despite individually illegal
+transfers. Source bounds, fixed lands, family totals and family maximums apply
+in both phases. The landscape experiment uses this shared generator.
+
 ## Generic hand experiments
 
 For the supplied Sultai deck, open [sultai_local_search.ipynb](sultai_local_search.ipynb)
@@ -316,7 +379,7 @@ The command writes named land counts, OUT/IN changes, score comparisons,
 per-cost contributions, timings, and per-run stopping reasons to
 `reports/sultai_palace_optimization.json` and `.md`. Use `--output PATH.json`
 to choose another output location. Search is deterministic and bounded;
-results distinguish budget stops from fully checked one-land local optima,
+results distinguish budget stops from fully checked two-land local optima,
 without certifying a global optimum.
 
 ### Tapped tri-lands
@@ -399,7 +462,7 @@ caches are retained in `.cache/sultai_shock_sweep.pkl`.
 
 `LocalManaEvaluator(..., model=model, family_totals={"shock": 10})` enforces exact family
 counts in evaluation and local neighborhoods. Only transfers preserving those
-totals are visited; coupled two-transfer moves are not included. `ManaSpace`
+totals are visited, including coupled two-land replacements in the final check. `ManaSpace`
 continues to describe the underlying per-source bounds.
 
 The current shared deck has four Awaken, two Glarb and two Dellian Fels,

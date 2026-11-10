@@ -1,0 +1,72 @@
+{
+  "settings": {
+    "shock_penalty": 0.012,
+    "town_penalty": 0.015,
+    "turns": 7,
+    "position": "both",
+    "fixed": "4 Cavern, 4 Town",
+    "basic_cap": 2,
+    "overlord_modes": [
+      "1B",
+      "3BB"
+    ],
+    "moonshadow": "B"
+  },
+  "initial": {
+    "Overgrown Tomb": 2,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Swamp": 1,
+    "Island": 1,
+    "Cavern of Souls": 4,
+    "Starting Town": 4,
+    "Gloomlake Verge": 3,
+    "Wastewood Verge": 2,
+    "Willowrush Verge": 1
+  },
+  "comparisons": {},
+  "previous_score": 3.2795949941598384,
+  "score": 3.353862246395736,
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Watery Grave": 3,
+    "Deathcap Glade": 4,
+    "Shipwreck Marsh": 4,
+    "Dreamroot Cascade": 4,
+    "Starting Town": 4,
+    "Willowrush Verge": 2
+  },
+  "runs": [
+    {
+      "visits": 726,
+      "stop": "one-land local optimum",
+      "score": 3.353862246395736,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 3,
+        "Deathcap Glade": 4,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 4,
+        "Starting Town": 4,
+        "Willowrush Verge": 2
+      }
+    },
+    {
+      "visits": 491,
+      "stop": "one-land local optimum",
+      "score": 3.353862246395736,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 3,
+        "Deathcap Glade": 4,
+        "Shipwreck Marsh": 4,
+        "Dreamroot Cascade": 4,
+        "Starting Town": 4,
+        "Willowrush Verge": 2
+      }
+    }
+  ]
+}

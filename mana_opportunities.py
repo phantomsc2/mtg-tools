@@ -18,6 +18,8 @@ The raw score is mean weighted opportunities per turn, not a probability.
 Penalties are charged per land in the base, after averaging turns/positions.
 """
 
+from mana_timing import resolve_timing
+
 import re
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
@@ -165,16 +167,23 @@ def _land_weights(capacities: tuple[int, ...], scenario: PaymentScenario,
 
 
 def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | Spell], *,
-             model: ManaModel | CompiledManaModel, turns: int = 7,
+             model: ManaModel | CompiledManaModel, turns: int | None = None, half_life: Real | None = None,
+             tail_tolerance: Real = 0.05,
              position: Literal["both", "play", "draw"] = "both", opening_hand_size: int = 7,
              town_penalty: float = 0, shock_penalty: float = 0) -> OpportunityResult:
     """Score the full draw distribution, including hands short on lands.
 
     Deck size is inferred. On turn T see opening_hand_size + T - 1 cards on
     the play, or one more on the draw, capped at deck size. Costs may select
-    different lands and are never competing for mana. No turn schedule or
+    different lands and are never competing for mana. No casting sequence or
     normalization by spell count/weight is applied.
+
+    With half_life set, omit turns: the horizon is derived from tail_tolerance
+    and scores use normalized exponential weights. Opportunity rows themselves
+    remain unweighted. Otherwise turns selects a uniform horizon (default 7).
     """
+    timing = resolve_timing(turns=turns, half_life=half_life, tail_tolerance=tail_tolerance)
+    turns = timing.horizon
     _count(turns, "Turn limit")
     _count(opening_hand_size, "Opening hand size")
     if not turns or position not in ("both", "play", "draw"):
@@ -226,6 +235,10 @@ def evaluate(mana_base: Mapping[ManaSource, int], spells: Sequence[SpellCost | S
                 per_copy = Fraction(numerator, comb(deck_size, seen))
                 rows.append(Opportunity(cost, turn, side, copies * per_copy, weighted_copies * float(per_copy)))
 
-    raw_score = fsum(row.weighted_contribution for row in rows) / (turns * len(positions))
+    if timing.half_life is None:
+        raw_score = fsum(row.weighted_contribution for row in rows) / (turns * len(positions))
+    else:
+        raw_score = fsum(row.weighted_contribution * float(timing.weights[row.turn - 1])
+                         for row in rows) / len(positions)
     penalty = fsum(penalties)
     return OpportunityResult(tuple(rows), raw_score, penalty, raw_score - penalty)
