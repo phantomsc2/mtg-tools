@@ -38,7 +38,7 @@ per-turn source limit. The example policy treats Cavern as unrestricted rainbow
 mana and approximates tapped entry through independent per-land availability.
 Counts describe the actual spell package; weights describe importance. Deck size
 is inferred from all land and spell counts. Only ordinary generic and WUBRG costs
-are supported. Decklist import is not wired yet.
+are supported. Import printed nonland costs with the notebook below.
 
 Run `python -m examples.sultai` for the sample Sultai cost profile and an
 illustrative mana base. The [original decklist](resources/decks/evoke_elementals.txt)
@@ -49,6 +49,44 @@ See [calculation notes](ideas/knowledge/mana-opportunities.md) for the mathemati
 python -m unittest -v test_mana_opportunities
 python -m doctest mana_opportunities.py
 ```
+
+## Decklist import
+
+Open [decklist_import.ipynb](decklist_import.ipynb), replace `DECKLIST`, and run all
+cells. The supplied Dimir example queries Scryfall and prints a copyable `SPELLS`
+tuple of `SpellCost` entries with card-name comments. It also leaves `SPELLS`
+available in the kernel for evaluation with a separately supplied mana base.
+
+```python
+from decklist_import import import_decklist, format_spells
+
+imported = import_decklist("4 Spyglass Siren (LCI) 78\n4 Island (ZNR) 381")
+SPELLS = imported.spells
+print(format_spells(imported))
+# SPELLS = (
+#     SpellCost('U', 4),  # Spyglass Siren
+# )
+```
+
+Input accepts positive quantities followed by names, optional `(SET) number`
+annotations, blank lines, and an optional `Deck` heading. The `Sideboard` section
+is excluded. Exact card/front-face names are matched case-insensitively; printing
+annotations and format legality are ignored. Duplicate cards combine in first
+appearance order; different cards with the same cost remain separate, all at
+weight 1. Every resolved land is excluded, including unsupported utility lands.
+
+Only the printed front/main cost is used for transforming cards, modal
+double-faced cards, adventures, and flip cards. Alternate costs and back faces
+are ignored. Split cards, missing mana costs, and costs containing X, hybrid,
+Phyrexian, snow, or required colorless mana produce diagnostics. `{0}` is supported.
+Unresolved names also fail the import: no partial spell package is returned.
+The notebook clears earlier `SPELLS` before querying to avoid stale results.
+
+Each import makes fresh batched requests to the [Scryfall API](https://scryfall.com/docs/api),
+requires internet access, and saves no catalog or cache. The notebook output
+records the successful conversion, rather than a full card database. No land
+model or format validation is generated. Run the offline tests with
+`python -m unittest -v test_decklist_import`.
 
 ## Land availability
 
