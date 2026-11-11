@@ -1,0 +1,183 @@
+{
+  "half_life": 2.0,
+  "horizon": 9,
+  "max_replacements": 1,
+  "budget": 800,
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 3,
+    "Awaken the Honored Dead": 3,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 1,
+    "Vicious Rivalry": 2
+  },
+  "family_bounds": {
+    "basic": [
+      1,
+      2
+    ],
+    "shock": [
+      0,
+      8
+    ],
+    "town": [
+      4,
+      4
+    ],
+    "typed_tapped": [
+      2,
+      2
+    ]
+  },
+  "source_bounds": {
+    "Swamp": [
+      0,
+      2
+    ],
+    "Forest": [
+      0,
+      2
+    ],
+    "Island": [
+      0,
+      2
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Undercity Sewers": [
+      2,
+      2
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "seeds": [
+    {
+      "previous_h": 1.0,
+      "score": 2.0636655830542185,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 2,
+        "Starting Town": 4,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3,
+        "Undercity Sewers": 2
+      }
+    },
+    {
+      "previous_h": 1.5,
+      "score": 2.064326975730703,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 1,
+        "Starting Town": 4,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 2,
+        "Undercity Sewers": 2
+      }
+    },
+    {
+      "previous_h": 2.0,
+      "score": 2.0646311698972073,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 3,
+        "Shipwreck Marsh": 1,
+        "Starting Town": 4,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 2,
+        "Undercity Sewers": 2
+      }
+    }
+  ],
+  "selected_seed_h": 2.0,
+  "seed_score": 2.0646311698972073,
+  "assumptions": [
+    "Exactly two Undercity Sewers; other typed tapped duals excluded.",
+    "One-swap only; no global or two-swap certificate.",
+    "Cavern unrestricted; no sequencing, life totals, surveil or land abilities."
+  ],
+  "visits": 179,
+  "score": 2.0678105236941686,
+  "exact_score": "63735265606498206257058906581252883204599/30822584988412951344917966526032904192000",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 3,
+    "Shipwreck Marsh": 1,
+    "Starting Town": 4,
+    "Undercity Sewers": 2,
+    "Wastewood Verge": 1,
+    "Willowrush Verge": 2
+  },
+  "stop": "one-land local optimum",
+  "elapsed_seconds": 137.7500964999781,
+  "search_seconds": 135.1532811000361,
+  "unique_evaluations": 180
+}

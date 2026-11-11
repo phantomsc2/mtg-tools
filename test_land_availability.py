@@ -13,7 +13,7 @@ MODEL = heuristic_mana_model()
 
 
 def oracle_rate(kind, turn):
-    if kind in ("tapped", "tri") or kind in ("town", "fast") and turn > 3 or kind == "slow" and turn < 3:
+    if kind in ("tapped", "tri", "typed_tapped") or kind in ("town", "fast") and turn > 3 or kind == "slow" and turn < 3:
         return F(turn-1, turn)
     return F(1)
 

@@ -25,7 +25,18 @@ turn, independent source failures, unrestricted rainbow Cavern mana, and no
 land-drop or spell sequencing. Shock life payments are assumed possible; life
 totals are not simulated.
 
-Typed shocks carry two basic land types. Verge secondary production depends on
+Typed shocks and the opt-in `typed_tapped` dual family carry two basic land types.
+For example, `ManaSource("UB", "typed_tapped")` represents Undercity Sewers's
+mana behavior, inferring both types; explicit types must match both colors.
+These lands share untyped tapped duals' availability: zero on turn one, then
+`(turn - 1) / turn`. Surveil and other non-mana abilities are not modeled.
+Enable them with `families={"typed_tapped": (0, 4)}` in `ManaSpace.from_colors`;
+`family_bounds={"typed_tapped": (0, 2)}` limits the family total independently
+of `tapped`. All ten pairs are supported in the existing Standard snapshot
+via the MKM cycle ([official Standard sets](https://magic.wizards.com/en/formats/standard)).
+Existing search pools remain opt-in and unchanged.
+
+Verge secondary production depends on
 qualifying types among lands seen, including unavailable sources. This optimistic
 lookahead is an approximation, not a battlefield simulation. Fast, slow, Town,
 tapped and tri-land availability schedules remain part of mana evaluation.

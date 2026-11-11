@@ -1,0 +1,240 @@
+{
+  "half_life": 1.0,
+  "horizon": 5,
+  "omitted_mass": 0.03125,
+  "score": 0.8286498786706324,
+  "exact_score": "102748772004837725526973/123995398599072000000000",
+  "lands": {
+    "Cavern of Souls": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 4,
+    "UB tapped dual": 2,
+    "Starting Town": 4,
+    "Wastewood Verge": 1,
+    "Gloomlake Verge": 3
+  },
+  "family_bounds": {
+    "basic": [
+      0,
+      2
+    ],
+    "shock": [
+      0,
+      8
+    ],
+    "tapped": [
+      2,
+      2
+    ],
+    "town": [
+      4,
+      4
+    ]
+  },
+  "runs": [
+    {
+      "start": "UB",
+      "score": 0.8286498786706324,
+      "attempts": [
+        {
+          "budget": 2000,
+          "visits": 2000,
+          "seconds": 603.1416049000109,
+          "stop": "evaluation budget"
+        },
+        {
+          "budget": 4000,
+          "visits": 2482,
+          "seconds": 678.8675125999725,
+          "stop": "two-land local optimum"
+        }
+      ],
+      "lands": {
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 4,
+        "UB tapped dual": 2,
+        "Starting Town": 4,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 3
+      }
+    },
+    {
+      "start": "BG",
+      "score": 0.8286498786706324,
+      "attempts": [
+        {
+          "budget": 2000,
+          "visits": 2000,
+          "seconds": 617.4621374999988,
+          "stop": "evaluation budget"
+        },
+        {
+          "budget": 4000,
+          "visits": 2660,
+          "seconds": 500.0966403000057,
+          "stop": "two-land local optimum"
+        }
+      ],
+      "lands": {
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 4,
+        "UB tapped dual": 2,
+        "Starting Town": 4,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 3
+      }
+    },
+    {
+      "start": "UG",
+      "score": 0.8284364802522269,
+      "attempts": [
+        {
+          "budget": 2000,
+          "visits": 2000,
+          "seconds": 729.6034268999938,
+          "stop": "evaluation budget"
+        },
+        {
+          "budget": 4000,
+          "visits": 4000,
+          "seconds": 1075.96297589998,
+          "stop": "evaluation budget"
+        },
+        {
+          "budget": 8000,
+          "visits": 2217,
+          "seconds": 164.44948509999085,
+          "stop": "two-land local optimum"
+        }
+      ],
+      "lands": {
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 1,
+        "Watery Grave": 4,
+        "Breeding Pool": 3,
+        "Deathcap Glade": 3,
+        "Shipwreck Marsh": 1,
+        "UB tapped dual": 2,
+        "Starting Town": 4,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 1,
+        "Willowrush Verge": 2
+      }
+    }
+  ],
+  "assumptions": [
+    "Tapped slots are untyped duals, not typed surveil lands.",
+    "Full casting profiles, uniform mode shares.",
+    "Cavern unrestricted; life, sequencing and land abilities not simulated.",
+    "Best-found two-land local optimum, not global certification."
+  ],
+  "family_counts": {
+    "basic": 0,
+    "cavern": 4,
+    "fast": 0,
+    "shock": 8,
+    "slow": 4,
+    "tapped": 2,
+    "town": 4,
+    "verge": 4
+  },
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 3,
+    "Awaken the Honored Dead": 3,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 1,
+    "Vicious Rivalry": 2
+  },
+  "source_bounds": {
+    "Swamp": [
+      0,
+      2
+    ],
+    "Forest": [
+      0,
+      2
+    ],
+    "Island": [
+      0,
+      2
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "BG tapped dual": [
+      0,
+      2
+    ],
+    "UB tapped dual": [
+      0,
+      2
+    ],
+    "UG tapped dual": [
+      0,
+      2
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "schema_version": 2,
+  "card_text_source": "https://www.mtg.wtf/card/sos/241/Vicious-Rivalry"
+}

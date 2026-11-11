@@ -1,0 +1,10 @@
+1 Swamp
+4 Cavern of Souls
+4 Watery Grave
+4 Breeding Pool
+3 Deathcap Glade
+1 Shipwreck Marsh
+4 Starting Town
+2 Undercity Sewers
+1 Wastewood Verge
+2 Willowrush Verge

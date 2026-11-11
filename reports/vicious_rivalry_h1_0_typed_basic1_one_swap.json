@@ -1,0 +1,419 @@
+{
+  "schema_version": 2,
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 3,
+    "Awaken the Honored Dead": 3,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 1,
+    "Vicious Rivalry": 2
+  },
+  "half_life": 1.0,
+  "horizon": 5,
+  "omitted_mass": 0.03125,
+  "score": 0.830259560473809,
+  "exact_score": "46414008690976800473713/55903010215852800000000",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 2,
+    "Starting Town": 4,
+    "Hedge Maze": 2,
+    "Wastewood Verge": 2,
+    "Gloomlake Verge": 3
+  },
+  "family_bounds": {
+    "basic": [
+      1,
+      2
+    ],
+    "shock": [
+      0,
+      8
+    ],
+    "town": [
+      4,
+      4
+    ],
+    "typed_tapped": [
+      2,
+      2
+    ]
+  },
+  "runs": [
+    {
+      "start": "UB",
+      "score": 0.8291886590223447,
+      "new_evaluations": 194,
+      "attempts": [
+        {
+          "budget": 800,
+          "visits": 194,
+          "seconds": 42.62843469996005,
+          "stop": "one-land local optimum"
+        }
+      ],
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 2,
+        "Watery Grave": 2,
+        "Breeding Pool": 4,
+        "Shipwreck Marsh": 1,
+        "Starting Town": 4,
+        "Undercity Sewers": 2,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3,
+        "Willowrush Verge": 1
+      }
+    },
+    {
+      "start": "BG",
+      "score": 0.830259560473809,
+      "new_evaluations": 323,
+      "attempts": [
+        {
+          "budget": 800,
+          "visits": 323,
+          "seconds": 78.19120060000569,
+          "stop": "one-land local optimum"
+        }
+      ],
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 2,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3
+      }
+    },
+    {
+      "start": "UG",
+      "score": 0.8299297798487337,
+      "new_evaluations": 243,
+      "attempts": [
+        {
+          "budget": 800,
+          "visits": 247,
+          "seconds": 63.823374299972784,
+          "stop": "one-land local optimum"
+        }
+      ],
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 1,
+        "Watery Grave": 4,
+        "Breeding Pool": 3,
+        "Deathcap Glade": 1,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3,
+        "Willowrush Verge": 1
+      }
+    }
+  ],
+  "assumptions": [
+    "Exactly two typed tapped duals; surveil is not modeled.",
+    "Full casting profiles, uniform mode shares.",
+    "Cavern unrestricted; life, sequencing and land abilities not simulated.",
+    "Best found within a fixed evaluation budget; see per-start completion status."
+  ],
+  "source_bounds": {
+    "Swamp": [
+      0,
+      2
+    ],
+    "Forest": [
+      0,
+      2
+    ],
+    "Island": [
+      0,
+      2
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Underground Mortuary": [
+      0,
+      2
+    ],
+    "Undercity Sewers": [
+      0,
+      2
+    ],
+    "Hedge Maze": [
+      0,
+      2
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "normalized_weights": [
+    "16/31",
+    "8/31",
+    "4/31",
+    "2/31",
+    "1/31"
+  ],
+  "spell_profiles": [
+    {
+      "count": 4,
+      "modes": [
+        {
+          "cost": "2UB",
+          "weight": 1
+        },
+        {
+          "cost": "1UUB",
+          "weight": 1
+        },
+        {
+          "cost": "1UBB",
+          "weight": 1
+        },
+        {
+          "cost": "UUBB",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        {
+          "cost": "UU",
+          "weight": 1
+        },
+        {
+          "cost": "BB",
+          "weight": 1
+        },
+        {
+          "cost": "4UU",
+          "weight": 1
+        },
+        {
+          "cost": "4BB",
+          "weight": 1
+        },
+        {
+          "cost": "2UUBB",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 3,
+      "modes": [
+        {
+          "cost": "WW",
+          "weight": 1
+        },
+        {
+          "cost": "BB",
+          "weight": 1
+        },
+        {
+          "cost": "4WW",
+          "weight": 1
+        },
+        {
+          "cost": "4BB",
+          "weight": 1
+        },
+        {
+          "cost": "2WWBB",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        {
+          "cost": "UU",
+          "weight": 1
+        },
+        {
+          "cost": "GG",
+          "weight": 1
+        },
+        {
+          "cost": "3UU",
+          "weight": 1
+        },
+        {
+          "cost": "3GG",
+          "weight": 1
+        },
+        {
+          "cost": "1UUGG",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        {
+          "cost": "2G",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        {
+          "cost": "1B",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 3,
+      "modes": [
+        {
+          "cost": "7UU",
+          "weight": 1
+        },
+        {
+          "cost": "2UU",
+          "weight": 1
+        },
+        {
+          "cost": "1UU",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 3,
+      "modes": [
+        {
+          "cost": "UBG",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        {
+          "cost": "UBG",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        {
+          "cost": "2BG",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 1,
+      "modes": [
+        {
+          "cost": "1B",
+          "weight": 1
+        },
+        {
+          "cost": "3BB",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        {
+          "cost": "2BG",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "family_counts": {
+    "basic": 1,
+    "cavern": 4,
+    "fast": 0,
+    "shock": 8,
+    "slow": 2,
+    "town": 4,
+    "typed_tapped": 2,
+    "verge": 5
+  },
+  "card_text_source": "https://www.mtg.wtf/card/sos/241/Vicious-Rivalry",
+  "max_replacements": 1,
+  "evaluation_budget_per_start": 800,
+  "initial_cache_entries": 0,
+  "cache_load_seconds": 0.016360300011001527,
+  "search_seconds": 184.64300959993852,
+  "elapsed_seconds": 186.38604259997373
+}

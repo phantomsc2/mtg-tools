@@ -1,0 +1,69 @@
+{
+  "baseline_score": 0.830259560473809,
+  "one_swap_complete": true,
+  "fast_bounds": {
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ]
+  },
+  "best_replacements": [
+    {
+      "fast_land": "Blooming Marsh",
+      "removed": {
+        "Deathcap Glade": 1
+      },
+      "score": 0.8294892503010315,
+      "delta": -0.000770310172777492,
+      "relative_change": -0.0009277944024371061
+    },
+    {
+      "fast_land": "Botanical Sanctum",
+      "removed": {
+        "Deathcap Glade": 1
+      },
+      "score": 0.8274513010214768,
+      "delta": -0.0028082594523322364,
+      "relative_change": -0.0033823873714018187
+    }
+  ],
+  "UB_fast_diagnostic": {
+    "name": "Darkslick Shores",
+    "previously_offered": false,
+    "removed": "Deathcap Glade",
+    "score": 0.8292264312969667,
+    "delta": -0.0010331291768423444,
+    "relative_change": -0.0012443448121847132
+  },
+  "blooming_marsh_turn_deltas": [
+    {
+      "turn": 1,
+      "opportunity_delta": 0.0,
+      "weighted_delta": 0.0
+    },
+    {
+      "turn": 2,
+      "opportunity_delta": 0.00949820135669617,
+      "weighted_delta": 0.002451148737211915
+    },
+    {
+      "turn": 3,
+      "opportunity_delta": 0.0,
+      "weighted_delta": 0.0
+    },
+    {
+      "turn": 4,
+      "opportunity_delta": -0.03434206229823429,
+      "weighted_delta": -0.0022156169224667286
+    },
+    {
+      "turn": 5,
+      "opportunity_delta": -0.03118110161320267,
+      "weighted_delta": -0.0010058419875226667
+    }
+  ]
+}

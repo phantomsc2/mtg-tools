@@ -1,0 +1,236 @@
+{
+  "schema_version": 2,
+  "half_life": 1.5,
+  "horizon": 7,
+  "max_replacements": 1,
+  "budget_per_start": 800,
+  "caverns": 3,
+  "score": 1.4484439180350992,
+  "exact_score": "18665259158628341840617310831638906182403/12886421715207919028536375699710000000000",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 3,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 4,
+    "Starting Town": 4,
+    "Hedge Maze": 2,
+    "Wastewood Verge": 1,
+    "Gloomlake Verge": 3
+  },
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 3,
+    "Awaken the Honored Dead": 3,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 1,
+    "Vicious Rivalry": 2
+  },
+  "runs": [
+    {
+      "start": "UB",
+      "initial_lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 1,
+        "Starting Town": 4,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3,
+        "Undercity Sewers": 2
+      },
+      "score": 1.4479782191657729,
+      "visits": 263,
+      "new_evaluations": 263,
+      "seconds": 179.17911199998343,
+      "stop": "one-land local optimum",
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 3,
+        "Starting Town": 4,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 2,
+        "Willowrush Verge": 1
+      }
+    },
+    {
+      "start": "BG",
+      "initial_lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 1,
+        "Starting Town": 4,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3,
+        "Underground Mortuary": 2
+      },
+      "score": 1.4484439180350992,
+      "visits": 287,
+      "new_evaluations": 281,
+      "seconds": 183.19160950003425,
+      "stop": "one-land local optimum",
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 4,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 3
+      }
+    },
+    {
+      "start": "UG",
+      "initial_lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 2,
+        "Shipwreck Marsh": 1,
+        "Starting Town": 4,
+        "Wastewood Verge": 2,
+        "Gloomlake Verge": 3,
+        "Hedge Maze": 2
+      },
+      "score": 1.4484439180350992,
+      "visits": 154,
+      "new_evaluations": 0,
+      "seconds": 0.28080149996094406,
+      "stop": "one-land local optimum",
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 4,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 3
+      }
+    }
+  ],
+  "complete": true,
+  "seed_report": "reports\\vicious_rivalry_h1_5_typed_basic1_one_swap.json",
+  "previous_four_cavern_score": 1.4609440357364443,
+  "family_bounds": {
+    "basic": [
+      1,
+      2
+    ],
+    "shock": [
+      0,
+      8
+    ],
+    "town": [
+      4,
+      4
+    ],
+    "typed_tapped": [
+      2,
+      2
+    ]
+  },
+  "source_bounds": {
+    "Swamp": [
+      0,
+      2
+    ],
+    "Forest": [
+      0,
+      2
+    ],
+    "Island": [
+      0,
+      2
+    ],
+    "Cavern of Souls": [
+      3,
+      3
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Underground Mortuary": [
+      0,
+      2
+    ],
+    "Undercity Sewers": [
+      0,
+      2
+    ],
+    "Hedge Maze": [
+      0,
+      2
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "elapsed_seconds": 363.9362177000148,
+  "assumptions": [
+    "One-swap only; no global or two-swap certificate.",
+    "Cavern unrestricted; no sequencing, life totals, surveil or land abilities."
+  ]
+}

@@ -8,7 +8,7 @@ from types import MappingProxyType
 from typing import Literal
 
 COLORS = "WUBRG"
-LAND_KINDS = ("basic", "shock", "verge", "town", "cavern", "fast", "slow", "tapped", "tri")
+LAND_KINDS = ("basic", "shock", "verge", "town", "cavern", "fast", "slow", "tapped", "tri", "typed_tapped")
 
 
 # Explicit legality snapshot, not a live rotation service. See knowledge notes.
@@ -30,6 +30,8 @@ STANDARD_COLORS = MappingProxyType({
     # Abstract tapped duals: a legal untyped representative exists for every pair.
     "tapped": _PAIRS,
     "tri": frozenset(TRI_NAMES),
+    # MKM typed tapped duals; surveil is outside the mana model.
+    "typed_tapped": _PAIRS,
 })
 
 
@@ -59,12 +61,12 @@ VERGE_RULES = MappingProxyType({
 @dataclass(frozen=True)
 class ManaSource:
     colors: str
-    kind: Literal["basic", "shock", "town", "cavern", "verge", "fast", "slow", "tapped", "tri"]
+    kind: Literal["basic", "shock", "town", "cavern", "verge", "fast", "slow", "tapped", "tri", "typed_tapped"]
     types: str = ""
 
     def __post_init__(self) -> None:
         sizes = {"basic": 1, "shock": 2, "town": 5, "cavern": 5, "verge": 2,
-                 "fast": 2, "slow": 2, "tapped": 2, "tri": 3}
+                 "fast": 2, "slow": 2, "tapped": 2, "tri": 3, "typed_tapped": 2}
         if (self.kind not in sizes or not isinstance(self.colors, str)
                 or len(self.colors) != sizes[self.kind] or len(set(self.colors)) != len(self.colors)
                 or set(self.colors) - set(COLORS)):
@@ -74,11 +76,12 @@ class ManaSource:
                 or set(self.types) - set(self.colors)):
             raise ValueError("Land types must be distinct WUBRG letters belonging to the source's colors")
         types = "".join(c for c in COLORS if c in self.types)
-        if self.kind == "basic":
+        if self.kind in ("basic", "typed_tapped"):
             types = types or self.colors
         if ((self.kind in ("town", "cavern", "verge", "fast", "slow", "tapped", "tri") and types)
-                or (self.kind == "shock" and types not in ("", self.colors))):
-            raise ValueError("Only basics and explicitly typed shocks carry basic land types")
+                or (self.kind == "shock" and types not in ("", self.colors))
+                or (self.kind == "typed_tapped" and types != self.colors)):
+            raise ValueError("Basic land types require a basic, a fully typed tapped dual, or an explicitly typed shock")
         if self.kind == "verge" and self.colors not in VERGE_RULES:
             raise ValueError(f"No Verge production rule registered for {self.colors}")
         object.__setattr__(self, "types", types)
@@ -90,7 +93,7 @@ class ManaSource:
 
 def sources_for_colors(colors: str, families: Iterable[str], *,
                        format: Literal["standard"] | None = None) -> tuple[ManaSource, ...]:
-    """Select on-color lands, typed shocks, and explicitly enabled rainbow families."""
+    """Select on-color families, typing shocks and typed tapped duals."""
     if (not isinstance(colors, str) or not colors or len(set(colors)) != len(colors)
             or set(colors) - set(COLORS)):
         raise ValueError("Select distinct colors from WUBRG")
@@ -119,6 +122,6 @@ def land_availability(kind: str, turn: int) -> Fraction:
     """
     if kind not in LAND_KINDS or type(turn) is not int or turn < 1:
         raise ValueError("A known land kind and positive integer turn are required")
-    tapped_now = (kind in ("tapped", "tri") or kind in ("town", "fast") and turn > 3
+    tapped_now = (kind in ("tapped", "tri", "typed_tapped") or kind in ("town", "fast") and turn > 3
                   or kind == "slow" and turn < 3)
     return Fraction(turn - int(tapped_now), turn)
