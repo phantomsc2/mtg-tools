@@ -1,0 +1,71 @@
+{
+  "half_life": 2,
+  "budget": 5000,
+  "max_replacements": 2,
+  "baseline_score": 2.0281511298306207,
+  "baseline_lands": {
+    "Island": 1,
+    "Cavern of Souls": 4,
+    "Overgrown Tomb": 2,
+    "Watery Grave": 4,
+    "Breeding Pool": 2,
+    "Deathcap Glade": 1,
+    "Dreamroot Cascade": 1,
+    "Restless Cottage": 2,
+    "Starting Town": 4,
+    "Undercity Sewers": 2,
+    "Gloomlake Verge": 1,
+    "Willowrush Verge": 2
+  },
+  "initial_neighbors": 2144,
+  "initial_uncached": 1956,
+  "family_bounds": {
+    "basic": [
+      1,
+      26
+    ],
+    "shock": [
+      0,
+      8
+    ]
+  },
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 4,
+    "Awaken the Honored Dead": 2,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 2,
+    "Vicious Rivalry": 1
+  },
+  "assumptions": [
+    "One- and two-swap local search; no global certificate.",
+    "Cavern unrestricted; life, sequencing, surveil and manland abilities not modeled."
+  ],
+  "score": 2.028562695339536,
+  "exact_score": "10808410758363218072949606438789435243670602013/5328112748595197424981665552463048623102361600",
+  "lands": {
+    "Island": 1,
+    "Cavern of Souls": 4,
+    "Overgrown Tomb": 2,
+    "Watery Grave": 4,
+    "Breeding Pool": 2,
+    "Deathcap Glade": 1,
+    "Shipwreck Marsh": 1,
+    "Restless Cottage": 2,
+    "Starting Town": 4,
+    "Undercity Sewers": 2,
+    "Willowrush Verge": 3
+  },
+  "stop": "interrupted_by_user",
+  "elapsed_seconds": 611.2867951999651,
+  "completed_initial_neighbors": 2144,
+  "visits_at_last_completed_neighborhood": 2190,
+  "improved_base_one_swap_complete": true,
+  "improved_base_two_swap_complete": false
+}

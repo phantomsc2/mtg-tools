@@ -1,0 +1,249 @@
+{
+  "half_life": 2.0,
+  "horizon": 9,
+  "sewers": 4,
+  "max_replacements": 1,
+  "budget": 800,
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 4,
+    "Sunderflock": 4,
+    "Awaken the Honored Dead": 2,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 1,
+    "Overlord of the Balemurk": 1,
+    "Vicious Rivalry": 2
+  },
+  "spell_profiles": [
+    {
+      "count": 4,
+      "modes": [
+        "2UB",
+        "1UUB",
+        "1UBB",
+        "UUBB"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "UU",
+        "BB",
+        "4UU",
+        "4BB",
+        "2UUBB"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "WW",
+        "BB",
+        "4WW",
+        "4BB",
+        "2WWBB"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "UU",
+        "GG",
+        "3UU",
+        "3GG",
+        "1UUGG"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "2G"
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        "1B"
+      ]
+    },
+    {
+      "count": 4,
+      "modes": [
+        "7UU",
+        "2UU",
+        "1UU"
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        "UBG"
+      ]
+    },
+    {
+      "count": 1,
+      "modes": [
+        "UBG"
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        "2BG"
+      ]
+    },
+    {
+      "count": 1,
+      "modes": [
+        "1B",
+        "3BB"
+      ]
+    },
+    {
+      "count": 2,
+      "modes": [
+        "2BG"
+      ]
+    }
+  ],
+  "supplied_lands": {
+    "Watery Grave": 4,
+    "Cavern of Souls": 4,
+    "Starting Town": 4,
+    "Gloomlake Verge": 1,
+    "Breeding Pool": 4,
+    "Wastewood Verge": 2,
+    "Deathcap Glade": 2,
+    "Swamp": 1,
+    "Shipwreck Marsh": 1,
+    "Willowrush Verge": 1,
+    "Undercity Sewers": 2
+  },
+  "legal_seeds_evaluated": 25,
+  "seed_score": 1.9662577016939131,
+  "initial_lands": {
+    "Watery Grave": 4,
+    "Cavern of Souls": 4,
+    "Starting Town": 4,
+    "Breeding Pool": 4,
+    "Wastewood Verge": 2,
+    "Deathcap Glade": 2,
+    "Swamp": 1,
+    "Willowrush Verge": 1,
+    "Undercity Sewers": 4
+  },
+  "family_bounds": {
+    "basic": [
+      1,
+      2
+    ],
+    "shock": [
+      0,
+      8
+    ],
+    "town": [
+      4,
+      4
+    ],
+    "typed_tapped": [
+      4,
+      4
+    ]
+  },
+  "source_bounds": {
+    "Swamp": [
+      0,
+      2
+    ],
+    "Forest": [
+      0,
+      2
+    ],
+    "Island": [
+      0,
+      2
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Undercity Sewers": [
+      4,
+      4
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "assumptions": [
+    "One-swap local search only, not a global certificate.",
+    "No surveil, life, sequencing or land abilities; Cavern unrestricted."
+  ],
+  "visits": 100,
+  "score": 1.9663245739800652,
+  "exact_score": "369307165825097015497445992825198936821030927631/187815974387980709230603710724322463964358246400",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 1,
+    "Starting Town": 4,
+    "Undercity Sewers": 4,
+    "Wastewood Verge": 3,
+    "Willowrush Verge": 1
+  },
+  "stop": "one-land local optimum",
+  "elapsed_seconds": 123.94008420000318,
+  "search_seconds": 96.75662559998455,
+  "unique_evaluations": 114
+}

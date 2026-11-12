@@ -1,0 +1,201 @@
+{
+  "case": 6,
+  "typed_pair": [
+    "UG",
+    "UG"
+  ],
+  "half_life": 2,
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 4,
+    "Awaken the Honored Dead": 2,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 2,
+    "Vicious Rivalry": 1
+  },
+  "max_replacements": 1,
+  "budget_per_start": 2500,
+  "random_seed": 20261117,
+  "source_bounds": {
+    "Swamp": [
+      0,
+      26
+    ],
+    "Forest": [
+      0,
+      26
+    ],
+    "Island": [
+      0,
+      26
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Darkslick Shores": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "Restless Cottage": [
+      2,
+      2
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Underground Mortuary": [
+      0,
+      0
+    ],
+    "Undercity Sewers": [
+      0,
+      0
+    ],
+    "Hedge Maze": [
+      2,
+      2
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "family_bounds": {
+    "basic": [
+      1,
+      26
+    ]
+  },
+  "runs": [
+    {
+      "start": "supplied",
+      "initial_lands": {
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Gloomlake Verge": 2,
+        "Wastewood Verge": 1,
+        "Swamp": 1,
+        "Deathcap Glade": 2,
+        "Restless Cottage": 2,
+        "Hedge Maze": 2
+      },
+      "score": 2.0345175082451714,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Gloomlake Verge": 2
+      },
+      "visits": 210,
+      "seconds": 309.71145349997096,
+      "stop": "one-land local optimum"
+    },
+    {
+      "start": "shock_rich",
+      "initial_lands": {
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Restless Cottage": 2,
+        "Hedge Maze": 2,
+        "Swamp": 1,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Overgrown Tomb": 4,
+        "Gloomlake Verge": 1
+      },
+      "score": 2.0345175082451714,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Gloomlake Verge": 2
+      },
+      "visits": 88,
+      "seconds": 52.00844839995261,
+      "stop": "one-land local optimum"
+    }
+  ],
+  "assumptions": [
+    "Exactly two Restless Cottages and the specified two typed duals.",
+    "No aggregate shock cap or basic maximum; all three Sultai fastlands offered.",
+    "Land abilities, life, sequencing and Cavern restrictions not modeled.",
+    "One-swap multistart search, not global certification."
+  ],
+  "score": 2.0345175082451714,
+  "exact_score": "117434835623313364740077516872842866181566890267/57721221443114638770634710151683026750275584000",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Overgrown Tomb": 3,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Restless Cottage": 2,
+    "Starting Town": 4,
+    "Hedge Maze": 2,
+    "Gloomlake Verge": 2
+  },
+  "active_start": "random_1",
+  "active_visits": 290,
+  "stop": "superseded_by_shock8_restart",
+  "elapsed_seconds": 1415.9478466999717
+}

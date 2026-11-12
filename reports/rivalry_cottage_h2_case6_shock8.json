@@ -1,0 +1,283 @@
+{
+  "case": 6,
+  "typed_pair": [
+    "UG",
+    "UG"
+  ],
+  "half_life": 2,
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 4,
+    "Awaken the Honored Dead": 2,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 2,
+    "Vicious Rivalry": 1
+  },
+  "max_replacements": 1,
+  "budget_per_start": 2500,
+  "random_seed": 20261117,
+  "source_bounds": {
+    "Swamp": [
+      0,
+      26
+    ],
+    "Forest": [
+      0,
+      26
+    ],
+    "Island": [
+      0,
+      26
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Darkslick Shores": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "Restless Cottage": [
+      2,
+      2
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Underground Mortuary": [
+      0,
+      0
+    ],
+    "Undercity Sewers": [
+      0,
+      0
+    ],
+    "Hedge Maze": [
+      2,
+      2
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "family_bounds": {
+    "basic": [
+      1,
+      26
+    ],
+    "shock": [
+      0,
+      8
+    ]
+  },
+  "runs": [
+    {
+      "start": "supplied",
+      "initial_lands": {
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Gloomlake Verge": 2,
+        "Wastewood Verge": 1,
+        "Swamp": 1,
+        "Deathcap Glade": 2,
+        "Restless Cottage": 2,
+        "Hedge Maze": 2
+      },
+      "score": 2.028741636938553,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 1,
+        "Shipwreck Marsh": 1,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 2
+      },
+      "visits": 119,
+      "seconds": 69.60813579999376,
+      "stop": "one-land local optimum"
+    },
+    {
+      "start": "shock8_verges",
+      "initial_lands": {
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Restless Cottage": 2,
+        "Hedge Maze": 2,
+        "Island": 1,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Gloomlake Verge": 3,
+        "Wastewood Verge": 2
+      },
+      "score": 2.028741636938553,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 1,
+        "Shipwreck Marsh": 1,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 2
+      },
+      "visits": 197,
+      "seconds": 174.3525497999508,
+      "stop": "one-land local optimum"
+    },
+    {
+      "start": "random_1",
+      "initial_lands": {
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Restless Cottage": 2,
+        "Hedge Maze": 2,
+        "Island": 1,
+        "Swamp": 3,
+        "Blooming Marsh": 4,
+        "Botanical Sanctum": 2,
+        "Darkslick Shores": 1,
+        "Watery Grave": 1,
+        "Willowrush Verge": 1,
+        "Dreamroot Cascade": 1
+      },
+      "score": 2.027607262322509,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 2,
+        "Watery Grave": 4,
+        "Breeding Pool": 2,
+        "Shipwreck Marsh": 1,
+        "Dreamroot Cascade": 1,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Gloomlake Verge": 2,
+        "Willowrush Verge": 1
+      },
+      "visits": 948,
+      "seconds": 2653.5068055999,
+      "stop": "one-land local optimum"
+    },
+    {
+      "start": "random_2",
+      "initial_lands": {
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Restless Cottage": 2,
+        "Hedge Maze": 2,
+        "Swamp": 1,
+        "Darkslick Shores": 3,
+        "Watery Grave": 2,
+        "Dreamroot Cascade": 2,
+        "Forest": 1,
+        "Willowrush Verge": 1,
+        "Breeding Pool": 1,
+        "Overgrown Tomb": 1,
+        "Island": 2
+      },
+      "score": 2.0282167278569556,
+      "lands": {
+        "Island": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 3,
+        "Watery Grave": 4,
+        "Breeding Pool": 1,
+        "Shipwreck Marsh": 2,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Hedge Maze": 2,
+        "Gloomlake Verge": 1,
+        "Willowrush Verge": 2
+      },
+      "visits": 806,
+      "seconds": 1988.540440099896,
+      "stop": "one-land local optimum"
+    }
+  ],
+  "recovered_evaluations": 84,
+  "assumptions": [
+    "Exactly two Restless Cottages and the specified two typed duals.",
+    "At most eight shocks; no basic maximum; all three Sultai fastlands offered.",
+    "Land abilities, life, sequencing and Cavern restrictions not modeled.",
+    "One-swap multistart search, not global certification."
+  ],
+  "score": 2.028741636938553,
+  "exact_score": "88295742160428826629518932122876117272375232487/43522418307375208912617615675867950651277312000",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 1,
+    "Shipwreck Marsh": 1,
+    "Restless Cottage": 2,
+    "Starting Town": 4,
+    "Hedge Maze": 2,
+    "Wastewood Verge": 1,
+    "Gloomlake Verge": 2
+  },
+  "active_start": "random_2",
+  "active_visits": 806,
+  "stop": "complete",
+  "elapsed_seconds": 4897.994377400028,
+  "unique_evaluations": 1998
+}

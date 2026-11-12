@@ -1,0 +1,178 @@
+{
+  "half_life": 2.0,
+  "max_replacements": 1,
+  "budget": 800,
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 4,
+    "Awaken the Honored Dead": 2,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 2,
+    "Vicious Rivalry": 1
+  },
+  "family_bounds": {
+    "basic": [
+      1,
+      2
+    ],
+    "shock": [
+      0,
+      8
+    ],
+    "tapped": [
+      4,
+      4
+    ],
+    "town": [
+      4,
+      4
+    ]
+  },
+  "source_bounds": {
+    "Swamp": [
+      0,
+      2
+    ],
+    "Forest": [
+      0,
+      2
+    ],
+    "Island": [
+      0,
+      2
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "BG tapped dual": [
+      4,
+      4
+    ],
+    "UB tapped dual": [
+      0,
+      0
+    ],
+    "UG tapped dual": [
+      0,
+      0
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "seed_mixes": [
+    {
+      "mix": {
+        "UB": 0,
+        "BG": 4,
+        "UG": 0
+      },
+      "score": 2.0210881661774107
+    },
+    {
+      "mix": {
+        "UB": 0,
+        "BG": 4,
+        "UG": 0
+      },
+      "score": 2.021005097336149
+    }
+  ],
+  "selected_seed_mix": {
+    "UB": 0,
+    "BG": 4,
+    "UG": 0
+  },
+  "seed_score": 2.0210881661774107,
+  "fixed_mix": {
+    "UB": 0,
+    "BG": 4,
+    "UG": 0
+  },
+  "initial_lands": {
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Cavern of Souls": 4,
+    "Starting Town": 4,
+    "Gloomlake Verge": 2,
+    "Wastewood Verge": 1,
+    "Swamp": 1,
+    "Deathcap Glade": 2,
+    "BG tapped dual": 4
+  },
+  "assumptions": [
+    "Four untyped tapped duals; no typed tapped duals offered.",
+    "No land abilities, life, sequencing or Cavern restrictions modeled.",
+    "One-swap local optimum only, not a global certificate."
+  ],
+  "visits": 159,
+  "score": 2.02676227765206,
+  "exact_score": "87107169800920995417836071560378431222490400229/42978483841643182890298331973529167955230720000",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 1,
+    "Shipwreck Marsh": 1,
+    "Dreamroot Cascade": 1,
+    "BG tapped dual": 4,
+    "Starting Town": 4,
+    "Gloomlake Verge": 2
+  },
+  "stop": "one-land local optimum",
+  "search_seconds": 216.6450543999672,
+  "elapsed_seconds": 220.22906499996316
+}

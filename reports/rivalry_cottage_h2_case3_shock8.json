@@ -1,0 +1,293 @@
+{
+  "case": 3,
+  "typed_pair": [
+    "UB",
+    "UG"
+  ],
+  "half_life": 2,
+  "spell_counts": {
+    "Superior Spider-Man": 4,
+    "Deceit": 4,
+    "Wistfulness": 4,
+    "Formidable Speaker": 4,
+    "Bitter Triumph": 2,
+    "Emptiness": 3,
+    "Sunderflock": 4,
+    "Awaken the Honored Dead": 2,
+    "Professor Dellian Fel": 2,
+    "Glarb, Calamity's Augur": 2,
+    "Overlord of the Balemurk": 2,
+    "Vicious Rivalry": 1
+  },
+  "max_replacements": 1,
+  "budget_per_start": 2500,
+  "random_seed": 20261114,
+  "source_bounds": {
+    "Swamp": [
+      0,
+      26
+    ],
+    "Forest": [
+      0,
+      26
+    ],
+    "Island": [
+      0,
+      26
+    ],
+    "Cavern of Souls": [
+      4,
+      4
+    ],
+    "Blooming Marsh": [
+      0,
+      4
+    ],
+    "Darkslick Shores": [
+      0,
+      4
+    ],
+    "Botanical Sanctum": [
+      0,
+      4
+    ],
+    "Overgrown Tomb": [
+      0,
+      4
+    ],
+    "Watery Grave": [
+      0,
+      4
+    ],
+    "Breeding Pool": [
+      0,
+      4
+    ],
+    "Deathcap Glade": [
+      0,
+      4
+    ],
+    "Shipwreck Marsh": [
+      0,
+      4
+    ],
+    "Dreamroot Cascade": [
+      0,
+      4
+    ],
+    "Restless Cottage": [
+      2,
+      2
+    ],
+    "Starting Town": [
+      4,
+      4
+    ],
+    "Underground Mortuary": [
+      0,
+      0
+    ],
+    "Undercity Sewers": [
+      1,
+      1
+    ],
+    "Hedge Maze": [
+      1,
+      1
+    ],
+    "Wastewood Verge": [
+      0,
+      4
+    ],
+    "Gloomlake Verge": [
+      0,
+      4
+    ],
+    "Willowrush Verge": [
+      0,
+      4
+    ]
+  },
+  "family_bounds": {
+    "basic": [
+      1,
+      26
+    ],
+    "shock": [
+      0,
+      8
+    ]
+  },
+  "runs": [
+    {
+      "start": "supplied",
+      "initial_lands": {
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Gloomlake Verge": 2,
+        "Wastewood Verge": 1,
+        "Swamp": 1,
+        "Deathcap Glade": 2,
+        "Restless Cottage": 2,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1
+      },
+      "score": 2.0281812376747808,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 1,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 2,
+        "Willowrush Verge": 1
+      },
+      "visits": 119,
+      "seconds": 62.61363000003621,
+      "stop": "one-land local optimum"
+    },
+    {
+      "start": "shock8_verges",
+      "initial_lands": {
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Restless Cottage": 2,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Island": 1,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Gloomlake Verge": 3,
+        "Wastewood Verge": 2
+      },
+      "score": 2.0281812376747808,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 1,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 2,
+        "Willowrush Verge": 1
+      },
+      "visits": 254,
+      "seconds": 202.04202499997336,
+      "stop": "one-land local optimum"
+    },
+    {
+      "start": "random_1",
+      "initial_lands": {
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Restless Cottage": 2,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Island": 2,
+        "Blooming Marsh": 1,
+        "Breeding Pool": 2,
+        "Deathcap Glade": 1,
+        "Willowrush Verge": 1,
+        "Watery Grave": 3,
+        "Wastewood Verge": 2,
+        "Swamp": 1,
+        "Gloomlake Verge": 1
+      },
+      "score": 2.0281812376747808,
+      "lands": {
+        "Swamp": 1,
+        "Cavern of Souls": 4,
+        "Watery Grave": 4,
+        "Breeding Pool": 4,
+        "Deathcap Glade": 1,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Wastewood Verge": 1,
+        "Gloomlake Verge": 2,
+        "Willowrush Verge": 1
+      },
+      "visits": 405,
+      "seconds": 1.1359514000359923,
+      "stop": "one-land local optimum"
+    },
+    {
+      "start": "random_2",
+      "initial_lands": {
+        "Cavern of Souls": 4,
+        "Starting Town": 4,
+        "Restless Cottage": 2,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Island": 2,
+        "Overgrown Tomb": 4,
+        "Dreamroot Cascade": 1,
+        "Swamp": 1,
+        "Gloomlake Verge": 2,
+        "Deathcap Glade": 1,
+        "Shipwreck Marsh": 1,
+        "Wastewood Verge": 1,
+        "Breeding Pool": 1
+      },
+      "score": 2.0275684746356006,
+      "lands": {
+        "Island": 1,
+        "Cavern of Souls": 4,
+        "Overgrown Tomb": 3,
+        "Watery Grave": 3,
+        "Breeding Pool": 2,
+        "Shipwreck Marsh": 1,
+        "Dreamroot Cascade": 1,
+        "Restless Cottage": 2,
+        "Starting Town": 4,
+        "Undercity Sewers": 1,
+        "Hedge Maze": 1,
+        "Gloomlake Verge": 2,
+        "Willowrush Verge": 1
+      },
+      "visits": 509,
+      "seconds": 1036.0603252000874,
+      "stop": "one-land local optimum"
+    }
+  ],
+  "recovered_evaluations": 448,
+  "assumptions": [
+    "Exactly two Restless Cottages and the specified two typed duals.",
+    "At most eight shocks; no basic maximum; all three Sultai fastlands offered.",
+    "Land abilities, life, sequencing and Cavern restrictions not modeled.",
+    "One-swap multistart search, not global certification."
+  ],
+  "score": 2.0281812376747808,
+  "exact_score": "82533714334350425465817866234531176267442079205601/40693461117395820333297470656936533858944286720000",
+  "lands": {
+    "Swamp": 1,
+    "Cavern of Souls": 4,
+    "Watery Grave": 4,
+    "Breeding Pool": 4,
+    "Deathcap Glade": 1,
+    "Restless Cottage": 2,
+    "Starting Town": 4,
+    "Undercity Sewers": 1,
+    "Hedge Maze": 1,
+    "Wastewood Verge": 1,
+    "Gloomlake Verge": 2,
+    "Willowrush Verge": 1
+  },
+  "active_start": "random_2",
+  "active_visits": 509,
+  "stop": "complete",
+  "elapsed_seconds": 1310.3229755999055,
+  "unique_evaluations": 1129
+}
