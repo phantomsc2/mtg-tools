@@ -15,9 +15,9 @@ Cavern restrictions remain outside this model. Shocks carry both land types.
 Run from the project root: python -m examples.sultai
 """
 
-from mana_lands import ManaSource
-from mana_model import heuristic_mana_model
-from mana_opportunities import CastingMode, Spell, SpellCost, evaluate
+from mtg_tools.mana_lands import ManaSource
+from mtg_tools.mana_model import heuristic_mana_model
+from mtg_tools.mana_opportunities import CastingMode, Spell, SpellCost, evaluate
 
 MANA_MODEL = heuristic_mana_model()
 

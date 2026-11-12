@@ -8,9 +8,9 @@ import random
 from time import perf_counter
 from examples.rivalry_four_untyped import COUNTS, SPELLS, CORE, NAMES
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource as S
-from mana_search import ManaSpace, LocalManaEvaluator, local_search
-from mana_opportunities import evaluate
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_search import ManaSpace, LocalManaEvaluator, local_search
+from mtg_tools.mana_opportunities import evaluate
 
 PAIRS=list(combinations_with_replacement(('UB','BG','UG'),2))
 
@@ -23,7 +23,7 @@ def run(case):
                        family_bounds={'basic':(1,26),'shock':(0,8)})
     names={**NAMES,S('UB','fast'):'Darkslick Shores',S('BG','tapped'):'Restless Cottage'}
     ev=LocalManaEvaluator(space,SPELLS,model=MANA_MODEL,half_life=2)
-    stem=Path(f'reports/rivalry_cottage_h2_case{case}_shock8');cache=Path(f'.cache/rivalry_cottage_h2_case{case}_shock8.pkl')
+    stem=Path(f'ideas/reports/rivalry_cottage_h2_case{case}_shock8');cache=Path(f'.cache/rivalry_cottage_h2_case{case}_shock8.pkl')
     recovered=0
     if cache.exists():
         with cache.open('rb') as f:sig,entries=pickle.load(f)
@@ -42,7 +42,7 @@ def run(case):
                 except ValueError:continue
                 eligible[counts]=value
             ev.restore_cache(ev.cache_signature,eligible);recovered=len(eligible)
-            old_report=Path(f'reports/rivalry_cottage_h2_case{case}.json')
+            old_report=Path(f'ideas/reports/rivalry_cottage_h2_case{case}.json')
             if old_report.exists():
                 previous=json.loads(old_report.read_text())
                 previous['stop']='superseded_by_shock8_restart'

@@ -4,9 +4,9 @@ from pathlib import Path
 
 from examples.vicious_rivalry_sweep import COUNTS, NAMES, SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource
-from mana_opportunities import evaluate
-from mana_search import ManaSpace
+from mtg_tools.mana_lands import ManaSource
+from mtg_tools.mana_opportunities import evaluate
+from mtg_tools.mana_search import ManaSpace
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
     inverse = {NAMES[s]: s for s in space.sources}
     reports = []
     for h in (1.0, 1.5, 2.0):
-        path = Path(f'reports/vicious_rivalry_h{str(h).replace(".", "_")}.json')
+        path = Path(f'ideas/reports/vicious_rivalry_h{str(h).replace(".", "_")}.json')
         report = json.loads(path.read_text())
         base = {inverse[name]: count for name, count in report['lands'].items()}
         space.counts(base)
@@ -50,7 +50,7 @@ def main():
               'Full casting profiles and uniform mode shares retained. Cavern is unrestricted rainbow mana. Life payments, sequencing, mulligans and land abilities are outside the evaluator. Tapped dual entries are color placeholders for untyped duals/manlands.', '',
               'Vicious Rivalry uses 2BG: https://www.mtg.wtf/card/sos/241/Vicious-Rivalry', '',
               'Decklists: [h=1](vicious_rivalry_h1_0.txt), [h=1.5](vicious_rivalry_h1_5.txt), [h=2](vicious_rivalry_h2_0.txt).', '']
-    Path('reports/vicious_rivalry_sweep.md').write_text('\n'.join(lines), encoding='utf-8')
+    Path('ideas/reports/vicious_rivalry_sweep.md').write_text('\n'.join(lines), encoding='utf-8')
     print(json.dumps({'scores': [r['score'] for r in reports], 'cross_scores': cross_scores}))
 
 

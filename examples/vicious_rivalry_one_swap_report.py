@@ -13,8 +13,8 @@ def main():
              '| --- | ---: | ---: | ---: | ---: | ---: | ---: |']
     for h in (1.0, 1.5, 2.0):
         tag = str(h).replace('.', '_')
-        one = json.loads(Path(f'reports/vicious_rivalry_h{tag}_one_swap.json').read_text())
-        two = json.loads(Path(f'reports/vicious_rivalry_h{tag}.json').read_text())
+        one = json.loads(Path(f'ideas/reports/vicious_rivalry_h{tag}_one_swap.json').read_text())
+        two = json.loads(Path(f'ideas/reports/vicious_rivalry_h{tag}.json').read_text())
         assert one['max_replacements'] == 1
         assert len(one['runs']) == 3
         assert all(r['attempts'][-1]['stop'] == 'one-land local optimum' for r in one['runs'])
@@ -42,7 +42,7 @@ def main():
               '[h=1.5](vicious_rivalry_h1_5_one_swap.txt), [h=2](vicious_rivalry_h2_0_one_swap.txt).', '',
               'Raw scores use different turn weights across h, so score differences are meaningful within each row, not across half-lives. '
               'Tapped entries are untyped dual/manland placeholders; land abilities are not valued.', '']
-    Path('reports/vicious_rivalry_one_swap.md').write_text('\n'.join(lines), encoding='utf-8')
+    Path('ideas/reports/vicious_rivalry_one_swap.md').write_text('\n'.join(lines), encoding='utf-8')
     print('\n'.join(lines[:9]))
 
 

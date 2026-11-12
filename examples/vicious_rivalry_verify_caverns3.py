@@ -6,9 +6,9 @@ from pathlib import Path
 
 from examples.vicious_rivalry_sweep import COUNTS, NAMES, SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource as S
-from mana_opportunities import evaluate
-from mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import evaluate
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
 
 
 def run(budget=2000):
@@ -23,7 +23,7 @@ def run(budget=2000):
             with path.open('rb') as f:
                 sig, entries = pickle.load(f)
             ev.restore_cache(sig, entries)
-    seed = json.loads(Path('reports/vicious_rivalry_h1_5_caverns3_one_swap.json').read_text())
+    seed = json.loads(Path('ideas/reports/vicious_rivalry_h1_5_caverns3_one_swap.json').read_text())
     inverse = {NAMES[s]: s for s in space.sources}
     base = {inverse[k]: v for k, v in seed['lands'].items()}
     one = ev.neighbor_counts(base, max_replacements=1)
@@ -35,7 +35,7 @@ def run(budget=2000):
               'initial_uncached_neighbors': sum(c not in ev.cache for c in two),
               'family_bounds': dict(space.family_bounds), 'spell_counts': COUNTS,
               'source_bounds': {NAMES[s]: list(b) for s, b in space.bounds.items()}}
-    stem = Path('reports/vicious_rivalry_h1_5_caverns3_two_swap')
+    stem = Path('ideas/reports/vicious_rivalry_h1_5_caverns3_two_swap')
 
     def checkpoint(visits, best):
         lands = {NAMES[s]: n for s, n in zip(space.sources, best.counts) if n}

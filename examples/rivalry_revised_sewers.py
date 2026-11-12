@@ -9,9 +9,9 @@ from time import perf_counter
 
 from examples.vicious_rivalry_sweep import COUNTS as PREVIOUS_COUNTS, NAMES, SPELLS as PREVIOUS_SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource as S
-from mana_opportunities import evaluate, spell_components
-from mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import evaluate, spell_components
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
 
 
 COUNTS = {**PREVIOUS_COUNTS, 'Emptiness': 4, 'Sunderflock': 4,
@@ -38,7 +38,7 @@ def run(sewers_count, budget=800, half_life=1.5):
     inverse = {NAMES[s]: s for s in space.sources}
     supplied = {inverse[name]: n for name, n in USER_LANDS.items()}
     tag = str(float(half_life)).replace('.', '_')
-    stem = Path(f'reports/rivalry_revised_h{tag}_sewers{sewers_count}_one_swap')
+    stem = Path(f'ideas/reports/rivalry_revised_h{tag}_sewers{sewers_count}_one_swap')
     cache = Path(f'.cache/rivalry_revised_h{tag}_sewers{sewers_count}_one_swap.pkl')
     if cache.exists():
         with cache.open('rb') as f:

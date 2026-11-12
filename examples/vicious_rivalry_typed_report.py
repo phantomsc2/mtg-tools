@@ -15,8 +15,8 @@ def main():
              '| --- | ---: | ---: | ---: | ---: | --- |']
     for h in (1.0, 1.5, 2.0):
         tag = str(h).replace('.', '_')
-        r = json.loads(Path(f'reports/vicious_rivalry_h{tag}_typed_basic1_one_swap.json').read_text())
-        old = json.loads(Path(f'reports/vicious_rivalry_h{tag}_one_swap.json').read_text())
+        r = json.loads(Path(f'ideas/reports/vicious_rivalry_h{tag}_typed_basic1_one_swap.json').read_text())
+        old = json.loads(Path(f'ideas/reports/vicious_rivalry_h{tag}_one_swap.json').read_text())
         assert r['max_replacements'] == 1 and len(r['runs']) == 3
         assert sum(r['lands'].values()) == 26 and sum(r['spell_counts'].values()) == 34
         assert r['family_counts']['typed_tapped'] == 2
@@ -45,7 +45,7 @@ def main():
               'Decklists: [h=1](vicious_rivalry_h1_0_typed_basic1_one_swap.txt), '
               '[h=1.5](vicious_rivalry_h1_5_typed_basic1_one_swap.txt), '
               '[h=2](vicious_rivalry_h2_0_typed_basic1_one_swap.txt).', '']
-    Path('reports/vicious_rivalry_typed_basic_one_swap.md').write_text('\n'.join(lines), encoding='utf-8')
+    Path('ideas/reports/vicious_rivalry_typed_basic_one_swap.md').write_text('\n'.join(lines), encoding='utf-8')
     print('\n'.join(lines))
 
 

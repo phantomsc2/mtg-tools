@@ -1,15 +1,33 @@
 # MTG mana and hand analysis
 
+## Development
+
+Run `uv sync` to install the package and its dependencies in an editable environment.
+Run commands below from the repository root; notebooks should use this environment's
+Python kernel. Notebook support (Jupyter/IPython) must be installed separately.
+
+```sh
+uv run python -m unittest discover -s tests -v
+uv run python -m examples.experiment --budget 1 --seed 0
+```
+
+Reusable code lives in `src/mtg_tools/`, with a flat module layout. `tests/` holds
+the test suite, `examples/` the deck-specific workflows, `notebooks/` interactive
+analyses, and `resources/` sample inputs. Maintained calculation guides live in
+`docs/`; `ideas/` holds workbench notes and historical results in `ideas/reports/`.
+Examples and resources are checkout assets and are not included in the installed
+package. Old top-level imports are replaced by `mtg_tools.<module>` imports.
+
 ## Mana opportunities
 
-[The standalone evaluator](mana_opportunities.py) scores a supplied mana base
+[The standalone evaluator](src/mtg_tools/mana_opportunities.py) scores a supplied mana base
 against casting-cost counts and optional importance weights. It uses only the
 Python standard library.
 
 ```python
-from mana_lands import ManaSource
-from mana_opportunities import SpellCost, evaluate
-from mana_model import heuristic_mana_model
+from mtg_tools.mana_lands import ManaSource
+from mtg_tools.mana_opportunities import SpellCost, evaluate
+from mtg_tools.mana_model import heuristic_mana_model
 
 base = {
     ManaSource("U", "basic"): 8,
@@ -43,22 +61,22 @@ are supported. Import printed nonland costs with the notebook below.
 Run `python -m examples.sultai` for the sample Sultai cost profile and an
 illustrative mana base. The [original decklist](resources/decks/evoke_elementals.txt)
 is retained as sample input; all Sultai-specific choices live in the example.
-See [calculation notes](ideas/knowledge/mana-opportunities.md) for the mathematics.
+See [calculation notes](docs/mana-opportunities.md) for the mathematics.
 
 ```sh
-python -m unittest -v test_mana_opportunities
-python -m doctest mana_opportunities.py
+python -m unittest discover -s tests -p "test_mana_opportunities.py" -v
+python -m doctest src/mtg_tools/mana_opportunities.py
 ```
 
 ## Decklist import
 
-Open [decklist_import.ipynb](decklist_import.ipynb), replace `DECKLIST`, and run all
+Open [decklist_import.ipynb](notebooks/decklist_import.ipynb), replace `DECKLIST`, and run all
 cells. The supplied Dimir example queries Scryfall and prints a copyable `SPELLS`
 tuple of `SpellCost` entries with card-name comments. It also leaves `SPELLS`
 available in the kernel for evaluation with a separately supplied mana base.
 
 ```python
-from decklist_import import import_decklist, format_spells
+from mtg_tools.decklist_import import import_decklist, format_spells
 
 imported = import_decklist("4 Spyglass Siren (LCI) 78\n4 Island (ZNR) 381")
 SPELLS = imported.spells
@@ -86,7 +104,7 @@ Each import makes fresh batched requests to the [Scryfall API](https://scryfall.
 requires internet access, and saves no catalog or cache. The notebook output
 records the successful conversion, rather than a full card database. No land
 model or format validation is generated. Run the offline tests with
-`python -m unittest -v test_decklist_import`.
+`python -m unittest discover -s tests -p "test_decklist_import.py" -v`.
 
 ## Land availability
 
@@ -127,7 +145,7 @@ For different production rules, supply a `ManaModel` directly:
 
 ```python
 from fractions import Fraction
-from mana_model import ManaModel, ManaOutcome
+from mtg_tools.mana_model import ManaModel, ManaOutcome
 
 model = ManaModel(
     outcomes=lambda source, context: (
@@ -189,7 +207,7 @@ draw uncertainty, so their batch axes are still needed.
 Keep physical copies separate from payment options:
 
 ```python
-from mana_opportunities import CastingMode, Spell
+from mtg_tools.mana_opportunities import CastingMode, Spell
 
 spell = Spell(count=4, modes=(CastingMode("UU"), CastingMode("BB")), weight=1)
 ```
@@ -239,13 +257,13 @@ at two, and explicitly adds Sultai slowlands to the previous Standard-filtered
 pool. Three supplied starts and the strongest cached base share components for each half-life. Budget-limited searches
 resume with doubled budgets until a complete two-land neighborhood is checked.
 Reports and importable 60-card decklists are saved as
-`reports/moonshadow_decay_h2.*` and `reports/moonshadow_decay_h3.*`.
+`ideas/reports/moonshadow_decay_h2.*` and `ideas/reports/moonshadow_decay_h3.*`.
 Slowland legality is outside the pool's Standard snapshot; Cavern restrictions
 and land sequencing remain unmodeled. These are local, not global optima.
 
 ## Mana-base search and crossings
 
-Open [sultai_explorer.ipynb](sultai_explorer.ipynb) in PyCharm or Jupyter. Definitions
+Open [sultai_explorer.ipynb](notebooks/sultai_explorer.ipynb) in PyCharm or Jupyter. Definitions
 and bounds are notebook-local. Build the full component table once, then edit
 casting-cost importance weights and rerun the report. The notebook needs IPython and tqdm;
 NumPy accelerates table construction. The scalar evaluator remains a reference.
@@ -253,8 +271,8 @@ Set `TURNS` in the notebook's build cell to choose the horizon (default 7).
 Changing it requires rebuilding: table components already average turns 1 through `TURNS`.
 
 ```python
-from mana_lands import ManaSource
-from mana_search import ManaSpace, build_component_table
+from mtg_tools.mana_lands import ManaSource
+from mtg_tools.mana_search import ManaSpace, build_component_table
 
 space = ManaSpace.from_colors(26, "UBG", format="standard", families={
     "shock": (0, 4), "fast": (0, 4), "verge": (0, 4), "town": (0, 4),
@@ -358,7 +376,7 @@ in both phases. The landscape experiment uses this shared generator.
 
 ## Generic hand experiments
 
-For the supplied Sultai deck, open [sultai_local_search.ipynb](sultai_local_search.ipynb)
+For the supplied Sultai deck, open [sultai_local_search.ipynb](notebooks/sultai_local_search.ipynb)
 or run `python -m examples.sultai_optimize`. Both use the shared deck in
 `examples.sultai`: 34 spells and 26 lands, with four Caverns, four Towns, and two Restless Cottages fixed.
 Standard-filtered shocks, fast lands, Verges, and Town range from 0-4; Island
@@ -375,7 +393,7 @@ board presence, sequencing, and Cavern restrictions are not simulated.
 
 The command writes named land counts, OUT/IN changes, score comparisons,
 per-cost contributions, timings, and per-run stopping reasons to
-`reports/sultai_palace_optimization.json` and `.md`. Use `--output PATH.json`
+`ideas/reports/sultai_palace_optimization.json` and `.md`. Use `--output PATH.json`
 to choose another output location. Search is deterministic and bounded;
 results distinguish budget stops from fully checked two-land local optima,
 without certifying a global optimum.
@@ -398,7 +416,7 @@ then optimize integer deck compositions. `TCard` can be any hashable type. The s
 has a name, mana value, and role tags; a multi-role card is still drawn only once.
 
 ```python
-from hands import expected_score
+from mtg_tools.hands import expected_score
 
 deck = {"land": 24, "threat": 20, "interaction": 16}
 value = expected_score(deck, lambda hand: 2 <= hand["land"] <= 4 and hand["threat"] > 0)
@@ -414,12 +432,12 @@ Install dependencies and run the discrete search experiment:
 
 ```sh
 uv sync
-uv run python experiment.py
-uv run python experiment.py --budget 100 --seed 0 --seed 1
-uv run python -m unittest -v
+uv run python -m examples.experiment
+uv run python -m examples.experiment --budget 100 --seed 0 --seed 1
+uv run python -m unittest discover -s tests -v
 ```
 
-`experiment.py` contains the card types and the example hand scorer. Its rewards and count bounds are
+`examples/experiment.py` contains the card types and the example hand scorer. Its rewards and count bounds are
 illustrative preferences, not inferred from `rock-mid.txt` or calibrated win rates. Edit those Python
 definitions to explore other roles, costs, or synergies. No automatic card lookup is performed.
 
@@ -485,4 +503,4 @@ Evaluation and ranking results expose only `score`. Local/table scores are exact
 fractions; standalone evaluation returns a float. Casting-cost weight overrides
 and their sensitivity intervals remain available. Old result/table pickle schemas
 and old local-cache signatures are rejected explicitly; regenerate them. The
-removal inventory is in [ANALYSIS_MIGRATION.md](ANALYSIS_MIGRATION.md).
+removal inventory is in [ANALYSIS_MIGRATION.md](ideas/ANALYSIS_MIGRATION.md).

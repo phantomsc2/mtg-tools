@@ -3,7 +3,7 @@
 from time import perf_counter
 
 from examples.sultai import MANA_BASE, MANA_MODEL, SPELLS
-from mana_search import ManaSpace, build_component_table
+from mtg_tools.mana_search import ManaSpace, build_component_table
 
 
 def main() -> None:

@@ -7,7 +7,7 @@ import pickle
 
 from examples.moonshadow_decay import (PROFILES, NAMES, MANA_MODEL, make_space, named,
                                       complete_search, write_deck)
-from mana_search import LocalManaEvaluator, ManaSpace
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace
 
 
 def neighbors(space, counts, shocks, *, radius=2, basic_cap=2):
@@ -23,7 +23,7 @@ def write_report(results):
     report={'schema_version':2,'settings':{'half_life':2,'horizon':9,'full_profiles':True,
             'family_bounds':{'shock':[8,12],'town':[4,4],'basic':[0,2]}},'results':results,
             'limitation':'Best-found fixed-count raw results, not a global optimum certificate.'}
-    Path('reports/moonshadow_h2_landscape.json').write_text(json.dumps(report,indent=2)+'\n')
+    Path('ideas/reports/moonshadow_h2_landscape.json').write_text(json.dumps(report,indent=2)+'\n')
     lines=['# h=2 fixed-shock raw-score comparison','',report['limitation'],'',
            '| Shocks | Score | Marginal gain |','| ---: | ---: | ---: |']
     for k,r in sorted(results.items()):
@@ -40,7 +40,7 @@ def write_report(results):
     for k,r in sorted(results.items()):
         lines += ['', f'### {k} shocks', '', r.get('provenance','Staged one-land descent and two-land completion checks from three diverse cached starts.'),
                   f'[Full decklist](moonshadow_h2_fixed_{k}shocks.txt)']
-    Path('reports/moonshadow_h2_landscape.md').write_text('\n'.join(lines)+'\n')
+    Path('ideas/reports/moonshadow_h2_landscape.md').write_text('\n'.join(lines)+'\n')
 
 
 def run(k):
@@ -52,7 +52,7 @@ def run(k):
         ev.restore_cache(sig,entries)
     if not ev.cache:
         # A retained fixed-count base is a valid seed, never an imposed winner.
-        part=Path(f'reports/moonshadow_h2_landscape_part_{k}.json')
+        part=Path(f'ideas/reports/moonshadow_h2_landscape_part_{k}.json')
         if part.exists():
             lands=json.loads(part.read_text())['lands']
             seed={s:lands.get(NAMES[s],0) for s in space.sources}
@@ -77,8 +77,8 @@ def run(k):
     winner=max(runs,key=lambda r:Fraction(r['exact_score']))
     result={**winner,'runs':runs,'family_bounds':dict(space.family_bounds),
             'stop':'two-land local optimum','provenance':'Reoptimized with the staged library search and raw scoring.'}
-    Path(f'reports/moonshadow_h2_landscape_part_{k}.json').write_text(json.dumps(result,indent=2)+'\n')
-    write_deck(f'reports/moonshadow_h2_fixed_{k}shocks.txt',result['lands'])
+    Path(f'ideas/reports/moonshadow_h2_landscape_part_{k}.json').write_text(json.dumps(result,indent=2)+'\n')
+    write_deck(f'ideas/reports/moonshadow_h2_fixed_{k}shocks.txt',result['lands'])
 
 
 def main():
@@ -89,6 +89,6 @@ def main():
     if not args.merge:
         for k in (args.count,) if args.count is not None else range(8,13):run(k)
     if args.count is None or args.merge:
-        write_report({k:json.loads(Path(f'reports/moonshadow_h2_landscape_part_{k}.json').read_text()) for k in range(8,13)})
+        write_report({k:json.loads(Path(f'ideas/reports/moonshadow_h2_landscape_part_{k}.json').read_text()) for k in range(8,13)})
 
 if __name__=='__main__':main()

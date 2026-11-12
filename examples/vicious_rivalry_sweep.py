@@ -3,9 +3,9 @@ import argparse,json,pickle
 from pathlib import Path
 from time import perf_counter
 from examples.moonshadow_decay import NAMES,PROFILES as OLD,make_space
-from mana_lands import ManaSource as S
-from mana_opportunities import Spell,SpellCost,spell_components,evaluate
-from mana_search import ManaSpace,LocalManaEvaluator,local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import Spell,SpellCost,spell_components,evaluate
+from mtg_tools.mana_search import ManaSpace,LocalManaEvaluator,local_search
 
 SPELLS=(*OLD[:6],Spell(3,OLD[6].modes),SpellCost('UBG',3),SpellCost('UBG',2),SpellCost('2BG',2),OLD[10],SpellCost('2BG',2))
 COUNTS={'Superior Spider-Man':4,'Deceit':4,'Wistfulness':4,'Formidable Speaker':4,'Bitter Triumph':2,'Emptiness':3,'Sunderflock':3,'Awaken the Honored Dead':3,'Professor Dellian Fel':2,"Glarb, Calamity's Augur":2,'Overlord of the Balemurk':1,'Vicious Rivalry':2}
@@ -51,7 +51,7 @@ def run(h, pairs=('UB','BG','UG'), suffix='', budget=500, max_replacements=2, sa
  report['assumptions'][-1]='Best found within a fixed evaluation budget; see per-start completion status.'
  if typed_tapped:report['assumptions'][0]='Exactly two typed tapped duals; surveil is not modeled.'
  report.update(max_replacements=max_replacements,evaluation_budget_per_start=budget,initial_cache_entries=initial_cache_entries,cache_load_seconds=loaded-started,search_seconds=sum(a['seconds'] for r in runs for a in r['attempts']),elapsed_seconds=perf_counter()-started)
- stem=Path(f'reports/vicious_rivalry_h{tag}{suffix}')
+ stem=Path(f'ideas/reports/vicious_rivalry_h{tag}{suffix}')
  stem.with_suffix('.json').write_text(json.dumps(report,indent=2)+'\n')
  stem.with_suffix('.txt').write_text('Deck\n'+'\n'.join(f'{n} {name}' for name,n in {**COUNTS,**lands}.items())+'\n')
  print(json.dumps({k:report[k] for k in ('half_life','score','lands','runs','cache_load_seconds','search_seconds','elapsed_seconds')}),flush=True)

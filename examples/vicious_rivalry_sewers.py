@@ -7,9 +7,9 @@ from time import perf_counter
 
 from examples.vicious_rivalry_sweep import COUNTS, NAMES, SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource as S
-from mana_opportunities import evaluate
-from mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import evaluate
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
 
 
 def run(h, budget=800):
@@ -20,7 +20,7 @@ def run(h, budget=800):
                       {**original.family_bounds, 'basic': (1, 2), 'typed_tapped': (2, 2)})
     ev = LocalManaEvaluator(space, SPELLS, model=MANA_MODEL, half_life=h)
     tag = str(h).replace('.', '_')
-    stem = Path(f'reports/vicious_rivalry_h{tag}_fixed_sewers_one_swap')
+    stem = Path(f'ideas/reports/vicious_rivalry_h{tag}_fixed_sewers_one_swap')
     cache = Path(f'.cache/rivalry_h{tag}_fixed_sewers_one_swap.pkl')
     if cache.exists():
         with cache.open('rb') as f:
@@ -33,7 +33,7 @@ def run(h, budget=800):
     for previous_h in (1.0, 1.5, 2.0):
         previous_tag = str(previous_h).replace('.', '_')
         previous = json.loads(Path(
-            f'reports/vicious_rivalry_h{previous_tag}_typed_basic1_one_swap.json').read_text())
+            f'ideas/reports/vicious_rivalry_h{previous_tag}_typed_basic1_one_swap.json').read_text())
         base = {inverse[n]: c for n, c in previous['lands'].items() if n != 'Hedge Maze'}
         base[sewers] = 2
         space.counts(base)

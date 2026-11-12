@@ -8,9 +8,9 @@ import pickle
 from time import perf_counter
 
 from examples.sultai import LAND_NAMES, MANA_MODEL, SPELLS
-from mana_lands import ManaSource as S
-from mana_opportunities import CastingMode, Spell, SpellCost, spell_components
-from mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import CastingMode, Spell, SpellCost, spell_components
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
 
 PROFILES = (*SPELLS[:2], Spell(3, SPELLS[2].modes), *SPELLS[3:7],
             SpellCost('UBG', 2), SpellCost('UBG', 1), SpellCost('2BG', 1),
@@ -94,7 +94,7 @@ def run(h):
     report.update({'score':float(winner.score),'exact_score':str(winner.score),'lands':named(base),
                    'family_counts':{kind:sum(n for s,n in base.items() if s.kind==kind) for kind in ('shock','slow','fast','basic','verge')},
                    'seconds':perf_counter()-started,'unique_evaluations':len(ev.cache)})
-    path=Path(f'reports/moonshadow_decay_h{h}')
+    path=Path(f'ideas/reports/moonshadow_decay_h{h}')
     path.with_suffix('.json').write_text(json.dumps(report,indent=2)+'\n')
     write_deck(path.with_suffix('.txt'), report['lands'])
     lines=[f'# Moonshadow half-life {h}: raw-score optimization','',

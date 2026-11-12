@@ -1,6 +1,9 @@
 /.vscode
 /.venv/
 __pycache__/
+*.egg-info/
+/build/
+/dist/
 /.python/
 /.cache/
 /resources/*

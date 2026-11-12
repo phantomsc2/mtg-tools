@@ -6,9 +6,9 @@ from pathlib import Path
 from time import perf_counter
 
 from examples.sultai import LAND_NAMES, MANA_BASE, MANA_MODEL, SPELLS
-from mana_lands import ManaSource, STANDARD_AS_OF
-from mana_opportunities import Spell, spell_components
-from mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana_lands import ManaSource, STANDARD_AS_OF
+from mtg_tools.mana_opportunities import Spell, spell_components
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
 
 LAND_COUNT = 26
 COLORS = "UBG"
@@ -154,7 +154,7 @@ def markdown_report(report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=Path("reports/sultai_palace_optimization.json"))
+    parser.add_argument("--output", type=Path, default=Path("ideas/reports/sultai_palace_optimization.json"))
     args = parser.parse_args()
     evaluator = LocalManaEvaluator(make_space(), SPELLS, model=MANA_MODEL, turns=TURNS, position=POSITION,
                                    opening_hand_size=OPENING_HAND_SIZE)

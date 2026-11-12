@@ -5,9 +5,9 @@ from pathlib import Path
 from time import perf_counter
 from examples.rivalry_cottage_sweep import COUNTS, SPELLS, NAMES
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource as S
-from mana_opportunities import evaluate
-from mana_search import ManaSpace, LocalManaEvaluator, local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import evaluate
+from mtg_tools.mana_search import ManaSpace, LocalManaEvaluator, local_search
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
         if path.exists():
             with path.open('rb') as f:sig,entries=pickle.load(f)
             ev.restore_cache(sig,entries)
-    seed=json.loads(Path('reports/rivalry_cottage_h2_case1_shock8.json').read_text())
+    seed=json.loads(Path('ideas/reports/rivalry_cottage_h2_case1_shock8.json').read_text())
     inverse={names[s]:s for s in space.sources}
     initial={inverse[k]:n for k,n in seed['lands'].items()}
     neighbors=ev.neighbor_counts(initial,max_replacements=2)
@@ -33,7 +33,7 @@ def main():
             'family_bounds':dict(space.family_bounds),'spell_counts':COUNTS,
             'assumptions':['One- and two-swap local search; no global certificate.',
                            'Cavern unrestricted; life, sequencing, surveil and manland abilities not modeled.']}
-    stem=Path('reports/rivalry_cottage_h2_two_sewers_two_swap')
+    stem=Path('ideas/reports/rivalry_cottage_h2_two_sewers_two_swap')
     best_seen=None
     original_value=ev.value
     def score(base):

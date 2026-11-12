@@ -5,7 +5,7 @@ from time import perf_counter
 
 from examples.sultai import LAND_NAMES, MANA_BASE, MANA_MODEL, SPELLS
 from examples.sultai_optimize import make_space
-from mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
 
 
 def render(report):
@@ -49,7 +49,7 @@ def main():
                      'family_bounds':dict(limited.family_bounds),'evaluations':result.evaluations,
                      'stopped':result.stopped,'seconds':result.seconds})
     report={'schema_version':2,'budget':budget,'seconds':perf_counter()-started,'results':rows}
-    Path('reports/sultai_shock_sweep.json').write_text(json.dumps(report,indent=2)+'\n')
-    Path('reports/sultai_shock_sweep.md').write_text(render(report))
+    Path('ideas/reports/sultai_shock_sweep.json').write_text(json.dumps(report,indent=2)+'\n')
+    Path('ideas/reports/sultai_shock_sweep.md').write_text(render(report))
 
 if __name__=='__main__':main()

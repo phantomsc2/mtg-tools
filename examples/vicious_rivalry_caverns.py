@@ -7,9 +7,9 @@ from time import perf_counter
 
 from examples.vicious_rivalry_sweep import COUNTS, NAMES, SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource as S
-from mana_opportunities import evaluate
-from mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import evaluate
+from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
 
 
 def run(caverns, budget=800):
@@ -21,7 +21,7 @@ def run(caverns, budget=800):
     space = ManaSpace(bounds, 26, {**original.family_bounds,
                                    'basic': (1, 2), 'typed_tapped': (2, 2)})
     ev = LocalManaEvaluator(space, SPELLS, model=MANA_MODEL, half_life=1.5)
-    seed_path = Path('reports/vicious_rivalry_h1_5_typed_basic1_one_swap.json')
+    seed_path = Path('ideas/reports/vicious_rivalry_h1_5_typed_basic1_one_swap.json')
     previous = json.loads(seed_path.read_text())
     inverse = {NAMES[s]: s for s in space.sources}
     initial = {inverse[name]: n for name, n in previous['lands'].items()}
@@ -30,7 +30,7 @@ def run(caverns, budget=800):
     for i in range(4 - caverns):
         source = S(('UB', 'BG')[i % 2], 'verge')
         initial[source] = initial.get(source, 0) + 1
-    stem = Path(f'reports/vicious_rivalry_h1_5_caverns{caverns}_one_swap')
+    stem = Path(f'ideas/reports/vicious_rivalry_h1_5_caverns{caverns}_one_swap')
     cache = Path(f'.cache/rivalry_h1_5_caverns{caverns}_one_swap.pkl')
     if cache.exists():
         with cache.open('rb') as f:

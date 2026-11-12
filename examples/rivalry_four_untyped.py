@@ -7,9 +7,9 @@ import pickle
 from time import perf_counter
 from examples.vicious_rivalry_sweep import COUNTS as OLD_COUNTS, NAMES, SPELLS as OLD, make_space
 from examples.sultai import MANA_MODEL
-from mana_lands import ManaSource as S
-from mana_opportunities import evaluate, spell_components
-from mana_search import ManaSpace, LocalManaEvaluator, local_search
+from mtg_tools.mana_lands import ManaSource as S
+from mtg_tools.mana_opportunities import evaluate, spell_components
+from mtg_tools.mana_search import ManaSpace, LocalManaEvaluator, local_search
 
 COUNTS = {**OLD_COUNTS, 'Sunderflock': 4, 'Awaken the Honored Dead': 2,
           'Overlord of the Balemurk': 2, 'Vicious Rivalry': 1}
@@ -30,7 +30,7 @@ def run(h, budget=800, fixed_mix=None):
     ev=LocalManaEvaluator(space,SPELLS,model=MANA_MODEL,half_life=h)
     tag=str(float(h)).replace('.','_')
     suffix=f'_{fixed_mix}' if fixed_mix else ''
-    stem=Path(f'reports/rivalry_four_untyped_h{tag}{suffix}')
+    stem=Path(f'ideas/reports/rivalry_four_untyped_h{tag}{suffix}')
     cache=Path(f'.cache/rivalry_four_untyped_h{tag}{suffix}.pkl')
     if cache.exists():
         with cache.open('rb') as f:sig,entries=pickle.load(f)
@@ -39,7 +39,7 @@ def run(h, budget=800, fixed_mix=None):
     inverse={n:s for s,n in NAMES.items()}
     cores=[CORE]
     if fixed:
-        previous=json.loads(Path(f'reports/rivalry_four_untyped_h{tag}.json').read_text())
+        previous=json.loads(Path(f'ideas/reports/rivalry_four_untyped_h{tag}.json').read_text())
         cores.append({inverse[n]:v for n,v in previous['lands'].items() if inverse[n].kind!='tapped'})
     for ub in range(5):
         for bg in range(5-ub):
