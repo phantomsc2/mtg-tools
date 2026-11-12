@@ -1,11 +1,14 @@
 import unittest
 from fractions import Fraction
 from math import inf, nan
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import CastingMode, Spell, SpellCost, evaluate
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, build_component_table
-from mtg_tools.mana_timing import resolve_timing
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import CastingMode, Spell, SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
+from mtg_tools.mana.timing import resolve_timing
 
 class TurnTimingTests(unittest.TestCase):
 

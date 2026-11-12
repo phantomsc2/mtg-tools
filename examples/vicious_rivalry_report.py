@@ -4,9 +4,9 @@ from pathlib import Path
 
 from examples.vicious_rivalry_sweep import COUNTS, NAMES, SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_opportunities import evaluate
-from mtg_tools.mana_search import ManaSpace
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.space import ManaSpace
 
 
 def main():

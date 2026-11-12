@@ -4,10 +4,14 @@ from unittest.mock import patch
 
 from examples.sultai import MANA_BASE, SPELLS
 from examples.sultai_optimize import FIXED_LANDS, make_space, optimize, starting_bases
-from mtg_tools.mana_lands import ManaSource, land_availability, sources_for_colors
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost, evaluate, spell_components
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, build_component_table
+from mtg_tools.mana.lands import ManaSource, sources_for_colors
+from mtg_tools.mana.policy import land_availability
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost, spell_components
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 from test_land_availability import physical_oracle
 
 MODEL = heuristic_mana_model()
@@ -87,7 +91,7 @@ class TriLandTests(unittest.TestCase):
             self.assertLessEqual(counts[space.sources.index(ManaSource("UBG", "tri"))], 2)
             for source, count in FIXED_LANDS.items():
                 self.assertEqual(counts[space.sources.index(source)], count)
-        with patch("mtg_tools.mana_search.evaluate", side_effect=AssertionError("cache miss")):
+        with patch("mtg_tools.mana.evaluation.evaluate", side_effect=AssertionError("cache miss")):
             again, best_again = optimize(evaluator, budgets=(1, 1, 1))
         self.assertEqual(best, best_again)
         self.assertEqual([r.best for r in runs], [r.best for r in again])

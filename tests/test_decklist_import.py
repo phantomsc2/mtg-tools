@@ -5,7 +5,7 @@ from urllib.error import HTTPError, URLError
 from unittest.mock import patch
 
 from mtg_tools.decklist_import import DecklistImportError, fetch_cards, format_spells, import_decklist, parse_decklist
-from mtg_tools.mana_opportunities import SpellCost, spell_components
+from mtg_tools.mana.spells import SpellCost, spell_components
 
 
 SAMPLE_DECK = """4 Kaito, Bane of Nightmares (DSK) 220

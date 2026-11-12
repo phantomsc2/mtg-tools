@@ -5,7 +5,9 @@ from time import perf_counter
 
 from examples.sultai import LAND_NAMES, MANA_BASE, MANA_MODEL, SPELLS
 from examples.sultai_optimize import make_space
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.local import local_search
 
 
 def render(report):

@@ -2,8 +2,10 @@ import unittest
 from fractions import Fraction as F
 from random import Random
 from unittest.mock import patch
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_search import BaseComponents, ComponentTable, Interval, ManaSpace
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.tables import BaseComponents, ComponentTable
+from mtg_tools.mana.sensitivity import Interval
+from mtg_tools.mana.space import ManaSpace
 
 def interval_oracle(lines, index):
     a, b = lines[index]

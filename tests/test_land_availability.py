@@ -4,10 +4,13 @@ from fractions import Fraction as F
 from itertools import combinations, product
 from math import comb, prod
 
-from mtg_tools.mana_lands import ManaSource, land_availability
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost, evaluate
-from mtg_tools.mana_search import ManaSpace, build_component_table
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.policy import land_availability
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 
 MODEL = heuristic_mana_model()
 

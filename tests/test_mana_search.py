@@ -2,10 +2,13 @@ import unittest
 from fractions import Fraction as F
 from itertools import product
 from unittest.mock import patch
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost, evaluate
-from mtg_tools.mana_search import BaseComponents, ComponentTable, Interval, ManaSpace, build_component_table
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.tables import BaseComponents, ComponentTable, build_component_table
+from mtg_tools.mana.sensitivity import Interval
+from mtg_tools.mana.space import ManaSpace
 MODEL = heuristic_mana_model()
 U = ManaSource('U', 'basic')
 B = ManaSource('B', 'basic')
@@ -49,7 +52,7 @@ class ManaSearchTests(unittest.TestCase):
             expected = evaluate(dict(zip(space.sources, row.counts)), [SpellCost('U', 3, 2), SpellCost('UB', 1, 0)], model=MODEL, turns=3, opening_hand_size=2)
             self.assertAlmostEqual(float(row.score), expected.score)
         self.assertTrue(all((isinstance(value, F) for row in table.rows for value in row.opportunities)))
-        with patch('mtg_tools.mana_search.evaluate', side_effect=AssertionError('Unexpected draw calculation')):
+        with patch('mtg_tools.mana.tables.evaluate', side_effect=AssertionError('Unexpected draw calculation')):
             table.rank({'U': 3})
             table.crossings('U')
 

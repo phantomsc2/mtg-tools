@@ -9,9 +9,12 @@ from time import perf_counter
 
 from examples.vicious_rivalry_sweep import COUNTS as PREVIOUS_COUNTS, NAMES, SPELLS as PREVIOUS_SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_opportunities import evaluate, spell_components
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.spells import spell_components
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.local import local_search
 
 
 COUNTS = {**PREVIOUS_COUNTS, 'Emptiness': 4, 'Sunderflock': 4,

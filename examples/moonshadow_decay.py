@@ -8,9 +8,11 @@ import pickle
 from time import perf_counter
 
 from examples.sultai import LAND_NAMES, MANA_MODEL, SPELLS
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_opportunities import CastingMode, Spell, SpellCost, spell_components
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.spells import CastingMode, Spell, SpellCost, spell_components
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.local import local_search
 
 PROFILES = (*SPELLS[:2], Spell(3, SPELLS[2].modes), *SPELLS[3:7],
             SpellCost('UBG', 2), SpellCost('UBG', 1), SpellCost('2BG', 1),

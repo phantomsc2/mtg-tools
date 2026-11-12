@@ -9,7 +9,7 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from mtg_tools.mana_opportunities import SpellCost
+from mtg_tools.mana.spells import SpellCost
 
 COLLECTION_URL = "https://api.scryfall.com/cards/collection"
 FRONT_FACE_LAYOUTS = frozenset(("transform", "modal_dfc", "adventure", "flip"))

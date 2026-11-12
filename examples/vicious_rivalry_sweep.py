@@ -3,9 +3,12 @@ import argparse,json,pickle
 from pathlib import Path
 from time import perf_counter
 from examples.moonshadow_decay import NAMES,PROFILES as OLD,make_space
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_opportunities import Spell,SpellCost,spell_components,evaluate
-from mtg_tools.mana_search import ManaSpace,LocalManaEvaluator,local_search
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.spells import Spell, SpellCost, spell_components
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.local import local_search
 
 SPELLS=(*OLD[:6],Spell(3,OLD[6].modes),SpellCost('UBG',3),SpellCost('UBG',2),SpellCost('2BG',2),OLD[10],SpellCost('2BG',2))
 COUNTS={'Superior Spider-Man':4,'Deceit':4,'Wistfulness':4,'Formidable Speaker':4,'Bitter Triumph':2,'Emptiness':3,'Sunderflock':3,'Awaken the Honored Dead':3,'Professor Dellian Fel':2,"Glarb, Calamity's Augur":2,'Overlord of the Balemurk':1,'Vicious Rivalry':2}

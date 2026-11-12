@@ -6,9 +6,11 @@ from pathlib import Path
 from time import perf_counter
 
 from examples.sultai import LAND_NAMES, MANA_BASE, MANA_MODEL, SPELLS
-from mtg_tools.mana_lands import ManaSource, STANDARD_AS_OF
-from mtg_tools.mana_opportunities import Spell, spell_components
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana.lands import ManaSource, STANDARD_AS_OF
+from mtg_tools.mana.spells import Spell, spell_components
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.local import local_search
 
 LAND_COUNT = 26
 COLORS = "UBG"

@@ -7,7 +7,8 @@ import pickle
 
 from examples.moonshadow_decay import (PROFILES, NAMES, MANA_MODEL, make_space, named,
                                       complete_search, write_deck)
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
 
 
 def neighbors(space, counts, shocks, *, radius=2, basic_cap=2):

@@ -7,9 +7,11 @@ from time import perf_counter
 
 from examples.vicious_rivalry_sweep import COUNTS, NAMES, SPELLS, make_space
 from examples.sultai import MANA_MODEL
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_opportunities import evaluate
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, local_search
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.local import local_search
 
 
 def run(h, budget=800):

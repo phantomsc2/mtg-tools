@@ -9,10 +9,13 @@ def restrict_space(space, exact=None, caps=None):
 import unittest
 from fractions import Fraction
 from unittest.mock import patch
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost, evaluate
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, RankedBase, local_search
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.evaluation import LocalManaEvaluator, RankedBase
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.local import local_search
 MODEL = heuristic_mana_model()
 U = ManaSource('U', 'basic')
 B = ManaSource('B', 'basic')
@@ -59,7 +62,7 @@ class LocalSearchTests(unittest.TestCase):
         self.assertAlmostEqual(float(value.score), expected.score)
         self.assertIsInstance(value.score, Fraction)
         self.assertEqual(evaluator.components(base).opportunities, expected.opportunities)
-        with patch('mtg_tools.mana_search.evaluate', side_effect=AssertionError('cache miss')):
+        with patch('mtg_tools.mana.evaluation.evaluate', side_effect=AssertionError('cache miss')):
             changed = evaluator.value(base)
             self.assertEqual(value.score, changed.score)
         self.assertEqual({(r.turn, r.position) for r in expected.opportunities}, {(t, p) for t in range(1, 4) for p in ('play', 'draw')})
@@ -69,7 +72,7 @@ class LocalSearchTests(unittest.TestCase):
         spells = [SpellCost('U', 4)]
         evaluator = LocalManaEvaluator(space, spells, model=MODEL, turns=1, opening_hand_size=2)
         initial = {B: 3, D: 1}
-        with patch.object(ManaSpace, 'exhaustive', side_effect=AssertionError('grid')), patch('mtg_tools.mana_batch.component_columns', side_effect=AssertionError('batch grid')):
+        with patch.object(ManaSpace, 'exhaustive', side_effect=AssertionError('grid')), patch('mtg_tools.mana._batch.component_columns', side_effect=AssertionError('batch grid')):
             result = local_search(evaluator, initial)
         self.assertEqual(result.stopped, 'two-land local optimum')
         self.assertGreaterEqual(len(result.moves), 2)
@@ -97,7 +100,7 @@ class LocalSearchTests(unittest.TestCase):
             self.assertGreaterEqual(result.best.score, result.baseline.score)
             if budget == 2:
                 self.assertGreater(result.best.score, result.baseline.score)
-        with patch('mtg_tools.mana_search.evaluate', side_effect=AssertionError('cache miss')):
+        with patch('mtg_tools.mana.evaluation.evaluate', side_effect=AssertionError('cache miss')):
             self.assertEqual(local_search(evaluator, initial, evaluation_budget=2).evaluations, 2)
 
     def test_plateau_fixed_and_invalid_inputs(self):
@@ -170,7 +173,7 @@ class LocalSearchTests(unittest.TestCase):
         self.assertEqual(limited.stopped, 'evaluation budget')
         complete = local_search(evaluator, initial, evaluation_budget=3)
         self.assertEqual(complete.stopped, 'two-land local optimum')
-        with patch('mtg_tools.mana_search.evaluate', side_effect=AssertionError('cache miss')):
+        with patch('mtg_tools.mana.evaluation.evaluate', side_effect=AssertionError('cache miss')):
             repeated = local_search(evaluator, initial, evaluation_budget=2)
         self.assertEqual(repeated.evaluations, limited.evaluations)
         self.assertEqual(repeated.stopped, 'evaluation budget')

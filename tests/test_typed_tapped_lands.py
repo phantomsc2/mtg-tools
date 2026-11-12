@@ -1,10 +1,13 @@
 import unittest
 from fractions import Fraction as F
 
-from mtg_tools.mana_lands import ManaSource as S, land_availability, sources_for_colors
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost, evaluate
-from mtg_tools.mana_search import ManaSpace, build_component_table
+from mtg_tools.mana.lands import ManaSource as S, sources_for_colors
+from mtg_tools.mana.policy import land_availability
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 from test_land_availability import physical_oracle
 
 

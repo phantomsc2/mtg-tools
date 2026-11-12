@@ -7,9 +7,12 @@ import pickle
 from time import perf_counter
 from examples.vicious_rivalry_sweep import COUNTS as OLD_COUNTS, NAMES, SPELLS as OLD, make_space
 from examples.sultai import MANA_MODEL
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_opportunities import evaluate, spell_components
-from mtg_tools.mana_search import ManaSpace, LocalManaEvaluator, local_search
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.spells import spell_components
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.local import local_search
 
 COUNTS = {**OLD_COUNTS, 'Sunderflock': 4, 'Awaken the Honored Dead': 2,
           'Overlord of the Balemurk': 2, 'Vicious Rivalry': 1}

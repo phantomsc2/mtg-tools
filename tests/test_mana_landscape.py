@@ -2,8 +2,8 @@ import unittest
 from fractions import Fraction
 from itertools import product
 from examples.moonshadow_fixed_landscape import neighbors
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_search import ManaSpace
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.space import ManaSpace
 
 class LandscapeTests(unittest.TestCase):
     def test_radius_two_matches_complete_small_space(self):

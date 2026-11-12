@@ -3,10 +3,12 @@ from collections import Counter
 from fractions import Fraction
 from itertools import combinations, product
 from math import comb
-from mtg_tools.mana_lands import ManaSource, VERGE_RULES
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import CastingMode, Spell, SpellCost, evaluate
-from mtg_tools.mana_search import ManaSpace, build_component_table
+from mtg_tools.mana.lands import ManaSource, VERGE_RULES
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import CastingMode, Spell, SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 MODEL = heuristic_mana_model()
 
 def can_pay_physical(lands, cost, turn, seen_types=None):

@@ -4,9 +4,10 @@ from fractions import Fraction
 from itertools import combinations, product
 from math import comb
 from pathlib import Path
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost, evaluate
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.evaluation import evaluate
 MODEL = heuristic_mana_model()
 
 def physical_expectations(base, spells, seen, turn):

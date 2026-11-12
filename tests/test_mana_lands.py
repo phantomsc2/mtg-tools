@@ -2,10 +2,11 @@ import unittest
 from collections import Counter
 from itertools import combinations
 
-from mtg_tools.mana_lands import COLORS, ManaSource, VERGE_RULES, sources_for_colors
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost
-from mtg_tools.mana_search import ManaSpace, build_component_table
+from mtg_tools.mana.lands import COLORS, ManaSource, VERGE_RULES, sources_for_colors
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 
 MODEL = heuristic_mana_model()
 

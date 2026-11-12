@@ -3,10 +3,14 @@ import unittest
 from fractions import Fraction
 from itertools import product
 
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import OpportunityResult, SpellCost, evaluate
-from mtg_tools.mana_search import BaseComponents, ComponentTable, LocalManaEvaluator, ManaSpace, build_component_table, local_search
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.evaluation import OpportunityResult, evaluate
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.tables import BaseComponents, ComponentTable, build_component_table
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.local import local_search
 
 
 class FamilySpaceTests(unittest.TestCase):

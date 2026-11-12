@@ -4,11 +4,13 @@ from itertools import product
 from math import comb
 from unittest.mock import patch
 import numpy as np
-from mtg_tools.mana_batch import binomial_transform
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_model import heuristic_mana_model
-from mtg_tools.mana_opportunities import CastingMode, Spell, SpellCost, evaluate
-from mtg_tools.mana_search import ManaSpace, build_component_table
+from mtg_tools.mana._batch import binomial_transform
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import CastingMode, Spell, SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 MODEL = heuristic_mana_model()
 
 class BatchTests(unittest.TestCase):
@@ -17,7 +19,7 @@ class BatchTests(unittest.TestCase):
         space = ManaSpace({ManaSource(c, 'basic'): (0, 15) for c in 'WUBRG'}, 0)
         spells = [SpellCost('2', 1)]
         expected = build_component_table(space, spells, model=MODEL, backend='scalar', turns=1)
-        with patch('mtg_tools.mana_search.evaluate', side_effect=AssertionError('Unexpected scalar fallback')):
+        with patch('mtg_tools.mana.tables.evaluate', side_effect=AssertionError('Unexpected scalar fallback')):
             self.assertEqual(build_component_table(space, spells, model=MODEL, backend='auto', turns=1), expected)
             self.assertEqual(build_component_table(space, spells, model=MODEL, backend='batch', turns=1), expected)
 
@@ -76,8 +78,8 @@ class BatchTests(unittest.TestCase):
             for candidate in candidates:
                 rows.append(candidate)
                 yield candidate
-        with patch('mtg_tools.mana_search.evaluate', side_effect=AssertionError('Per-base evaluation')):
-            with patch('mtg_tools.mana_batch.binomial_transform', wraps=binomial_transform) as transform:
+        with patch('mtg_tools.mana.tables.evaluate', side_effect=AssertionError('Per-base evaluation')):
+            with patch('mtg_tools.mana._batch.binomial_transform', wraps=binomial_transform) as transform:
                 result = build_component_table(space, spells, model=MODEL, backend='batch', component_progress=progress, progress=row_progress)
                 self.assertGreater(transform.call_count, 1)
         self.assertEqual(result, expected)
@@ -102,7 +104,7 @@ class BatchTests(unittest.TestCase):
         reference.update({ManaSource(pair, kind, pair if kind == 'shock' else ''): 4 for kind in ('shock', 'verge') for pair in ('UB', 'UG', 'BG')})
         space = ManaSpace({s: (n, n) if s.kind == 'basic' else (0, 4) for s, n in reference.items()}, 26)
         self.assertEqual(space.candidate_count(), 3144)
-        with patch('mtg_tools.mana_search.evaluate', side_effect=AssertionError('Auto should batch')):
+        with patch('mtg_tools.mana.tables.evaluate', side_effect=AssertionError('Auto should batch')):
             table = build_component_table(space, SPELLS, model=MODEL)
         for row in table.rows[::173]:
             result = evaluate(dict(zip(space.sources, row.counts)), SPELLS, model=MODEL)

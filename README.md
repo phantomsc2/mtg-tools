@@ -11,23 +11,40 @@ uv run python -m unittest discover -s tests -v
 uv run python -m examples.experiment --budget 1 --seed 0
 ```
 
-Reusable code lives in `src/mtg_tools/`, with a flat module layout. `tests/` holds
+Reusable code lives in `src/mtg_tools/`. `tests/` holds
 the test suite, `examples/` the deck-specific workflows, `notebooks/` interactive
 analyses, and `resources/` sample inputs. Maintained calculation guides live in
 `docs/`; `ideas/` holds workbench notes and historical results in `ideas/reports/`.
 Examples and resources are checkout assets and are not included in the installed
 package. Old top-level imports are replaced by `mtg_tools.<module>` imports.
 
+Mana analysis lives in `mtg_tools.mana`:
+
+| Modules | Responsibility |
+| --- | --- |
+| `lands`, `spells` | Source definitions, land catalog, costs, and casting profiles |
+| `model`, `policy` | Production interfaces and compilation; explicit heuristic assumptions |
+| `timing`, `payment`, `evaluation`, `_batch` | Turn weighting, payment probabilities, scalar/cached evaluation, and batch acceleration |
+| `space` | Bounds, validation, enumeration, and legal replacement neighborhoods |
+| `local` | Visit budgets, local optimization, and stopping certificates |
+| `tables`, `sensitivity` | Component tables, weighted ranking, and exact weight transitions |
+
+`mtg_tools.hands` and `mtg_tools.search` remain the separate generic hand-scoring
+workflow. Decklist import depends on spell profiles rather than the evaluator.
+The former `mtg_tools.mana_*` modules contain compatibility imports for existing
+callers and saved pickle objects; new code should use `mtg_tools.mana` modules.
+
 ## Mana opportunities
 
-[The standalone evaluator](src/mtg_tools/mana_opportunities.py) scores a supplied mana base
+[The standalone evaluator](src/mtg_tools/mana/evaluation.py) scores a supplied mana base
 against casting-cost counts and optional importance weights. It uses only the
 Python standard library.
 
 ```python
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_opportunities import SpellCost, evaluate
-from mtg_tools.mana_model import heuristic_mana_model
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.policy import heuristic_mana_model
 
 base = {
     ManaSource("U", "basic"): 8,
@@ -65,7 +82,7 @@ See [calculation notes](docs/mana-opportunities.md) for the mathematics.
 
 ```sh
 python -m unittest discover -s tests -p "test_mana_opportunities.py" -v
-python -m doctest src/mtg_tools/mana_opportunities.py
+python -m doctest src/mtg_tools/mana/evaluation.py
 ```
 
 ## Decklist import
@@ -145,7 +162,7 @@ For different production rules, supply a `ManaModel` directly:
 
 ```python
 from fractions import Fraction
-from mtg_tools.mana_model import ManaModel, ManaOutcome
+from mtg_tools.mana.model import ManaModel, ManaOutcome
 
 model = ManaModel(
     outcomes=lambda source, context: (
@@ -207,7 +224,7 @@ draw uncertainty, so their batch axes are still needed.
 Keep physical copies separate from payment options:
 
 ```python
-from mtg_tools.mana_opportunities import CastingMode, Spell
+from mtg_tools.mana.spells import CastingMode, Spell
 
 spell = Spell(count=4, modes=(CastingMode("UU"), CastingMode("BB")), weight=1)
 ```
@@ -271,8 +288,9 @@ Set `TURNS` in the notebook's build cell to choose the horizon (default 7).
 Changing it requires rebuilding: table components already average turns 1 through `TURNS`.
 
 ```python
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_search import ManaSpace, build_component_table
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 
 space = ManaSpace.from_colors(26, "UBG", format="standard", families={
     "shock": (0, 4), "fast": (0, 4), "verge": (0, 4), "town": (0, 4),

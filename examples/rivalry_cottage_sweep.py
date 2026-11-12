@@ -8,9 +8,11 @@ import random
 from time import perf_counter
 from examples.rivalry_four_untyped import COUNTS, SPELLS, CORE, NAMES
 from examples.sultai import MANA_MODEL
-from mtg_tools.mana_lands import ManaSource as S
-from mtg_tools.mana_search import ManaSpace, LocalManaEvaluator, local_search
-from mtg_tools.mana_opportunities import evaluate
+from mtg_tools.mana.lands import ManaSource as S
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.local import local_search
+from mtg_tools.mana.evaluation import evaluate
 
 PAIRS=list(combinations_with_replacement(('UB','BG','UG'),2))
 

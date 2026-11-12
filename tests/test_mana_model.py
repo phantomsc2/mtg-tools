@@ -5,10 +5,14 @@ from itertools import combinations, product
 from math import comb, prod
 from unittest.mock import Mock
 
-from mtg_tools.mana_lands import ManaSource
-from mtg_tools.mana_model import ManaContext, ManaModel, ManaOutcome, heuristic_mana_model
-from mtg_tools.mana_opportunities import SpellCost, evaluate
-from mtg_tools.mana_search import LocalManaEvaluator, ManaSpace, build_component_table
+from mtg_tools.mana.lands import ManaSource
+from mtg_tools.mana.model import ManaContext, ManaModel, ManaOutcome
+from mtg_tools.mana.policy import heuristic_mana_model
+from mtg_tools.mana.spells import SpellCost
+from mtg_tools.mana.evaluation import evaluate
+from mtg_tools.mana.evaluation import LocalManaEvaluator
+from mtg_tools.mana.space import ManaSpace
+from mtg_tools.mana.tables import build_component_table
 
 
 def physical_expectation(base, cost, model, turn, seen):
