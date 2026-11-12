@@ -30,7 +30,7 @@ def value_and_swap_deltas(evaluator: LocalManaEvaluator, base: Mapping[ManaSourc
         raise ValueError("Evaluation budget must be a positive integer or None")
     visited = set() if _visited is None else _visited
     counts = evaluator.space.counts(base)
-    candidates = evaluator.neighbor_counts(base, max_replacements=max_replacements)
+    candidates = evaluator.space.neighbor_counts(base, max_replacements=max_replacements)
     current = evaluator.value(base)
     visited.add(counts)
     neighbors = []
@@ -70,7 +70,7 @@ def local_search(evaluator: LocalManaEvaluator, initial: Mapping[ManaSource, int
     moves = []
     radius = 1
     while True:
-        neighborhood = evaluator.value_and_swap_deltas(
+        neighborhood = value_and_swap_deltas(evaluator,
             dict(zip(evaluator.space.sources, current.counts)), evaluation_budget=evaluation_budget,
             max_replacements=radius, _visited=visited)
         best = min((current, *neighborhood.neighbors), key=lambda row: (-row.score, row.counts))

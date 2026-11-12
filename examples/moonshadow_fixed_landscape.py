@@ -15,7 +15,7 @@ def neighbors(space, counts, shocks, *, radius=2, basic_cap=2):
     constrained = ManaSpace(space.bounds, space.land_count,
                            {**space.family_bounds, 'shock': (shocks, shocks), 'basic': (0, basic_cap)})
     ev = LocalManaEvaluator(constrained, (), model=MANA_MODEL, turns=1)
-    return ev.neighbor_counts(dict(zip(space.sources, counts)), max_replacements=radius)
+    return ev.space.neighbor_counts(dict(zip(space.sources, counts)), max_replacements=radius)
 
 
 def write_report(results):
@@ -58,7 +58,7 @@ def run(k):
             lands=json.loads(part.read_text())['lands']
             seed={s:lands.get(NAMES[s],0) for s in space.sources}
             ev.value(seed)
-            for c in ev.neighbor_counts(seed):ev.value(dict(zip(space.sources,c)))
+            for c in ev.space.neighbor_counts(seed):ev.value(dict(zip(space.sources,c)))
         else:
             c=next(space.exhaustive())
             ev.value(dict(zip(space.sources,c)))

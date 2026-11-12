@@ -1,3 +1,4 @@
+from mtg_tools.mana.local import value_and_swap_deltas
 def restrict_space(space, exact=None, caps=None):
     bounds = dict(space.family_bounds)
     for kind, value in (exact or {}).items(): bounds[kind] = (value, value)
@@ -128,7 +129,7 @@ class LocalSearchTests(unittest.TestCase):
             counts = space.counts(base)
             raw = Fraction(scores[base.get(U, 0)])
             return RankedBase(counts, raw, None, None)
-        with patch.object(evaluator, 'value', side_effect=value), patch.object(evaluator, 'value_and_swap_deltas', wraps=evaluator.value_and_swap_deltas) as check:
+        with patch.object(evaluator, 'value', side_effect=value), patch('mtg_tools.mana.local.value_and_swap_deltas', wraps=value_and_swap_deltas) as check:
             result = local_search(evaluator, {B: 6}, evaluation_budget=100)
             self.assertEqual(result.stopped, 'two-land local optimum')
             self.assertEqual([call.kwargs['max_replacements'] for call in check.call_args_list], [1, 1, 2, 1, 1, 2])
@@ -157,8 +158,8 @@ class LocalSearchTests(unittest.TestCase):
             self.assertTrue(evaluator.space._eligible(counts))
             raw = Fraction(3 if counts == target_counts else 2 if counts == start_counts else 0)
             return RankedBase(counts, raw, None, None)
-        self.assertNotIn(target_counts, evaluator.neighbor_counts(initial))
-        self.assertIn(target_counts, evaluator.neighbor_counts(initial, max_replacements=2))
+        self.assertNotIn(target_counts, evaluator.space.neighbor_counts(initial))
+        self.assertIn(target_counts, evaluator.space.neighbor_counts(initial, max_replacements=2))
         with patch.object(evaluator, 'value', side_effect=value):
             result = local_search(evaluator, initial)
         self.assertEqual(result.best.counts, target_counts)
@@ -180,7 +181,7 @@ class LocalSearchTests(unittest.TestCase):
         for radius in (0, 3, True, 1.5):
             with self.subTest(radius=radius):
                 with self.assertRaises(ValueError):
-                    evaluator.neighbor_counts(initial, max_replacements=radius)
+                    evaluator.space.neighbor_counts(initial, max_replacements=radius)
                 with self.assertRaises(ValueError):
                     local_search(evaluator, initial, max_replacements=radius)
 
@@ -188,7 +189,7 @@ class LocalSearchTests(unittest.TestCase):
         space = ManaSpace({U: (0, 2), B: (0, 2), D: (1, 1)}, 3)
         evaluator = LocalManaEvaluator(space, [SpellCost('U', 3)], model=MODEL, turns=2)
         base = {B: 1, U: 1, D: 1}
-        neighborhood = evaluator.value_and_swap_deltas(base)
+        neighborhood = value_and_swap_deltas(evaluator, base)
         self.assertTrue(neighborhood.complete)
         self.assertEqual(len(neighborhood.neighbors), 2)
         for neighbor in neighborhood.neighbors:

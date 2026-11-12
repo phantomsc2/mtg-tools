@@ -37,7 +37,7 @@ def main():
         while sum(n for s,n in current.items() if s.kind=='shock') != total:
             existing=sum(n for s,n in current.items() if s.kind=='shock')
             wanted=existing+(1 if existing<total else -1)
-            candidates=[projector.value(dict(zip(space.sources,c))) for c in projector.neighbor_counts(current)
+            candidates=[projector.value(dict(zip(space.sources,c))) for c in projector.space.neighbor_counts(current)
                         if sum(n for s,n in zip(space.sources,c) if s.kind=='shock')==wanted]
             seed=max(candidates,key=lambda r:r.score)
             current=dict(zip(space.sources,seed.counts))

@@ -275,17 +275,3 @@ class LocalManaEvaluator:
         incoming = tuple((s, b-a) for s, a, b in zip(self.space.sources, reference.counts, value.counts) if b > a)
         return RankedBase(value.counts, value.score,
                           value.score - reference.score, LandSwap(out, incoming, sum(n for _, n in out)))
-
-    def neighbor_counts(self, base: Mapping[ManaSource, int], *,
-                        max_replacements: int = 1) -> tuple[tuple[int, ...], ...]:
-        """Delegate legal neighborhood generation to the search space."""
-        return self.space.neighbor_counts(base, max_replacements=max_replacements)
-
-    def value_and_swap_deltas(self, base: Mapping[ManaSource, int], *, evaluation_budget: int | None = None,
-                              max_replacements: int = 1,
-                              _visited: set[tuple[int, ...]] | None = None) -> LocalNeighborhood:
-        """Score a neighborhood using the local search's visit-budget rules."""
-        from mtg_tools.mana.local import value_and_swap_deltas
-
-        return value_and_swap_deltas(self, base, evaluation_budget=evaluation_budget,
-                                     max_replacements=max_replacements, _visited=_visited)

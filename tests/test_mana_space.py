@@ -38,7 +38,7 @@ class FamilySpaceTests(unittest.TestCase):
             self.assertEqual(space.candidate_count(),len(expected))
             ev=LocalManaEvaluator(space,(),model=heuristic_mana_model(),turns=1)
             for c in expected:
-                found=set(ev.neighbor_counts(dict(zip(space.sources,c)),max_replacements=2))
+                found=set(ev.space.neighbor_counts(dict(zip(space.sources,c)),max_replacements=2))
                 self.assertEqual(found,{v for v in expected if v!=c and sum(abs(a-b) for a,b in zip(c,v))<=4})
 
     def test_infeasible_and_invalid_ranges(self):
@@ -80,7 +80,7 @@ class FamilySpaceTests(unittest.TestCase):
         initial=dict(zip(space.sources,next(space.exhaustive())))
         result=local_search(ev,initial,evaluation_budget=2000)
         self.assertEqual(result.stopped,'two-land local optimum')
-        for c in ev.neighbor_counts(dict(zip(space.sources,result.best.counts)),max_replacements=2):
+        for c in ev.space.neighbor_counts(dict(zip(space.sources,result.best.counts)),max_replacements=2):
             self.assertLessEqual(ev.value(dict(zip(space.sources,c))).score,result.best.score)
 
     def test_new_cache_schema_and_rejected_legacy_results(self):

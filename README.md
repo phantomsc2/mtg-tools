@@ -31,8 +31,8 @@ Mana analysis lives in `mtg_tools.mana`:
 
 `mtg_tools.hands` and `mtg_tools.search` remain the separate generic hand-scoring
 workflow. Decklist import depends on spell profiles rather than the evaluator.
-The former `mtg_tools.mana_*` modules contain compatibility imports for existing
-callers and saved pickle objects; new code should use `mtg_tools.mana` modules.
+Use `mtg_tools.mana` modules for mana imports. Regenerate saved pickle objects
+that reference the former flat module paths.
 
 ## Mana opportunities
 
@@ -146,7 +146,7 @@ policy allows at most T sources in a payment, without choosing a land-drop order
 identified only by their two colors. Each new family supports all ten pairs,
 has no basic land types or extra composition cost, and is an explicit opt-in
 in `ManaSpace.from_colors(..., families={"fast": (0, 4), ...})`.
-`mana_lands.land_availability(kind, turn)` exposes the exact per-land rate.
+`mtg_tools.mana.policy.land_availability(kind, turn)` exposes the exact per-land rate.
 
 An unavailable source supplies neither mana nor colors. A tapped UB dual and
 a Mountain cannot pay U on T1. Surplus drawn lands can compensate only when the
@@ -196,7 +196,7 @@ historical reports retain their original scoring assumptions.
 ## Verge sources and land types
 
 `ManaSource("UB", "verge")` represents Gloomlake Verge: U unconditionally,
-B with an Island or Swamp. `mana_lands.VERGE_RULES` covers all ten color pairs,
+B with an Island or Swamp. `mtg_tools.mana.lands.VERGE_RULES` covers all ten color pairs,
 including their asymmetric primary and secondary production.
 
 Basics infer their own land type. Shocks are untyped unless explicitly declared,
@@ -257,7 +257,7 @@ remain exact; the exponential weighting is a numerical approximation. Scores
 are normalized weighted means of casting opportunities.
 Per-turn opportunity rows remain unweighted; consumers aggregating these rows
 must use the timing weights rather than divide by the number of turns.
-`resolve_timing` in `mana_timing` exposes the resolved horizon, weights, omitted
+`resolve_timing` in `mtg_tools.mana.timing` exposes the resolved horizon, weights, omitted
 mass and signature; local evaluators expose this as `.timing`. Table metadata
 includes `timing_signature`. Cache signatures include timing configuration;
 old caches must be rebuilt.
@@ -309,7 +309,7 @@ Town and Cavern offer all five colors; Town additionally has its availability di
 from spells or the reference base, and do not require every candidate to produce
 every selected color. `overrides={source: (minimum, maximum)}` replaces bounds
 for individual selected sources; direct `ManaSpace(bounds, land_count)` remains
-available for custom pools. Land definitions live in `mana_lands`.
+available for custom pools. Land definitions live in `mtg_tools.mana.lands`.
 
 `fixed={source: count}` adds eligible sources even when their families are absent
 from the flexible pool, or replaces their individual source bounds with exact counts; aggregate family bounds still apply.
@@ -319,7 +319,7 @@ sources must satisfy the selected colors and format. A source cannot appear
 in both `fixed` and `overrides`; infeasible totals are rejected.
 
 Use `format="standard"` in `ManaSpace.from_colors(...)` to filter sources using
-the dated `mana_lands.STANDARD_AS_OF` snapshot (2026-11-07). The notebook enables
+the dated `mtg_tools.mana.lands.STANDARD_AS_OF` snapshot (2026-11-07). The notebook enables
 this explicitly. Sultai fast lands are Blooming Marsh (BG) and Botanical Sanctum
 (UG); Darkslick Shores (UB) is excluded. Unfiltered construction remains available
 with `format=None`, the default. Unsupported format names are rejected. The
@@ -384,8 +384,8 @@ If the completion check or subsequent descent runs out of budget, the best base
 found is returned with `stopped="evaluation budget"`, without a certificate.
 Larger neighborhoods can therefore require a larger budget to finish.
 
-`LocalManaEvaluator.neighbor_counts(base, max_replacements=1)` exposes the sorted,
-deduplicated eligible compositions without scoring. `value_and_swap_deltas`
+`ManaSpace.neighbor_counts(base, max_replacements=1)` exposes the sorted,
+deduplicated eligible compositions without scoring. `mtg_tools.mana.local.value_and_swap_deltas`
 accepts the same keyword, defaulting to one-land moves for direct callers.
 Two-land generation checks constraints on the final composition, allowing
 coupled moves that preserve an exact family total despite individually illegal
@@ -424,7 +424,7 @@ It cannot enable Verges. Opt in with `families={"tri": (0, 2), ...}`.
 Unrestricted generation supports all ten triples; Standard filtering includes
 only Mystic Monastery, Nomad Outpost, Sandsteppe Citadel, Opulent Palace, and
 Frontier Bivouac in the November 7, 2026 snapshot. Only Palace fits UBG.
-`mana_lands.TRI_NAMES` maps those canonical triples to card names. This models
+`mtg_tools.mana.lands.TRI_NAMES` maps those canonical triples to card names. This models
 the untyped tapped tri-lands, not typed Triomes or lands with extra abilities.
 Legality evidence: [current Standard sets](https://magic.wizards.com/en/formats/standard)
 and [TDM checklist](https://media.wizards.com/ContentResources/WPN/deck_checklists/tdm/MTGTDM_EN_DkCklst.pdf).

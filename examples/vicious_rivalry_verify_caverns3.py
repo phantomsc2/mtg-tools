@@ -28,8 +28,8 @@ def run(budget=2000):
     seed = json.loads(Path('ideas/reports/vicious_rivalry_h1_5_caverns3_one_swap.json').read_text())
     inverse = {NAMES[s]: s for s in space.sources}
     base = {inverse[k]: v for k, v in seed['lands'].items()}
-    one = ev.neighbor_counts(base, max_replacements=1)
-    two = ev.neighbor_counts(base, max_replacements=2)
+    one = ev.space.neighbor_counts(base, max_replacements=1)
+    two = ev.space.neighbor_counts(base, max_replacements=2)
     before = len(ev.cache)
     report = {'half_life': 1.5, 'caverns': 3, 'max_replacements': 2, 'budget': budget,
               'baseline_score': seed['score'], 'baseline_lands': seed['lands'],

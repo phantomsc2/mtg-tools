@@ -28,7 +28,7 @@ def main():
     seed=json.loads(Path('ideas/reports/rivalry_cottage_h2_case1_shock8.json').read_text())
     inverse={names[s]:s for s in space.sources}
     initial={inverse[k]:n for k,n in seed['lands'].items()}
-    neighbors=ev.neighbor_counts(initial,max_replacements=2)
+    neighbors=ev.space.neighbor_counts(initial,max_replacements=2)
     report={'half_life':2,'budget':5000,'max_replacements':2,'baseline_score':seed['score'],
             'baseline_lands':seed['lands'],'initial_neighbors':len(neighbors),
             'initial_uncached':sum(c not in ev.cache for c in neighbors),
